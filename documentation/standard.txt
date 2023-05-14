@@ -1,0 +1,91 @@
+Alloy is a byte machine code language.
+
+Terminology:
+- Value - The data contained in something.
+- Address - Pointer.
+- Type - A specified bit count and assumed usage of data. The usage assumption is generally best followed but not required.
+- Instruction - A contiguous group of bytes that is parsed in a special way to complete something.
+- Instruction ID - An 8 bit value at the 0th byte of every instruction that determines the structure and function of the remaining instruction's bytes.
+- Parameters (Instruction) - A contiguous chunk of bytes [ 64 Bit Register Value, Flag ID, Register ID, Operation ID ]
+- Register - A register is a 64 bit (8 byte) wide contiguous chunk of memory.
+  - Program First Address (Register) - Contains the starting address of the program buffer.
+  - Program Execution Address (Register) - Contains the address of the next instruction to be executed in the program buffer.
+  - Program Last Address (Register) - Contains the last available address of the program buffer.
+- Register ID - An 8 bit value denoting the index of the register desired in the context.
+- Register Value - The data contained inside a register.
+- Buffer - A first and last address of available contiguous memory.
+- Context - 256 registers in a contiguous block.
+- Calling Context - The context that created the current context and manages it's execution.
+- Execution (Register) - A register that holds a 64 bit address pointing to the next expected instruction to execute.
+- Flag - A 1 bit value that decides whether an instruction will perform it's function or skip to the next one (0 - skip, 1 - perform).
+- Flag ID - An 8 bit value denoting the flag's position in the flags array.
+- Operation - An action computed strictly between two or more registers.
+- Operation ID - An 8 bit value that denotes a specific operation.
+- Initial Program - The first program given to the intepreter intepreting alloy.
+- Skeleton Context - A context with the program first address, program execution address and program last address registers set and everything else uninitialized.
+
+Alloy requires these features to be compliant:
+- Context:
+  - Context Addressing:
+    - Registers are addressed from 0 to 255.
+  - Context organization:
+    - Register 0: Program First Address.
+    - Register 1: Program Execution Address.
+    - Register 2: Program Last Address.
+    - Register 3: Error Code.
+    - Register 4: Flags 0 - 63.
+    - Register 5: Flags 64 - 127.
+    - Register 6: Flags 128 - 191.
+    - Register 7: Flags 192 - 255.
+    - Register 8 - 255: (Software defined).
+- Execution:
+  - An instruction is always executed like this:
+    - Step 1: Read Instruction ID from the address pointed to by the 'Program Execution Address' register.
+    - Step 2: Determine parameters needed.
+    - Step 3: Get instruction's parameter values.
+    - Step 4: Advance execution (register) to next instruction. ('Program Execution Address' = 'Program Execution Address' + Current Instruction's Length.)
+    - Step 5: Perform instruction as specified by parameters.
+    - Step 6: Set error code accordingly.
+- Instructions:
+  - Instructions are structured as noted:
+    - Instruction functionality is denoted by what is done each step.
+      - Step 1: Instruction ID.
+      - Step 2: Expected types in order.
+      - Step 3: (Not specfied as naming each item for step 2 and for step 3 is redundant.)
+      - Step 4: (Not specified as increment is always size of instruction length.)
+      - Step 5: Actions taken. Can be ['action'('inputs')('outputs')] or plain english explanation.
+      - Step 6: Possible error codes.
+    - Instruction parameters always are ordered from top to bottom as noted and there is never any gaps between them.
+    - Anything not explicitly expressed as forbidden is allowed. (Parameter Values, etc.)
+    - Instructions do not have variable length. (One Instruction ID is always one instruction's length.)
+  - Instructions:
+    - pause - Sets the execution to return to the caller on this instruction's completion.
+      - 0
+      - None
+      - Set instruction loop to return to caller context
+      - Not Possible.
+    - write_register - Fully overwrites [destination]'s value with [value].
+      - 1
+      - [Register Value: value][Register ID: destination_register]
+      - [set(value)(destination_register.value)]
+      - Not Possible.
+    - request_memory - Asks for new buffer of specified size.
+      - 2
+      - [Register ID: buffer_size_requested][Register ID: buffer_first_address][Register ID: buffer_last_address]
+      - [allocate(buffer_size_requested)(buffer_first_address, buffer_last_address)]
+      - [allocation_denied #not_fatal]
+    - return_memory - Returns allocated buffer.
+      - 3
+      - [Register ID: buffer_first_address][Register ID: buffer_last_address]
+      - [deallocate(buffer_first_address, buffer_last_address)()]
+      - Not Possible / Ignored.
+    - address_to_register - Overwrites a register with bit_count bits (8, 16, 24, 36, 48, 56 or 64) read from an address.
+      - 4
+      - [Register ID: source_address][Register ID: bit_count][Register ID: destination_register]
+      - Copy 'bit_count' bits from 'source_address' into the 0th byte onwards of 'destination_register'.
+      - [address_to_register_failed #fatal #might_crash]
+    - register_to_address - Overwrites data at an address with bit_count bits (8, 16, 24, 36, 48, 56 or 64) from a register.
+      - 5
+      - [Register ID: source_register][Register ID: bit_count][Register ID: destination_address]
+      - Copy 'bit_count' bits from 'source_register' into the byte pointed to by 'destination_address' onwards.
+      - [register_to_address_failed #fatal #might_crash]
