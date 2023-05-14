@@ -89,3 +89,4 @@ Alloy requires these features to be compliant:
       - [Register ID: source_register][Register ID: bit_count][Register ID: destination_address]
       - Copy 'bit_count' bits from 'source_register' into the byte pointed to by 'destination_address' onwards.
       - [register_to_address_failed #fatal #might_crash]
+    - [ Documentation Unfinished ]
