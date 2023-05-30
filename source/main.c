@@ -1,5 +1,6 @@
 // alloy
-#include "./programs/test/test_stack.h"
+#include "./programs/test/test_anything.hpp"
+#include "./programs/compile/compile.hpp"
 
 // c
 #include <stdio.h>
@@ -13,7 +14,7 @@ void MAIN__print__context(ANVIL__context* context) {
     register_index = 0;
 
     // print program size
-    printf("Program Size: [ %lu ]\n", (*context).registers[ANVIL__rt__program_end_address] - (*context).registers[ANVIL__rt__program_start_address]);
+    printf("Program Size: [ %lu ]\n", ((ANVIL__u64)(*context).registers[ANVIL__rt__program_end_address] - (ANVIL__u64)(*context).registers[ANVIL__rt__program_start_address]));
 
     // print registers section header
     printf("Registers:\n");
@@ -27,7 +28,7 @@ void MAIN__print__context(ANVIL__context* context) {
         printf("\t%lu: [", (ANVIL__u64)register_index);
 
         // print columns
-        while (register_index < ANVIL__rt__TOTAL_COUNT && row_items < 4) {
+        while (register_index < ANVIL__rt__TOTAL_COUNT && row_items < 8) {
             // print register value
             printf(" %lu", (ANVIL__u64)(*context).registers[register_index]);
 
@@ -46,12 +47,12 @@ void MAIN__print__context(ANVIL__context* context) {
     return;
 }
 
-void MAIN__test__stack() {
+void MAIN__test__scratch() {
     ANVIL__context context;
     ANVIL__buffer program;
 
     // build program
-    program = STACK__forge__program();
+    program = TEST__forge__program();
 
     // check if not built
     if (program.start == 0) {
@@ -76,13 +77,53 @@ void MAIN__test__stack() {
     return;
 }
 
+void MAIN__test__compiler() {
+    ANVIL__context context;
+    ANVIL__buffer program;
+    u8* inputs[] = {
+        (u8*)"main()() {\n\tforge.debug.print_all_registers()()\n}",
+    };
+
+    // build program
+    program = COMPILE__forge__program();
+
+    // check if not built
+    if (program.start == 0) {
+        // inform user of failure
+        printf("Program not built in function: %s", __func__);
+
+        return;
+    }
+
+    // run each test
+    for (u64 test = 0; test < (sizeof(inputs) / sizeof(u8*)); test++) {
+        // create context
+        context = ANVIL__setup__context(program);
+
+        // set input
+        ANVIL__set__input(&context, ANVIL__open__buffer_from_string(inputs[test], ANVIL__bt__false, ANVIL__bt__false));
+
+        // run program
+        ANVIL__run__context(&context, ANVIL__define__run_forever);
+
+        // DEBUG
+        MAIN__print__context(&context);
+
+        // clean up
+        ANVIL__close__buffer(program);
+    }
+
+    return;
+}
+
 // entry point
 int main() {
     // notify testing start
     printf("Starting Testing.\n");
 
-    // start test
-    MAIN__test__stack();
+    // perform tests
+    MAIN__test__scratch();
+    MAIN__test__compiler();
 
     // exit
     return 0;

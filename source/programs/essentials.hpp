@@ -3,7 +3,7 @@
 
 /* Include */
 // anvil
-#include "../anvil/anvil.h"
+#include "../anvil/anvil.hpp"
 
 /* Offsets */
 // offset type
@@ -35,7 +35,7 @@ typedef struct ESS__offsets {
 } ESS__offsets;
 
 /* Printing */
-// print registers
+// print buffer registers
 typedef enum ESS__rt__print_buffer {
     // preserve start
     ESS__rt__print_buffer__preserve__START = ANVIL__srt__start__workspace,
@@ -110,6 +110,26 @@ void ESS__code__print_buffer(ANVIL__workspace* workspace, ESS__offsets* essentia
 
     // jump to return address
     ANVIL__code__jump__explicit(workspace, ANVIL__sft__always_run, ANVIL__srt__return_address);
+
+    return;
+}
+
+/* Quick Print Buffer */
+void ESS__code__quick_print_buffer(ANVIL__workspace* workspace, ANVIL__buffer buffer) {
+    ANVIL__address current;
+
+    // setup loop
+    current = buffer.start;
+
+    // print each character individually
+    while (current <= buffer.end) {
+        // print character
+        ANVIL__code__write_register(workspace, (ANVIL__register)(u64)(*((u8*)current)), ANVIL__srt__temp__write);
+        ANVIL__code__debug__putchar(workspace, ANVIL__srt__temp__write);
+
+        // next character
+        current = (ANVIL__address)((u64)current + sizeof(u8));
+    }
 
     return;
 }

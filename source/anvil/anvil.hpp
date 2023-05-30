@@ -98,7 +98,7 @@ ANVIL__buffer ANVIL__create_null__buffer() {
 
 // calculate buffer length
 ANVIL__length ANVIL__calculate__buffer_length(ANVIL__buffer buffer) {
-    return buffer.end - buffer.start + 1;
+    return (ANVIL__length)((u8*)buffer.end - (u8*)buffer.start) + 1;
 }
 
 // open buffer
@@ -110,7 +110,7 @@ ANVIL__buffer ANVIL__open__buffer(ANVIL__length length) {
 
 	// set end of buffer according to allocation success
 	if (output.start != 0) {
-		output.end = output.start + length - 1;
+		output.end = (ANVIL__address)((((ANVIL__u64)output.start) + length) - 1);
 	} else {
 		output.end = 0;
 	}
@@ -196,7 +196,7 @@ ANVIL__buffer ANVIL__move__file_to_buffer(ANVIL__buffer null_terminated_file_nam
 	ANVIL__u64 file_size;
 
 	// open file
-	file_handle = fopen(null_terminated_file_name.start, "rb");
+	file_handle = fopen((const char*)null_terminated_file_name.start, "rb");
 
 	// check if the file opened
 	if (file_handle == 0) {
@@ -239,7 +239,7 @@ void ANVIL__move__buffer_to_file(ANVIL__bt* error, ANVIL__buffer null_terminated
     *error = ANVIL__bt__false;
 
 	// open file
-	file_handle = fopen(null_terminated_file_name.start, "w+b");
+	file_handle = fopen((const char*)null_terminated_file_name.start, "w+b");
 
 	// check if the file opened
 	if (file_handle == 0) {
@@ -475,7 +475,7 @@ ANVIL__u64 ANVIL__read_next__buffer_item(ANVIL__register* address, ANVIL__byte_c
     output = ANVIL__read__buffer(*address, byte_count);
 
     // advance pointer
-    *address = *address + byte_count;
+    *address = (ANVIL__address)(*((u8**)address) + byte_count);
 
     // return data
     return output;
@@ -1051,7 +1051,7 @@ ANVIL__nit ANVIL__run__instruction(ANVIL__context* context) {
         run__instruction_count = ANVIL__read_next__register_ID(execution_read_address);
 
         // run context
-        ANVIL__run__context((*context).registers[run__context_buffer_start], (u64)(*context).registers[run__instruction_count]);
+        ANVIL__run__context((ANVIL__context*)(*context).registers[run__context_buffer_start], (u64)(*context).registers[run__instruction_count]);
 
         break;
     // print one char to stdout
@@ -1100,7 +1100,7 @@ ANVIL__nit ANVIL__run__instruction(ANVIL__context* context) {
         // copy data into buffer
         for (ANVIL__u64 i = 0; i < debug__fgets__buffer_length; i++) {
             // write character
-            ANVIL__write__buffer((u8)debug__fgets__temporary_string[i], sizeof(ANVIL__u8), debug__fgets__buffer.start + (i * sizeof(ANVIL__u8)));
+            ANVIL__write__buffer((u8)debug__fgets__temporary_string[i], sizeof(ANVIL__u8), (ANVIL__u8*)debug__fgets__buffer.start + (i * sizeof(ANVIL__u8)));
         }
 
         // setup registers
@@ -1114,7 +1114,7 @@ ANVIL__nit ANVIL__run__instruction(ANVIL__context* context) {
         debug__mark_data_section__section_length = ANVIL__read_next__register(execution_read_address);
 
         // skip over data section
-        (*context).registers[ANVIL__rt__program_current_address] += (u64)debug__mark_data_section__section_length;
+        (*context).registers[ANVIL__rt__program_current_address] = (ANVIL__address)((u64)(*context).registers[ANVIL__rt__program_current_address] + (u64)debug__mark_data_section__section_length);
 
         break;
     // mark section of data
@@ -1247,7 +1247,7 @@ void ANVIL__write_next__instruction_ID(ANVIL__workspace* workspace, ANVIL__instr
 
     // advance
     (*workspace).current_program_offset += sizeof(ANVIL__instruction_ID);
-    (*workspace).write_to += sizeof(ANVIL__instruction_ID);
+    (*workspace).write_to = (ANVIL__address)((u64)(*workspace).write_to + sizeof(ANVIL__instruction_ID));
 
     return;
 }
@@ -1261,7 +1261,7 @@ void ANVIL__write_next__flag_ID(ANVIL__workspace* workspace, ANVIL__flag_ID flag
 
     // advance
     (*workspace).current_program_offset += sizeof(ANVIL__flag_ID);
-    (*workspace).write_to += sizeof(ANVIL__flag_ID);
+    (*workspace).write_to = (ANVIL__address)((u64)(*workspace).write_to + sizeof(ANVIL__flag_ID));
 
     return;
 }
@@ -1274,8 +1274,8 @@ void ANVIL__write_next__operation_ID(ANVIL__workspace* workspace, ANVIL__operati
     }
 
     // advance
-    (*workspace).current_program_offset += sizeof(ANVIL__instruction_ID);
-    (*workspace).write_to += sizeof(ANVIL__instruction_ID);
+    (*workspace).current_program_offset += sizeof(ANVIL__operation_ID);
+    (*workspace).write_to = (ANVIL__address)((u64)(*workspace).write_to + sizeof(ANVIL__operation_ID));
 
     return;
 }
@@ -1289,7 +1289,7 @@ void ANVIL__write_next__register_ID(ANVIL__workspace* workspace, ANVIL__register
 
     // advance
     (*workspace).current_program_offset += sizeof(ANVIL__register_ID);
-    (*workspace).write_to += sizeof(ANVIL__register_ID);
+    (*workspace).write_to = (ANVIL__address)((u64)(*workspace).write_to + sizeof(ANVIL__register_ID));
 
     return;
 }
@@ -1303,7 +1303,7 @@ void ANVIL__write_next__register(ANVIL__workspace* workspace, ANVIL__register re
 
     // advance
     (*workspace).current_program_offset += sizeof(ANVIL__register);
-    (*workspace).write_to += sizeof(ANVIL__register);
+    (*workspace).write_to = (ANVIL__address)((u64)(*workspace).write_to + sizeof(ANVIL__register));
 
     return;
 }
@@ -1331,7 +1331,7 @@ void ANVIL__write_next__buffer(ANVIL__workspace* workspace, ANVIL__buffer buffer
 
     // advance
     (*workspace).current_program_offset += buffer_length + sizeof(ANVIL__length);
-    (*workspace).write_to += buffer_length + sizeof(ANVIL__length);
+    (*workspace).write_to = (ANVIL__address)((u64)(*workspace).write_to + buffer_length + sizeof(ANVIL__length));
 
     return;
 }
