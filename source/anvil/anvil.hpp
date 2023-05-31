@@ -978,6 +978,9 @@ ANVIL__nit ANVIL__run__instruction(ANVIL__context* context) {
         address_to_register__bit_count_register_ID = ANVIL__read_next__register_ID(execution_read_address);
         address_to_register__destination_register_ID = ANVIL__read_next__register_ID(execution_read_address);
 
+        // read data to an address
+        (*context).registers[address_to_register__destination_register_ID] = (ANVIL__register)ANVIL__read__buffer((ANVIL__address)(*context).registers[address_to_register__source_register_ID], ((ANVIL__length)(*context).registers[address_to_register__bit_count_register_ID]) / ANVIL__define__bits_in_byte);
+
         // read data into register
         (*context).registers[address_to_register__destination_register_ID] = (ANVIL__register)ANVIL__read__buffer((ANVIL__address)(*context).registers[address_to_register__source_register_ID], ((ANVIL__length)(*context).registers[address_to_register__bit_count_register_ID]) / ANVIL__define__bits_in_byte);
 

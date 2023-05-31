@@ -1,6 +1,6 @@
 # Forge Project
 
-A byte machine interpreter written in C.
+A byte machine interpreter written in C / C++.
 
 ## Build
 
