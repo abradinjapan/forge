@@ -1,6 +1,6 @@
 // alloy
-#include "./programs/test/test_anything.hpp"
-#include "./programs/compile/compile.hpp"
+#include "./programs/test/test_anything.h"
+#include "./programs/compile/compile.h"
 
 // c
 #include <stdio.h>
