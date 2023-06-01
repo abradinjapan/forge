@@ -136,6 +136,11 @@ void CODE__code__write_instruction(ANVIL__workspace* workspace, CODE__offsets* c
 		CODE__bt__start_instruction,
 
 		// write register
+		CODE__bt__start_instruction,
+			CODE__bt__mark__register,
+			CODE__bt__mark__register_ID,
+		
+		// 
 	};
 
 	// setup function offset
