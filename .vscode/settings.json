@@ -1,7 +1,0 @@
-{
-    "files.associations": {
-        "compile.hpp": "c",
-        "test_anything.hpp": "c",
-        "essentials.hpp": "c"
-    }
-}
