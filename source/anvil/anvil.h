@@ -1727,8 +1727,8 @@ void ANVIL__code__start(ANVIL__workspace* workspace, ANVIL__stack_size stack_siz
     // setup constants
     ANVIL__code__write_register(workspace, (ANVIL__register)0, ANVIL__srt__constant__0);
     ANVIL__code__write_register(workspace, (ANVIL__register)1, ANVIL__srt__constant__1);
-    ANVIL__code__write_register(workspace, (ANVIL__register)1, ANVIL__srt__constant__2);
-    ANVIL__code__write_register(workspace, (ANVIL__register)1, ANVIL__srt__constant__4);
+    ANVIL__code__write_register(workspace, (ANVIL__register)2, ANVIL__srt__constant__2);
+    ANVIL__code__write_register(workspace, (ANVIL__register)4, ANVIL__srt__constant__4);
     ANVIL__code__write_register(workspace, (ANVIL__register)8, ANVIL__srt__constant__8);
     ANVIL__code__write_register(workspace, (ANVIL__register)16, ANVIL__srt__constant__16);
     ANVIL__code__write_register(workspace, (ANVIL__register)24, ANVIL__srt__constant__24);
