@@ -1561,7 +1561,7 @@ typedef enum ANVIL__srt {
 
     // locations
     ANVIL__srt__start__workspace = 64,
-    ANVIL__srt__start__function_io = 192,
+    ANVIL__srt__start__function_io = 224,
 
     // count
     ANVIL__srt__COUNT = ANVIL__srt__END - ANVIL__srt__START,

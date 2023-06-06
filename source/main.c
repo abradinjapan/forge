@@ -81,7 +81,7 @@ void MAIN__test__compiler() {
     ANVIL__context context;
     ANVIL__buffer program;
     u8* inputs[] = {
-        (u8*)"main()() {\n\tforge.debug.print_all_registers()()\n}",
+        (u8*)"main()() {\n\tforge.debug.print_register_as_decimal()()\n}",
     };
 
     // build program
