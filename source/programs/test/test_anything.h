@@ -13,7 +13,6 @@
 typedef enum TEST__ot {
     TEST__ot__main__start,
     TEST__ot__start__message_1,
-    TEST__ot__build_program__start,
 
     TEST__ot__COUNT,
 } TEST__ot;
@@ -21,67 +20,6 @@ typedef enum TEST__ot {
 typedef struct TEST__offsets {
     ANVIL__offset offsets[TEST__ot__COUNT];
 } TEST__offsets;
-
-/* Create Program */
-// register types
-typedef enum TEST__build_program {
-	// preserve start
-	TEST__build_program__preserve__START = ANVIL__srt__start__workspace,
-
-	// variables
-	TEST__build_program__write_to = TEST__build_program__preserve__START,
-	TEST__build_program__do_write,
-
-	// preserve end
-	TEST__build_program__preserve__END,
-
-	// inputs
-	TEST__build_program__input__write_to = ANVIL__srt__start__function_io,
-	TEST__build_program__input__do_write,
-
-	// outputs
-	TEST__build_program__output__write_to = ANVIL__srt__start__function_io,
-} TEST__build_program;
-
-// call function
-void TEST__code__call__build_program(ANVIL__workspace* workspace, TEST__offsets* test_offsets, ANVIL__flag_ID flag, ANVIL__register_ID input__write_to, ANVIL__register_ID input__do_write, ANVIL__register_ID output__write_to) {
-	// pass inputs
-	ANVIL__code__register_to_register(workspace, flag, input__write_to, TEST__build_program__input__write_to);
-	ANVIL__code__register_to_register(workspace, flag, input__do_write, TEST__build_program__input__do_write);
-
-	// call function
-	ANVIL__code__call__static(workspace, flag, (*test_offsets).offsets[TEST__ot__build_program__start]);
-
-	// pass outputs
-	ANVIL__code__register_to_register(workspace, flag, TEST__build_program__output__write_to, output__write_to);
-}
-
-// build function
-void TEST__code__build_program(ANVIL__workspace* workspace, TEST__offsets* test_offsets, ESS__offsets* essential_offsets) {
-	// setup function offset
-	(*test_offsets).offsets[TEST__ot__build_program__start] = ANVIL__get__offset(workspace);
-
-	// setup function prologue
-	ANVIL__code__preserve_workspace(workspace, ANVIL__sft__always_run, TEST__build_program__preserve__START, TEST__build_program__preserve__END);
-
-	// get inputs
-	ANVIL__code__register_to_register(workspace, ANVIL__sft__always_run, TEST__build_program__input__write_to, TEST__build_program__write_to);
-	ANVIL__code__register_to_register(workspace, ANVIL__sft__always_run, TEST__build_program__input__do_write, TEST__build_program__do_write);
-
-	// code here
-    CODE__code__instruction__stop(workspace, essential_offsets, TEST__build_program__write_to, TEST__build_program__do_write);
-
-	// setup outputs
-	ANVIL__code__register_to_register(workspace, ANVIL__sft__always_run, TEST__build_program__write_to, TEST__build_program__output__write_to);
-
-	// setup function epilogue
-	ANVIL__code__restore_workspace(workspace, ANVIL__sft__always_run, TEST__build_program__preserve__START, TEST__build_program__preserve__END);
-
-	// return to caller
-	ANVIL__code__jump__explicit(workspace, ANVIL__sft__always_run, ANVIL__srt__return_address);
-
-	return;
-}
 
 
 /* Main */
@@ -97,6 +35,10 @@ typedef enum TEST__rt__main {
     TEST__rt__main__buffer_length,
     TEST__rt__main__do_write,
     TEST__rt__main__write_to,
+    TEST__rt__main__context_start,
+    TEST__rt__main__context_end,
+    TEST__rt__main__program_start,
+    TEST__rt__main__program_end,
     
     // preserve end
     TEST__rt__main__preserve__END,
@@ -176,12 +118,13 @@ ANVIL__buffer TEST__forge__program() {
     ANVIL__workspace workspace;
     TEST__offsets test_offsets;
     ESS__offsets essential_offsets;
+    CODE__offsets code_offsets;
 
     // create workspace
     workspace = ANVIL__setup__workspace(&output);
 
     // create program
-    for (ANVIL__pt pass = ANVIL__pt__get_offsets; pass < ANVIL__pt__COUNT; pass = (ANVIL__pt)((u64)pass + 1)) {
+    for (ANVIL__pt pass = ANVIL__pt__get_offsets; pass < ANVIL__pt__COUNT; pass++) {
         // setup pass
         ANVIL__setup__pass(&workspace, pass);
 
@@ -189,6 +132,7 @@ ANVIL__buffer TEST__forge__program() {
         ANVIL__code__start(&workspace, 1024, test_offsets.offsets[TEST__ot__main__start]);
         TEST__code__package(&workspace, &test_offsets, &essential_offsets);
         ESS__code__package(&workspace, &essential_offsets);
+        CODE__code__package(&workspace, &code_offsets);
     }
 
     return output;

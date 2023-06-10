@@ -1065,6 +1065,9 @@ ANVIL__nit ANVIL__run__instruction(ANVIL__context* context) {
         // print
         putchar((u8)(u64)((*context).registers[debug__putchar__printing_register_ID]));
 
+        // flush stream for full update
+        fflush(stdout);
+
         break;
     // print one register as a decimal number
     case ANVIL__it__debug__print_register_as_decimal:
@@ -1558,6 +1561,9 @@ typedef enum ANVIL__srt {
     // aliases
     ANVIL__srt__constant__true = ANVIL__srt__constant__1,
     ANVIL__srt__constant__false = ANVIL__srt__constant__0,
+    ANIVL__srt__constant__register_byte_count = ANVIL__srt__constant__8,
+    ANIVL__srt__constant__register_bit_count = ANVIL__srt__constant__64,
+    ANVIL__srt__constant__bits_in_byte = ANVIL__srt__constant__8,
 
     // locations
     ANVIL__srt__start__workspace = 64,

@@ -1,6 +1,7 @@
 // alloy
 #include "./programs/test/test_anything.h"
 #include "./programs/compile/compile.h"
+#include "./programs/test/test_code.h"
 
 // c
 #include <stdio.h>
@@ -81,7 +82,7 @@ void MAIN__test__compiler() {
     ANVIL__context context;
     ANVIL__buffer program;
     u8* inputs[] = {
-        (u8*)"main()() {\n\tforge.debug.print_register_as_decimal()()\n}",
+        (u8*)"forge.write_register(integer.100)(a)",
     };
 
     // build program
@@ -106,12 +107,39 @@ void MAIN__test__compiler() {
         // run program
         ANVIL__run__context(&context, ANVIL__define__run_forever);
 
-        // DEBUG
-        MAIN__print__context(&context);
-
         // clean up
         ANVIL__close__buffer(program);
     }
+
+    return;
+}
+
+void MAIN__test__code_writer() {
+    ANVIL__context context;
+    ANVIL__buffer program;
+
+    // build program
+    program = TESTCODE__forge__program();
+
+    // check if not built
+    if (program.start == 0) {
+        // inform user of failure
+        printf("Program not built in function: %s", __func__);
+
+        return;
+    }
+
+    // create context
+    context = ANVIL__setup__context(program);
+
+    // run program
+    ANVIL__run__context(&context, ANVIL__define__run_forever);
+
+    // DEBUG
+    MAIN__print__context(&context);
+
+    // clean up
+    ANVIL__close__buffer(program);
 
     return;
 }
@@ -124,6 +152,7 @@ int main() {
     // perform tests
     MAIN__test__scratch();
     MAIN__test__compiler();
+    MAIN__test__code_writer();
 
     // exit
     return 0;

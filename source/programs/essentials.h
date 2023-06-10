@@ -128,7 +128,7 @@ void ESS__code__quick_print_buffer(ANVIL__workspace* workspace, ANVIL__buffer bu
         ANVIL__code__debug__putchar(workspace, ANVIL__srt__temp__write);
 
         // next character
-        current = (ANVIL__address)((u64)current + sizeof(u8));
+        current += sizeof(u8);
     }
 
     return;
@@ -214,97 +214,12 @@ void ESS__code__retrieve_buffer__explicit(ANVIL__workspace* workspace, ESS__offs
     return;
 }
 
-/* Write Byte */
-// registers
-typedef enum ESS__write_byte {
-    // preserve start
-    ESS__write_byte__preserve__START = ANVIL__srt__start__workspace,
-
-    // variables
-    ESS__write_byte__current_address = ESS__write_byte__preserve__START,
-    ESS__write_byte__bit_count,
-    ESS__write_byte__byte_count,
-    ESS__write_byte__do_write,
-    ESS__write_byte__value,
-
-    // preserve end
-    ESS__write_byte__preserve__END,
-
-    // inputs
-    ESS__write_byte__input__current_address = ANVIL__srt__start__function_io,
-    ESS__write_byte__input__bit_count,
-    ESS__write_byte__input__do_write,
-    ESS__write_byte__input__value,
-
-    // outputs
-    ESS__write_byte__output__current_address = ANVIL__srt__start__function_io,
-} ESS__write_byte;
-
-// call the function
-void ESS__code__call__write_byte(ANVIL__workspace* workspace, ESS__offsets* essential_offsets, ANVIL__flag_ID flag, ANVIL__register_ID input_current_address, ANVIL__register_ID bit_count, ANVIL__register_ID do_write, ANVIL__register_ID value, ANVIL__register_ID output_current_address) {
-    // pass parameters
-    ANVIL__code__register_to_register(workspace, flag, input_current_address, ESS__write_byte__input__current_address);
-    ANVIL__code__register_to_register(workspace, flag, bit_count, ESS__write_byte__input__bit_count);
-    ANVIL__code__register_to_register(workspace, flag, do_write, ESS__write_byte__input__do_write);
-    ANVIL__code__register_to_register(workspace, flag, value, ESS__write_byte__input__value);
-
-    // call functionESS__code__write_byte
-    ANVIL__code__call__static(workspace, flag, (*essential_offsets).offsets[ESS__ot__write_byte__start]);
-
-    // get outputs
-    ANVIL__code__register_to_register(workspace, flag, ESS__write_byte__output__current_address, output_current_address);
-
-    return;
-}
-
-// create a function that optionally writes bytes and skips the pointer past the expected written bytes
-void ESS__code__write_byte(ANVIL__workspace* workspace, ESS__offsets* code_offsets) {
-    // setup function start
-    (*code_offsets).offsets[ESS__ot__write_byte__start] = ANVIL__get__offset(workspace);
-
-    // preserve workspace
-    ANVIL__code__preserve_workspace(workspace, ANVIL__sft__always_run, ESS__write_byte__preserve__START, ESS__write_byte__preserve__END);
-
-    // get parameters
-    ANVIL__code__register_to_register(workspace, ANVIL__sft__always_run, ESS__write_byte__input__current_address, ESS__write_byte__current_address);
-    ANVIL__code__register_to_register(workspace, ANVIL__sft__always_run, ESS__write_byte__input__bit_count, ESS__write_byte__bit_count);
-    ANVIL__code__register_to_register(workspace, ANVIL__sft__always_run, ESS__write_byte__input__do_write, ESS__write_byte__do_write);
-    ANVIL__code__register_to_register(workspace, ANVIL__sft__always_run, ESS__write_byte__input__value, ESS__write_byte__value);
-
-    // setup remaining variables
-    ANVIL__code__operate(workspace, ANVIL__sft__always_run, ANVIL__ot__integer_division, ESS__write_byte__bit_count, ANVIL__srt__constant__8, ANVIL__unused_register_ID, ESS__write_byte__byte_count);
-
-    // check if bytes should be written
-    ANVIL__code__operate__jump__static(workspace, ANVIL__sft__always_run, ANVIL__srt__constant__true, ESS__write_byte__do_write, ANVIL__srt__constant__true, ANVIL__sft__always_run, (*code_offsets).offsets[ESS__ot__write_byte__return]);
-
-    // write byte to program buffer
-    ANVIL__code__register_to_address(workspace, ESS__write_byte__value, ESS__write_byte__bit_count, ESS__write_byte__current_address);
-
-    // setup function return
-    (*code_offsets).offsets[ESS__ot__write_byte__return] = ANVIL__get__offset(workspace);
-
-    // add length
-    ANVIL__code__operate(workspace, ANVIL__sft__always_run, ANVIL__ot__integer_add, ESS__write_byte__current_address, ESS__write_byte__byte_count, ANVIL__unused_register_ID, ESS__write_byte__current_address);
-
-    // pass outputs
-    ANVIL__code__register_to_register(workspace, ANVIL__sft__always_run, ESS__write_byte__current_address, ESS__write_byte__output__current_address);
-
-    // restore workspace
-    ANVIL__code__restore_workspace(workspace, ANVIL__sft__always_run, ESS__write_byte__preserve__START, ESS__write_byte__preserve__END);
-
-    // return
-    ANVIL__code__jump__explicit(workspace, ANVIL__sft__always_run, ANVIL__srt__return_address);
-
-    return;
-}
-
 /* Package Building */
 // create the library
 void ESS__code__package(ANVIL__workspace* workspace, ESS__offsets* essential_offsets) {
     // write functions
     ESS__code__print_buffer(workspace, essential_offsets);
     ESS__code__retrieve_buffer__explicit(workspace, essential_offsets);
-    ESS__code__write_byte(workspace, essential_offsets);
 
     return;
 }

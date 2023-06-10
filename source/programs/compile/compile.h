@@ -11,6 +11,13 @@
 
     Note:
     Somehow, the blueprints for abstracting and parsing must be joined together.
+    There are two tasks here:
+        1) Extracting and validating the grammar.
+        2) Extracting and validating the actions that the code does.
+    
+    Code Generation:
+        What if instead of generating a parse tree blueprint inline, that if I generated the blueprint with code to make it more featureful.
+            As in, offsets point to other parse nodes.
 */
 
 /* Include */
@@ -19,17 +26,15 @@
 
 /* Define */
 
+
 /* Offsets */
 // offset type
 typedef enum COMPILE__ot {
-    // offsets
-    COMPILE__ot__package_start,
-
     // manager
     COMPILE__ot__compile__start,
 
-    // generate function
-    COMPILE__ot__generate_function__start,
+    // representer
+    COMPILE__ot__represent__start,
 
     // count
     COMPILE__ot__COUNT,
@@ -38,7 +43,84 @@ typedef enum COMPILE__ot {
 // offsets
 typedef struct COMPILE__offsets {
     ANVIL__offset offsets[COMPILE__ot__COUNT];
+    ANVIL__buffer representation;
 } COMPILE__offsets;
+
+/* Represent */
+// register types
+typedef enum COMPILE__represent {
+	// preserve start
+	COMPILE__represent__preserve__START = ANVIL__srt__start__workspace,
+
+	// variables
+	COMPILE__represent__subject_buffer_current = COMPILE__represent__preserve__START,
+	COMPILE__represent__subject_buffer_end,
+	COMPILE__represent__result_buffer_current,
+	COMPILE__represent__result_buffer_end,
+	COMPILE__represent__subject_character,
+	COMPILE__represent__character_range_start,
+	COMPILE__represent__character_range_end,
+	COMPILE__represent__current_configuration,
+
+	// preserve end
+	COMPILE__represent__preserve__END,
+
+	// inputs
+	COMPILE__represent__input__subject_buffer_current = ANVIL__srt__start__function_io,
+	COMPILE__represent__input__subject_buffer_end,
+	COMPILE__represent__input__result_buffer_current,
+	COMPILE__represent__input__result_buffer_end,
+
+	// outputs
+	COMPILE__represent__output__result_buffer_current = ANVIL__srt__start__function_io,
+	COMPILE__represent__output__subject_buffer_current,
+} COMPILE__represent;
+
+// call function
+void COMPILE__code__call__represent(ANVIL__workspace* workspace, COMPILE__offsets* compile_offsets, ANVIL__flag_ID flag, ANVIL__register_ID input__subject_buffer_current, ANVIL__register_ID input__subject_buffer_end, ANVIL__register_ID input__result_buffer_current, ANVIL__register_ID input__result_buffer_end, ANVIL__register_ID output__result_buffer_current, ANVIL__register_ID output__subject_buffer_current) {
+	// pass inputs
+	ANVIL__code__register_to_register(workspace, flag, input__subject_buffer_current, COMPILE__represent__input__subject_buffer_current);
+	ANVIL__code__register_to_register(workspace, flag, input__subject_buffer_end, COMPILE__represent__input__subject_buffer_end);
+	ANVIL__code__register_to_register(workspace, flag, input__result_buffer_current, COMPILE__represent__input__result_buffer_current);
+	ANVIL__code__register_to_register(workspace, flag, input__result_buffer_end, COMPILE__represent__input__result_buffer_end);
+
+	// call function
+	ANVIL__code__call__static(workspace, flag, (*compile_offsets).offsets[COMPILE__ot__represent__start]);
+
+	// pass outputs
+	ANVIL__code__register_to_register(workspace, flag, COMPILE__represent__output__result_buffer_current, output__result_buffer_current);
+	ANVIL__code__register_to_register(workspace, flag, COMPILE__represent__output__subject_buffer_current, output__subject_buffer_current);
+}
+
+// build function
+void COMPILE__code__represent(ANVIL__workspace* workspace, COMPILE__offsets* compile_offsets) {
+	// setup function offset
+	(*compile_offsets).offsets[COMPILE__ot__represent__start] = ANVIL__get__offset(workspace);
+
+	// setup function prologue
+	ANVIL__code__preserve_workspace(workspace, ANVIL__sft__always_run, COMPILE__represent__preserve__START, COMPILE__represent__preserve__END);
+
+	// get inputs
+	ANVIL__code__register_to_register(workspace, ANVIL__sft__always_run, COMPILE__represent__input__subject_buffer_current, COMPILE__represent__subject_buffer_current);
+	ANVIL__code__register_to_register(workspace, ANVIL__sft__always_run, COMPILE__represent__input__subject_buffer_end, COMPILE__represent__subject_buffer_end);
+	ANVIL__code__register_to_register(workspace, ANVIL__sft__always_run, COMPILE__represent__input__result_buffer_current, COMPILE__represent__result_buffer_current);
+	ANVIL__code__register_to_register(workspace, ANVIL__sft__always_run, COMPILE__represent__input__result_buffer_end, COMPILE__represent__result_buffer_end);
+
+	// code here
+
+
+	// setup outputs
+	ANVIL__code__register_to_register(workspace, ANVIL__sft__always_run, COMPILE__represent__result_buffer_current, COMPILE__represent__output__result_buffer_current);
+	ANVIL__code__register_to_register(workspace, ANVIL__sft__always_run, COMPILE__represent__subject_buffer_current, COMPILE__represent__output__subject_buffer_current);
+
+	// setup function epilogue
+	ANVIL__code__restore_workspace(workspace, ANVIL__sft__always_run, COMPILE__represent__preserve__START, COMPILE__represent__preserve__END);
+
+	// return to caller
+	ANVIL__code__jump__explicit(workspace, ANVIL__sft__always_run, ANVIL__srt__return_address);
+
+	return;
+}
 
 /* Compile */
 // register types
