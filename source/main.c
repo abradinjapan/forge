@@ -7,33 +7,33 @@
 
 // print context
 void MAIN__print__context(ANVIL__context* context) {
-    u64 register_index;
+    u64 cell_index;
     u64 row_items;
 
     // setup variables
-    register_index = 0;
+    cell_index = 0;
 
     // print program size
-    printf("Program Size: [ %lu ]\n", ((ANVIL__u64)(*context).registers[ANVIL__rt__program_end_address] - (ANVIL__u64)(*context).registers[ANVIL__rt__program_start_address]));
+    printf("Program Size: [ %lu ]\n", ((ANVIL__u64)(*context).cells[ANVIL__rt__program_end_address] - (ANVIL__u64)(*context).cells[ANVIL__rt__program_start_address]));
 
-    // print registers section header
-    printf("Registers:\n");
+    // print cells section header
+    printf("Cells:\n");
 
     // print rows
-    while (register_index < ANVIL__rt__TOTAL_COUNT) {
+    while (cell_index < ANVIL__rt__TOTAL_COUNT) {
         // set row items
         row_items = 0;
 
         // print padding
-        printf("\t%lu: [", (ANVIL__u64)register_index);
+        printf("\t%lu: [", (ANVIL__u64)cell_index);
 
         // print columns
-        while (register_index < ANVIL__rt__TOTAL_COUNT && row_items < 8) {
-            // print register value
-            printf(" %lu", (ANVIL__u64)(*context).registers[register_index]);
+        while (cell_index < ANVIL__rt__TOTAL_COUNT && row_items < 8) {
+            // print cell value
+            printf(" %lu", (ANVIL__u64)(*context).cells[cell_index]);
 
             // next
-            register_index++;
+            cell_index++;
             row_items++;
         }
 

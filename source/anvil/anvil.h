@@ -30,13 +30,13 @@ typedef void* ANVIL__address;
 
 typedef ANVIL__u64 ANVIL__length;
 
-typedef ANVIL__u64 ANVIL__register_integer_value;
+typedef ANVIL__u64 ANVIL__cell_integer_value;
 
 typedef ANVIL__u64 ANVIL__instruction_count;
 
 typedef ANVIL__u8 ANVIL__character;
 
-#define ANVIL__unused_register_ID 0
+#define ANVIL__unused_cell_ID 0
 #define ANVIL__define__bits_in_byte 8
 #define ANVIL__define__run_forever (ANVIL__u64)-1
 #define ANVIL__define__input_string_max_length 256
@@ -273,11 +273,11 @@ void ANVIL__print__buffer(ANVIL__buffer buffer) {
 }
 
 /* Machine Specifications */
-typedef ANVIL__address ANVIL__register;
+typedef ANVIL__address ANVIL__cell;
 typedef ANVIL__u8 ANVIL__instruction_ID;
 typedef ANVIL__u8 ANVIL__flag_ID;
 typedef ANVIL__u8 ANVIL__operation_ID;
-typedef ANVIL__u8 ANVIL__register_ID;
+typedef ANVIL__u8 ANVIL__cell_ID;
 typedef ANVIL__u64 ANVIL__bit_count;
 typedef ANVIL__u64 ANVIL__byte_count;
 
@@ -287,8 +287,8 @@ typedef enum ANVIL__st {
     ANVIL__st__instruction_ID,
     ANVIL__st__flag_ID,
     ANVIL__st__operation_ID,
-    ANVIL__st__register_ID,
-    ANVIL__st__register,
+    ANVIL__st__cell_ID,
+    ANVIL__st__cell,
 
     // count
     ANVIL__st__COUNT,
@@ -306,13 +306,13 @@ typedef enum ANVIL__nit {
 } ANVIL__nit;
 
 /* Alloy Specification */
-// context register organization defines
-// register type
+// context cell organization defines
+// cell type
 typedef enum ANVIL__rt {
     // start of defined values
     ANVIL__rt__START = 0,
 
-    // basic registers
+    // basic cells
     ANVIL__rt__program_start_address = ANVIL__rt__START,
     ANVIL__rt__program_current_address,
     ANVIL__rt__program_end_address,
@@ -322,7 +322,7 @@ typedef enum ANVIL__rt {
     ANVIL__rt__flags_2,
     ANVIL__rt__flags_3,
 
-    // end of defined registers
+    // end of defined cells
     ANVIL__rt__END,
 
     // count
@@ -336,7 +336,7 @@ typedef enum ANVIL__rt {
 
 // context
 typedef struct ANVIL__context {
-    ANVIL__register registers[ANVIL__rt__TOTAL_COUNT];
+    ANVIL__cell cells[ANVIL__rt__TOTAL_COUNT];
 } ANVIL__context;
 
 // instruction type and instruction ID defines (type number is also ID)
@@ -346,19 +346,19 @@ typedef enum ANVIL__it {
 
     // defined instructions
     ANVIL__it__stop = ANVIL__it__START, // returns context to caller
-    ANVIL__it__write_register, // overwrites entire register with hard coded value
-    ANVIL__it__operate, // inter-register operations
+    ANVIL__it__write_cell, // overwrites entire cell with hard coded value
+    ANVIL__it__operate, // inter-cell operations
     ANVIL__it__request_memory, // allocate request
     ANVIL__it__return_memory, // deallocate request
-    ANVIL__it__address_to_register, // read memory into register
-    ANVIL__it__register_to_address, // write register to memory
+    ANVIL__it__address_to_cell, // read memory into cell
+    ANVIL__it__cell_to_address, // write cell to memory
     ANVIL__it__file_to_buffer, // get file into buffer
     ANVIL__it__buffer_to_file, // write buffer to disk
     ANVIL__it__run, // run context (both until finished and run one instruction)
 
     // extra defined instructions
     ANVIL__it__debug__putchar, // print one character to stdout
-    ANVIL__it__debug__print_register_as_decimal, // print an entire register as a decimal number
+    ANVIL__it__debug__print_cell_as_decimal, // print an entire cell as a decimal number
     ANVIL__it__debug__fgets, // read one line from stdin
     ANVIL__it__debug__mark_data_section, // mark a section of data (NOP)
     ANVIL__it__debug__mark_code_section, // mark a section of code (NOP)
@@ -373,20 +373,20 @@ typedef enum ANVIL__it {
 // instruction length types
 typedef enum ANVIL__ilt {
     ANVIL__ilt__stop = sizeof(ANVIL__instruction_ID),
-    ANVIL__ilt__write_register = sizeof(ANVIL__instruction_ID) + sizeof(ANVIL__register) + sizeof(ANVIL__register_ID),
-    ANVIL__ilt__operate = sizeof(ANVIL__instruction_ID) + sizeof(ANVIL__flag_ID) + sizeof(ANVIL__operation_ID) + (sizeof(ANVIL__register_ID) * 4),
-    ANVIL__ilt__request_memory = sizeof(ANVIL__instruction_ID) + (sizeof(ANVIL__register_ID) * 3),
-    ANVIL__ilt__return_memory = sizeof(ANVIL__instruction_ID) + (sizeof(ANVIL__register_ID) * 2),
-    ANVIL__ilt__address_to_register = sizeof(ANVIL__instruction_ID) + sizeof(ANVIL__flag_ID) + (sizeof(ANVIL__register_ID) * 3),
-    ANVIL__ilt__register_to_address = sizeof(ANVIL__instruction_ID) + sizeof(ANVIL__flag_ID) + (sizeof(ANVIL__register_ID) * 3),
-    ANVIL__ilt__file_to_buffer = sizeof(ANVIL__instruction_ID) + (sizeof(ANVIL__register_ID) * 4),
-    ANVIL__ilt__buffer_to_file = sizeof(ANVIL__instruction_ID) + (sizeof(ANVIL__register_ID) * 4),
-    ANVIL__ilt__run = sizeof(ANVIL__instruction_ID) + (sizeof(ANVIL__register_ID) * 3),
-    ANVIL__ilt__debug__putchar = sizeof(ANVIL__instruction_ID) + sizeof(ANVIL__register_ID),
-    ANVIL__ilt__debug__print_register_as_decimal = sizeof(ANVIL__instruction_ID) + sizeof(ANVIL__register_ID),
-    ANVIL__ilt__debug__fgets = sizeof(ANVIL__instruction_ID) + (sizeof(ANVIL__register_ID) * 2),
-    ANVIL__ilt__debug__mark_data_section = sizeof(ANVIL__instruction_ID) + sizeof(ANVIL__register),
-    ANVIL__ilt__debug__mark_code_section = sizeof(ANVIL__instruction_ID) + sizeof(ANVIL__register),
+    ANVIL__ilt__write_cell = sizeof(ANVIL__instruction_ID) + sizeof(ANVIL__cell) + sizeof(ANVIL__cell_ID),
+    ANVIL__ilt__operate = sizeof(ANVIL__instruction_ID) + sizeof(ANVIL__flag_ID) + sizeof(ANVIL__operation_ID) + (sizeof(ANVIL__cell_ID) * 4),
+    ANVIL__ilt__request_memory = sizeof(ANVIL__instruction_ID) + (sizeof(ANVIL__cell_ID) * 3),
+    ANVIL__ilt__return_memory = sizeof(ANVIL__instruction_ID) + (sizeof(ANVIL__cell_ID) * 2),
+    ANVIL__ilt__address_to_cell = sizeof(ANVIL__instruction_ID) + sizeof(ANVIL__flag_ID) + (sizeof(ANVIL__cell_ID) * 3),
+    ANVIL__ilt__cell_to_address = sizeof(ANVIL__instruction_ID) + sizeof(ANVIL__flag_ID) + (sizeof(ANVIL__cell_ID) * 3),
+    ANVIL__ilt__file_to_buffer = sizeof(ANVIL__instruction_ID) + (sizeof(ANVIL__cell_ID) * 4),
+    ANVIL__ilt__buffer_to_file = sizeof(ANVIL__instruction_ID) + (sizeof(ANVIL__cell_ID) * 4),
+    ANVIL__ilt__run = sizeof(ANVIL__instruction_ID) + (sizeof(ANVIL__cell_ID) * 3),
+    ANVIL__ilt__debug__putchar = sizeof(ANVIL__instruction_ID) + sizeof(ANVIL__cell_ID),
+    ANVIL__ilt__debug__print_cell_as_decimal = sizeof(ANVIL__instruction_ID) + sizeof(ANVIL__cell_ID),
+    ANVIL__ilt__debug__fgets = sizeof(ANVIL__instruction_ID) + (sizeof(ANVIL__cell_ID) * 2),
+    ANVIL__ilt__debug__mark_data_section = sizeof(ANVIL__instruction_ID) + sizeof(ANVIL__cell),
+    ANVIL__ilt__debug__mark_code_section = sizeof(ANVIL__instruction_ID) + sizeof(ANVIL__cell),
 } ANVIL__ilt;
 
 // error codes
@@ -398,8 +398,8 @@ typedef enum ANVIL__et {
     ANVIL__et__modulous_by_zero,
     ANVIL__et__file_not_found,
     ANVIL__et__file_not_created,
-    ANVIL__et__invalid_address__address_to_register,
-    ANVIL__et__invalid_address__register_to_address,
+    ANVIL__et__invalid_address__address_to_cell,
+    ANVIL__et__invalid_address__cell_to_address,
 
     // count
     ANVIL__et__COUNT,
@@ -408,8 +408,8 @@ typedef enum ANVIL__et {
 // operation types
 typedef enum ANVIL__ot {
     // copy
-    ANVIL__ot__register_to_register, // copies one register to another without transformation
-    ANVIL__ot__fetch_register, // find register dynamically by ID inside another register and copy it's value
+    ANVIL__ot__cell_to_cell, // copies one cell to another without transformation
+    ANVIL__ot__fetch_cell, // find cell dynamically by ID inside another cell and copy it's value
 
     // binary operations
     ANVIL__ot__bits_or,
@@ -443,30 +443,30 @@ typedef enum ANVIL__ot {
 } ANVIL__ot;
 
 /* Helper Functions */
-// get a pointer from a context to a register inside that context
-ANVIL__register* ANVIL__get__register_address_from_context(ANVIL__context* context, ANVIL__register_ID register_ID) {
+// get a pointer from a context to a cell inside that context
+ANVIL__cell* ANVIL__get__cell_address_from_context(ANVIL__context* context, ANVIL__cell_ID cell_ID) {
     // return data
-    return &((*context).registers[register_ID]);
+    return &((*context).cells[cell_ID]);
 }
 
-// get register value from context
-ANVIL__register ANVIL__get__register_from_context(ANVIL__context* context, ANVIL__register_ID register_ID) {
+// get cell value from context
+ANVIL__cell ANVIL__get__cell_from_context(ANVIL__context* context, ANVIL__cell_ID cell_ID) {
     // return data
-    return *ANVIL__get__register_address_from_context(context, register_ID);
+    return *ANVIL__get__cell_address_from_context(context, cell_ID);
 }
 
-// set register value by pointer
-void ANVIL__set__register_by_address(ANVIL__register* destination_register, ANVIL__register value) {
+// set cell value by pointer
+void ANVIL__set__cell_by_address(ANVIL__cell* destination_cell, ANVIL__cell value) {
     // set value
-    *destination_register = value;
+    *destination_cell = value;
 
     return;
 }
 
-// set value in error code register
-void ANVIL__set__error_code_register(ANVIL__context* context, ANVIL__et error_code) {
+// set value in error code cell
+void ANVIL__set__error_code_cell(ANVIL__context* context, ANVIL__et error_code) {
     // set error
-    ANVIL__set__register_by_address(ANVIL__get__register_address_from_context(context, ANVIL__rt__error_code), (ANVIL__register)error_code);
+    ANVIL__set__cell_by_address(ANVIL__get__cell_address_from_context(context, ANVIL__rt__error_code), (ANVIL__cell)error_code);
 
     return;
 }
@@ -476,7 +476,7 @@ ANVIL__bt ANVIL__get__flag_from_context(ANVIL__context* context, ANVIL__flag_ID 
     ANVIL__u8 masks[8] = { 1, 2, 4, 8, 16, 32, 64, 128 };
 
     // return bit
-    return (ANVIL__bt)((((ANVIL__u8*)&((*context).registers[ANVIL__rt__flags_0]))[flag_ID / 8] & masks[flag_ID % 8]) > 0);
+    return (ANVIL__bt)((((ANVIL__u8*)&((*context).cells[ANVIL__rt__flags_0]))[flag_ID / 8] & masks[flag_ID % 8]) > 0);
 }
 
 // set flag (value)
@@ -484,16 +484,16 @@ void ANVIL__set__flag_in_context(ANVIL__context* context, ANVIL__flag_ID flag_ID
     ANVIL__u8 masks[8] = { 1, 2, 4, 8, 16, 32, 64, 128 };
 
     // clear bit
-    ((((ANVIL__u8*)&((*context).registers[ANVIL__rt__flags_0]))[flag_ID / 8] &= (~masks[flag_ID % 8])));
+    ((((ANVIL__u8*)&((*context).cells[ANVIL__rt__flags_0]))[flag_ID / 8] &= (~masks[flag_ID % 8])));
 
     // set bit
-    ((ANVIL__u8*)&((*context).registers[ANVIL__rt__flags_0]))[flag_ID / 8] |= (value << (flag_ID % 8));
+    ((ANVIL__u8*)&((*context).cells[ANVIL__rt__flags_0]))[flag_ID / 8] |= (value << (flag_ID % 8));
 
     return;
 }
 
 // read item from buffer and advance read address
-ANVIL__u64 ANVIL__read_next__buffer_item(ANVIL__register* address, ANVIL__byte_count byte_count) {
+ANVIL__u64 ANVIL__read_next__buffer_item(ANVIL__cell* address, ANVIL__byte_count byte_count) {
     ANVIL__u64 output;
 
     // read data from buffer
@@ -506,34 +506,34 @@ ANVIL__u64 ANVIL__read_next__buffer_item(ANVIL__register* address, ANVIL__byte_c
     return output;
 }
 
-// get register value and advance
-ANVIL__register ANVIL__read_next__register(ANVIL__register* address) {
+// get cell value and advance
+ANVIL__cell ANVIL__read_next__cell(ANVIL__cell* address) {
     // read data
-    return (ANVIL__register)ANVIL__read_next__buffer_item(address, sizeof(ANVIL__register));
+    return (ANVIL__cell)ANVIL__read_next__buffer_item(address, sizeof(ANVIL__cell));
 }
 
 // get instruction ID and advance
-ANVIL__instruction_ID ANVIL__read_next__instruction_ID(ANVIL__register* address) {
+ANVIL__instruction_ID ANVIL__read_next__instruction_ID(ANVIL__cell* address) {
     // read data
     return (ANVIL__instruction_ID)ANVIL__read_next__buffer_item(address, sizeof(ANVIL__instruction_ID));
 }
 
 // get flag ID and advance
-ANVIL__flag_ID ANVIL__read_next__flag_ID(ANVIL__register* address) {
+ANVIL__flag_ID ANVIL__read_next__flag_ID(ANVIL__cell* address) {
     // read data
     return (ANVIL__flag_ID)ANVIL__read_next__buffer_item(address, sizeof(ANVIL__flag_ID));
 }
 
 // get operation ID and advance
-ANVIL__operation_ID ANVIL__read_next__operation_ID(ANVIL__register* address) {
+ANVIL__operation_ID ANVIL__read_next__operation_ID(ANVIL__cell* address) {
     // read data
     return (ANVIL__operation_ID)ANVIL__read_next__buffer_item(address, sizeof(ANVIL__operation_ID));
 }
 
-// get register ID and advance
-ANVIL__register_ID ANVIL__read_next__register_ID(ANVIL__register* address) {
+// get cell ID and advance
+ANVIL__cell_ID ANVIL__read_next__cell_ID(ANVIL__cell* address) {
     // read data
-    return (ANVIL__register_ID)ANVIL__read_next__buffer_item(address, sizeof(ANVIL__register_ID));
+    return (ANVIL__cell_ID)ANVIL__read_next__buffer_item(address, sizeof(ANVIL__cell_ID));
 }
 
 /* Setup Alloy Code */
@@ -541,10 +541,10 @@ ANVIL__register_ID ANVIL__read_next__register_ID(ANVIL__register* address) {
 ANVIL__context ANVIL__setup__context(ANVIL__buffer program) {
     ANVIL__context output;
 
-    // setup program and execution registers
-    output.registers[ANVIL__rt__program_start_address] = (ANVIL__register)program.start;
-    output.registers[ANVIL__rt__program_end_address] = (ANVIL__register)program.end;
-    output.registers[ANVIL__rt__program_current_address] = output.registers[ANVIL__rt__program_start_address];
+    // setup program and execution cells
+    output.cells[ANVIL__rt__program_start_address] = (ANVIL__cell)program.start;
+    output.cells[ANVIL__rt__program_end_address] = (ANVIL__cell)program.end;
+    output.cells[ANVIL__rt__program_current_address] = output.cells[ANVIL__rt__program_start_address];
 
     return output;
 }
@@ -553,162 +553,162 @@ ANVIL__context ANVIL__setup__context(ANVIL__buffer program) {
 void ANVIL__run__context(ANVIL__context* context, ANVIL__instruction_count instruction_count);
 
 // process operation (assumes flag was checked)
-ANVIL__nit ANVIL__run__operation(ANVIL__context* context, ANVIL__ot operation_type, ANVIL__register_ID input_0, ANVIL__register_ID input_1, ANVIL__register_ID input_2, ANVIL__register_ID output_0) {
-    ANVIL__register_integer_value temp_input_0;
-    ANVIL__register_integer_value temp_input_1;
-    ANVIL__register_integer_value temp_input_2;
-    ANVIL__register_integer_value temp_result;
+ANVIL__nit ANVIL__run__operation(ANVIL__context* context, ANVIL__ot operation_type, ANVIL__cell_ID input_0, ANVIL__cell_ID input_1, ANVIL__cell_ID input_2, ANVIL__cell_ID output_0) {
+    ANVIL__cell_integer_value temp_input_0;
+    ANVIL__cell_integer_value temp_input_1;
+    ANVIL__cell_integer_value temp_input_2;
+    ANVIL__cell_integer_value temp_result;
 
     // do operation based on type
     switch (operation_type) {
-    // register to register
-    case ANVIL__ot__register_to_register:
+    // cell to cell
+    case ANVIL__ot__cell_to_cell:
         // set value
-        ANVIL__set__register_by_address(ANVIL__get__register_address_from_context(context, output_0), ANVIL__get__register_from_context(context, input_0));
+        ANVIL__set__cell_by_address(ANVIL__get__cell_address_from_context(context, output_0), ANVIL__get__cell_from_context(context, input_0));
 
         break;
-    // get register dynamically
-    case ANVIL__ot__fetch_register: // untested!
+    // get cell dynamically
+    case ANVIL__ot__fetch_cell: // untested!
         // set value
-        ANVIL__set__register_by_address(ANVIL__get__register_address_from_context(context, output_0), (ANVIL__register)(ANVIL__u64)ANVIL__get__register_from_context(context, (ANVIL__register_ID)(ANVIL__u64)ANVIL__get__register_from_context(context, input_0)));
+        ANVIL__set__cell_by_address(ANVIL__get__cell_address_from_context(context, output_0), (ANVIL__cell)(ANVIL__u64)ANVIL__get__cell_from_context(context, (ANVIL__cell_ID)(ANVIL__u64)ANVIL__get__cell_from_context(context, input_0)));
 
         break;
     // binary or
     case ANVIL__ot__bits_or:
         // get data
-        temp_input_0 = (ANVIL__register_integer_value)ANVIL__get__register_from_context(context, input_0);
-        temp_input_1 = (ANVIL__register_integer_value)ANVIL__get__register_from_context(context, input_1);
+        temp_input_0 = (ANVIL__cell_integer_value)ANVIL__get__cell_from_context(context, input_0);
+        temp_input_1 = (ANVIL__cell_integer_value)ANVIL__get__cell_from_context(context, input_1);
 
         // perform operation
         temp_result = temp_input_0 | temp_input_1;
 
-        // set result register
-        ANVIL__set__register_by_address(ANVIL__get__register_address_from_context(context, output_0), (ANVIL__register)temp_result);
+        // set result cell
+        ANVIL__set__cell_by_address(ANVIL__get__cell_address_from_context(context, output_0), (ANVIL__cell)temp_result);
 
         break;
     // binary invert
     case ANVIL__ot__bits_invert:
         // get data
-        temp_input_0 = (ANVIL__register_integer_value)ANVIL__get__register_from_context(context, input_0);
+        temp_input_0 = (ANVIL__cell_integer_value)ANVIL__get__cell_from_context(context, input_0);
 
         // perform operation
         temp_result = ~temp_input_0;
 
-        // set result register
-        ANVIL__set__register_by_address(ANVIL__get__register_address_from_context(context, output_0), (ANVIL__register)temp_result);
+        // set result cell
+        ANVIL__set__cell_by_address(ANVIL__get__cell_address_from_context(context, output_0), (ANVIL__cell)temp_result);
 
         break;
     // binary and
     case ANVIL__ot__bits_and:
         // get data
-        temp_input_0 = (ANVIL__register_integer_value)ANVIL__get__register_from_context(context, input_0);
-        temp_input_1 = (ANVIL__register_integer_value)ANVIL__get__register_from_context(context, input_1);
+        temp_input_0 = (ANVIL__cell_integer_value)ANVIL__get__cell_from_context(context, input_0);
+        temp_input_1 = (ANVIL__cell_integer_value)ANVIL__get__cell_from_context(context, input_1);
 
         // perform operation
         temp_result = temp_input_0 & temp_input_1;
 
-        // set result register
-        ANVIL__set__register_by_address(ANVIL__get__register_address_from_context(context, output_0), (ANVIL__register)temp_result);
+        // set result cell
+        ANVIL__set__cell_by_address(ANVIL__get__cell_address_from_context(context, output_0), (ANVIL__cell)temp_result);
 
         break;
     // binary xor
     case ANVIL__ot__bits_xor:
         // get data
-        temp_input_0 = (ANVIL__register_integer_value)ANVIL__get__register_from_context(context, input_0);
-        temp_input_1 = (ANVIL__register_integer_value)ANVIL__get__register_from_context(context, input_1);
+        temp_input_0 = (ANVIL__cell_integer_value)ANVIL__get__cell_from_context(context, input_0);
+        temp_input_1 = (ANVIL__cell_integer_value)ANVIL__get__cell_from_context(context, input_1);
 
         // perform operation
         temp_result = temp_input_0 ^ temp_input_1;
 
-        // set result register
-        ANVIL__set__register_by_address(ANVIL__get__register_address_from_context(context, output_0), (ANVIL__register)temp_result);
+        // set result cell
+        ANVIL__set__cell_by_address(ANVIL__get__cell_address_from_context(context, output_0), (ANVIL__cell)temp_result);
 
         break;
     // binary bit shift higher
     case ANVIL__ot__bits_shift_higher:
         // get data
-        temp_input_0 = (ANVIL__register_integer_value)ANVIL__get__register_from_context(context, input_0);
-        temp_input_1 = (ANVIL__register_integer_value)ANVIL__get__register_from_context(context, input_1);
+        temp_input_0 = (ANVIL__cell_integer_value)ANVIL__get__cell_from_context(context, input_0);
+        temp_input_1 = (ANVIL__cell_integer_value)ANVIL__get__cell_from_context(context, input_1);
 
         // perform operation
         temp_result = temp_input_0 << temp_input_1;
 
-        // set result register
-        ANVIL__set__register_by_address(ANVIL__get__register_address_from_context(context, output_0), (ANVIL__register)temp_result);
+        // set result cell
+        ANVIL__set__cell_by_address(ANVIL__get__cell_address_from_context(context, output_0), (ANVIL__cell)temp_result);
 
         break;
     // binary bit shift lower
     case ANVIL__ot__bits_shift_lower:
         // get data
-        temp_input_0 = (ANVIL__register_integer_value)ANVIL__get__register_from_context(context, input_0);
-        temp_input_1 = (ANVIL__register_integer_value)ANVIL__get__register_from_context(context, input_1);
+        temp_input_0 = (ANVIL__cell_integer_value)ANVIL__get__cell_from_context(context, input_0);
+        temp_input_1 = (ANVIL__cell_integer_value)ANVIL__get__cell_from_context(context, input_1);
 
         // perform operation
         temp_result = temp_input_0 >> temp_input_1;
 
-        // set result register
-        ANVIL__set__register_by_address(ANVIL__get__register_address_from_context(context, output_0), (ANVIL__register)temp_result);
+        // set result cell
+        ANVIL__set__cell_by_address(ANVIL__get__cell_address_from_context(context, output_0), (ANVIL__cell)temp_result);
 
         break;
     // binary overwrite bits
     case ANVIL__ot__bits_overwrite:
         // get data
-        temp_input_0 = (ANVIL__register_integer_value)ANVIL__get__register_from_context(context, input_0); // mask (positive bits are the ones being overwritten!)
-        temp_input_1 = (ANVIL__register_integer_value)ANVIL__get__register_from_context(context, input_1); // old bits
-        temp_input_2 = (ANVIL__register_integer_value)ANVIL__get__register_from_context(context, input_2); // new bits
+        temp_input_0 = (ANVIL__cell_integer_value)ANVIL__get__cell_from_context(context, input_0); // mask (positive bits are the ones being overwritten!)
+        temp_input_1 = (ANVIL__cell_integer_value)ANVIL__get__cell_from_context(context, input_1); // old bits
+        temp_input_2 = (ANVIL__cell_integer_value)ANVIL__get__cell_from_context(context, input_2); // new bits
 
         // perform operation
         temp_result = (~temp_input_0) & temp_input_1;
         temp_result = temp_result | (temp_input_2 & temp_input_0);
 
-        // set result register
-        ANVIL__set__register_by_address(ANVIL__get__register_address_from_context(context, output_0), (ANVIL__register)temp_result);
+        // set result cell
+        ANVIL__set__cell_by_address(ANVIL__get__cell_address_from_context(context, output_0), (ANVIL__cell)temp_result);
 
         break;
     // integer addition
     case ANVIL__ot__integer_add:
         // get data
-        temp_input_0 = (ANVIL__register_integer_value)ANVIL__get__register_from_context(context, input_0);
-        temp_input_1 = (ANVIL__register_integer_value)ANVIL__get__register_from_context(context, input_1);
+        temp_input_0 = (ANVIL__cell_integer_value)ANVIL__get__cell_from_context(context, input_0);
+        temp_input_1 = (ANVIL__cell_integer_value)ANVIL__get__cell_from_context(context, input_1);
 
         // perform operation
         temp_result = temp_input_0 + temp_input_1;
 
-        // set result register
-        ANVIL__set__register_by_address(ANVIL__get__register_address_from_context(context, output_0), (ANVIL__register)temp_result);
+        // set result cell
+        ANVIL__set__cell_by_address(ANVIL__get__cell_address_from_context(context, output_0), (ANVIL__cell)temp_result);
 
         break;
     // integer subtraction
     case ANVIL__ot__integer_subtract:
         // get data
-        temp_input_0 = (ANVIL__register_integer_value)ANVIL__get__register_from_context(context, input_0);
-        temp_input_1 = (ANVIL__register_integer_value)ANVIL__get__register_from_context(context, input_1);
+        temp_input_0 = (ANVIL__cell_integer_value)ANVIL__get__cell_from_context(context, input_0);
+        temp_input_1 = (ANVIL__cell_integer_value)ANVIL__get__cell_from_context(context, input_1);
 
         // perform operation
         temp_result = temp_input_0 - temp_input_1;
 
-        // set result register
-        ANVIL__set__register_by_address(ANVIL__get__register_address_from_context(context, output_0), (ANVIL__register)temp_result);
+        // set result cell
+        ANVIL__set__cell_by_address(ANVIL__get__cell_address_from_context(context, output_0), (ANVIL__cell)temp_result);
 
         break;
     // integer multiplication
     case ANVIL__ot__integer_multiply:
         // get data
-        temp_input_0 = (ANVIL__register_integer_value)ANVIL__get__register_from_context(context, input_0);
-        temp_input_1 = (ANVIL__register_integer_value)ANVIL__get__register_from_context(context, input_1);
+        temp_input_0 = (ANVIL__cell_integer_value)ANVIL__get__cell_from_context(context, input_0);
+        temp_input_1 = (ANVIL__cell_integer_value)ANVIL__get__cell_from_context(context, input_1);
 
         // perform operation
         temp_result = temp_input_0 * temp_input_1;
 
-        // set result register
-        ANVIL__set__register_by_address(ANVIL__get__register_address_from_context(context, output_0), (ANVIL__register)temp_result);
+        // set result cell
+        ANVIL__set__cell_by_address(ANVIL__get__cell_address_from_context(context, output_0), (ANVIL__cell)temp_result);
 
         break;
     // integer division
     case ANVIL__ot__integer_division:
         // get data
-        temp_input_0 = (ANVIL__register_integer_value)ANVIL__get__register_from_context(context, input_0);
-        temp_input_1 = (ANVIL__register_integer_value)ANVIL__get__register_from_context(context, input_1);
+        temp_input_0 = (ANVIL__cell_integer_value)ANVIL__get__cell_from_context(context, input_0);
+        temp_input_1 = (ANVIL__cell_integer_value)ANVIL__get__cell_from_context(context, input_1);
 
         // check if division is possible
         if (temp_input_1 != 0) {
@@ -716,21 +716,21 @@ ANVIL__nit ANVIL__run__operation(ANVIL__context* context, ANVIL__ot operation_ty
             temp_result = temp_input_0 / temp_input_1;
         } else {
             // set error
-            ANVIL__set__error_code_register(context, ANVIL__et__divide_by_zero);
+            ANVIL__set__error_code_cell(context, ANVIL__et__divide_by_zero);
 
             // set blank output
             temp_result = 0;
         }
 
-        // set result register
-        ANVIL__set__register_by_address(ANVIL__get__register_address_from_context(context, output_0), (ANVIL__register)temp_result);
+        // set result cell
+        ANVIL__set__cell_by_address(ANVIL__get__cell_address_from_context(context, output_0), (ANVIL__cell)temp_result);
 
         break;
     // integer modulous
     case ANVIL__ot__integer_modulous:
         // get data
-        temp_input_0 = (ANVIL__register_integer_value)ANVIL__get__register_from_context(context, input_0);
-        temp_input_1 = (ANVIL__register_integer_value)ANVIL__get__register_from_context(context, input_1);
+        temp_input_0 = (ANVIL__cell_integer_value)ANVIL__get__cell_from_context(context, input_0);
+        temp_input_1 = (ANVIL__cell_integer_value)ANVIL__get__cell_from_context(context, input_1);
 
         // check if modulous is possible
         if (temp_input_1 != 0) {
@@ -738,36 +738,36 @@ ANVIL__nit ANVIL__run__operation(ANVIL__context* context, ANVIL__ot operation_ty
             temp_result = temp_input_0 / temp_input_1;
         } else {
             // set error
-            ANVIL__set__error_code_register(context, ANVIL__et__modulous_by_zero);
+            ANVIL__set__error_code_cell(context, ANVIL__et__modulous_by_zero);
 
             // set blank output
             temp_result = 0;
         }
 
-        // set result register
-        ANVIL__set__register_by_address(ANVIL__get__register_address_from_context(context, output_0), (ANVIL__register)temp_result);
+        // set result cell
+        ANVIL__set__cell_by_address(ANVIL__get__cell_address_from_context(context, output_0), (ANVIL__cell)temp_result);
 
         break;
     // integer range check
     case ANVIL__ot__integer_within_range:
         // get data
-        temp_input_0 = (ANVIL__register_integer_value)ANVIL__get__register_from_context(context, input_0); // range start
-        temp_input_1 = (ANVIL__register_integer_value)ANVIL__get__register_from_context(context, input_1); // value to be checked
-        temp_input_2 = (ANVIL__register_integer_value)ANVIL__get__register_from_context(context, input_2); // range end
+        temp_input_0 = (ANVIL__cell_integer_value)ANVIL__get__cell_from_context(context, input_0); // range start
+        temp_input_1 = (ANVIL__cell_integer_value)ANVIL__get__cell_from_context(context, input_1); // value to be checked
+        temp_input_2 = (ANVIL__cell_integer_value)ANVIL__get__cell_from_context(context, input_2); // range end
 
         // check range
-        temp_result = (ANVIL__register_integer_value)((temp_input_0 <= temp_input_1) && (temp_input_1 <= temp_input_2));
+        temp_result = (ANVIL__cell_integer_value)((temp_input_0 <= temp_input_1) && (temp_input_1 <= temp_input_2));
 
-        // set result register
-        ANVIL__set__register_by_address(ANVIL__get__register_address_from_context(context, output_0), (ANVIL__register)temp_result);
+        // set result cell
+        ANVIL__set__cell_by_address(ANVIL__get__cell_address_from_context(context, output_0), (ANVIL__cell)temp_result);
 
         break;
     // flag or
     case ANVIL__ot__flag_or: // untested!
         // get data
-        temp_input_0 = (ANVIL__register_integer_value)ANVIL__get__register_from_context(context, input_0); // first flag
-        temp_input_1 = (ANVIL__register_integer_value)ANVIL__get__register_from_context(context, input_1); // second flag
-        temp_result = (ANVIL__register_integer_value)ANVIL__get__register_from_context(context, output_0); // output flag
+        temp_input_0 = (ANVIL__cell_integer_value)ANVIL__get__cell_from_context(context, input_0); // first flag
+        temp_input_1 = (ANVIL__cell_integer_value)ANVIL__get__cell_from_context(context, input_1); // second flag
+        temp_result = (ANVIL__cell_integer_value)ANVIL__get__cell_from_context(context, output_0); // output flag
 
         // 'or' flags into new flag
         ANVIL__set__flag_in_context(context, temp_result, (ANVIL__bt)(ANVIL__get__flag_from_context(context, (ANVIL__flag_ID)temp_input_0) | ANVIL__get__flag_from_context(context, (ANVIL__flag_ID)temp_input_1)));
@@ -776,8 +776,8 @@ ANVIL__nit ANVIL__run__operation(ANVIL__context* context, ANVIL__ot operation_ty
     // flag invert
     case ANVIL__ot__flag_invert: // untested!
         // get data
-        temp_input_0 = (ANVIL__register_integer_value)ANVIL__get__register_from_context(context, input_0); // first flag
-        temp_result = (ANVIL__register_integer_value)ANVIL__get__register_from_context(context, output_0); // output flag
+        temp_input_0 = (ANVIL__cell_integer_value)ANVIL__get__cell_from_context(context, input_0); // first flag
+        temp_result = (ANVIL__cell_integer_value)ANVIL__get__cell_from_context(context, output_0); // output flag
 
         // 'or' flags into new flag
         ANVIL__set__flag_in_context(context, temp_result, (ANVIL__bt)!(ANVIL__get__flag_from_context(context, (ANVIL__flag_ID)temp_input_0)));
@@ -786,9 +786,9 @@ ANVIL__nit ANVIL__run__operation(ANVIL__context* context, ANVIL__ot operation_ty
     // flag and
     case ANVIL__ot__flag_and: // untested!
         // get data
-        temp_input_0 = (ANVIL__register_integer_value)ANVIL__get__register_from_context(context, input_0); // first flag
-        temp_input_1 = (ANVIL__register_integer_value)ANVIL__get__register_from_context(context, input_1); // second flag
-        temp_result = (ANVIL__register_integer_value)ANVIL__get__register_from_context(context, output_0); // output flag
+        temp_input_0 = (ANVIL__cell_integer_value)ANVIL__get__cell_from_context(context, input_0); // first flag
+        temp_input_1 = (ANVIL__cell_integer_value)ANVIL__get__cell_from_context(context, input_1); // second flag
+        temp_result = (ANVIL__cell_integer_value)ANVIL__get__cell_from_context(context, output_0); // output flag
 
         // 'or' flags into new flag
         ANVIL__set__flag_in_context(context, temp_result, (ANVIL__bt)(ANVIL__get__flag_from_context(context, (ANVIL__flag_ID)temp_input_0) & ANVIL__get__flag_from_context(context, (ANVIL__flag_ID)temp_input_1)));
@@ -797,9 +797,9 @@ ANVIL__nit ANVIL__run__operation(ANVIL__context* context, ANVIL__ot operation_ty
     // flag xor
     case ANVIL__ot__flag_xor: // untested!
         // get data
-        temp_input_0 = (ANVIL__register_integer_value)ANVIL__get__register_from_context(context, input_0); // first flag
-        temp_input_1 = (ANVIL__register_integer_value)ANVIL__get__register_from_context(context, input_1); // second flag
-        temp_result = (ANVIL__register_integer_value)ANVIL__get__register_from_context(context, output_0); // output flag
+        temp_input_0 = (ANVIL__cell_integer_value)ANVIL__get__cell_from_context(context, input_0); // first flag
+        temp_input_1 = (ANVIL__cell_integer_value)ANVIL__get__cell_from_context(context, input_1); // second flag
+        temp_result = (ANVIL__cell_integer_value)ANVIL__get__cell_from_context(context, output_0); // output flag
 
         // 'xor' flags into new flag
         ANVIL__set__flag_in_context(context, temp_result, (ANVIL__bt)(ANVIL__get__flag_from_context(context, (ANVIL__flag_ID)temp_input_0) != ANVIL__get__flag_from_context(context, (ANVIL__flag_ID)temp_input_1)));
@@ -808,18 +808,18 @@ ANVIL__nit ANVIL__run__operation(ANVIL__context* context, ANVIL__ot operation_ty
     // flag get
     case ANVIL__ot__flag_get:
         // get data
-        temp_input_0 = (ANVIL__register_integer_value)ANVIL__get__register_from_context(context, input_0); // flag address
-        //temp_result = (ANVIL__register_integer_value)ANVIL__get__register_from_context(context, output_0); // output register
+        temp_input_0 = (ANVIL__cell_integer_value)ANVIL__get__cell_from_context(context, input_0); // flag address
+        //temp_result = (ANVIL__cell_integer_value)ANVIL__get__cell_from_context(context, output_0); // output cell
 
         // get flag
-        ANVIL__set__register_by_address(ANVIL__get__register_address_from_context(context, output_0), (ANVIL__register)(ANVIL__u64)(ANVIL__get__flag_from_context(context, (ANVIL__flag_ID)temp_input_0) > 0));
+        ANVIL__set__cell_by_address(ANVIL__get__cell_address_from_context(context, output_0), (ANVIL__cell)(ANVIL__u64)(ANVIL__get__flag_from_context(context, (ANVIL__flag_ID)temp_input_0) > 0));
 
         break;
     // flag set
     case ANVIL__ot__flag_set:
         // get data
-        temp_input_0 = (ANVIL__register_integer_value)ANVIL__get__register_from_context(context, input_0); // flag value
-        temp_result = (ANVIL__register_integer_value)ANVIL__get__register_from_context(context, output_0); // destination flag ID
+        temp_input_0 = (ANVIL__cell_integer_value)ANVIL__get__cell_from_context(context, input_0); // flag value
+        temp_result = (ANVIL__cell_integer_value)ANVIL__get__cell_from_context(context, output_0); // destination flag ID
 
         // set flag
         ANVIL__set__flag_in_context(context, (ANVIL__flag_ID)temp_result, (ANVIL__bt)temp_input_0);
@@ -837,89 +837,89 @@ ANVIL__nit ANVIL__run__operation(ANVIL__context* context, ANVIL__ot operation_ty
 // process instruction
 ANVIL__nit ANVIL__run__instruction(ANVIL__context* context) {
     // execution current read address
-    ANVIL__register* execution_read_address;
+    ANVIL__cell* execution_read_address;
 
     // instruction ID
     ANVIL__it instruction_ID;
 
-    // write register temps
-    ANVIL__register write_register__register;
-    ANVIL__register_ID write_register__register_ID;
+    // write cell temps
+    ANVIL__cell write_cell__cell;
+    ANVIL__cell_ID write_cell__cell_ID;
 
     // operate temps
     ANVIL__flag_ID operate__flag_ID;
     ANVIL__operation_ID operate__operation_ID;
-    ANVIL__register_ID operate__input_register_ID_0;
-    ANVIL__register_ID operate__input_register_ID_1;
-    ANVIL__register_ID operate__input_register_ID_2;
-    ANVIL__register_ID operate__output_register_ID_0;
+    ANVIL__cell_ID operate__input_cell_ID_0;
+    ANVIL__cell_ID operate__input_cell_ID_1;
+    ANVIL__cell_ID operate__input_cell_ID_2;
+    ANVIL__cell_ID operate__output_cell_ID_0;
 
     // request memory temps
-    ANVIL__register_ID request_memory__allocation_size;
-    ANVIL__register_ID request_memory__allocation_start;
-    ANVIL__register_ID request_memory__allocation_end;
+    ANVIL__cell_ID request_memory__allocation_size;
+    ANVIL__cell_ID request_memory__allocation_start;
+    ANVIL__cell_ID request_memory__allocation_end;
     ANVIL__buffer request_memory__allocation;
 
     // return memory temps
-    ANVIL__register_ID return_memory__allocation_start;
-    ANVIL__register_ID return_memory__allocation_end;
+    ANVIL__cell_ID return_memory__allocation_start;
+    ANVIL__cell_ID return_memory__allocation_end;
     ANVIL__buffer return_memory__allocation;
 
-    // address to register temps
-    ANVIL__flag_ID address_to_register__flag_ID;
-    ANVIL__length address_to_register__source_register_ID;
-    ANVIL__length address_to_register__bit_count_register_ID;
-    ANVIL__length address_to_register__destination_register_ID;
+    // address to cell temps
+    ANVIL__flag_ID address_to_cell__flag_ID;
+    ANVIL__length address_to_cell__source_cell_ID;
+    ANVIL__length address_to_cell__bit_count_cell_ID;
+    ANVIL__length address_to_cell__destination_cell_ID;
 
-    // register to address temps
-    ANVIL__flag_ID register_to_address__flag_ID;
-    ANVIL__length register_to_address__source_register_ID;
-    ANVIL__length register_to_address__bit_count_register_ID;
-    ANVIL__length register_to_address__destination_register_ID;
+    // cell to address temps
+    ANVIL__flag_ID cell_to_address__flag_ID;
+    ANVIL__length cell_to_address__source_cell_ID;
+    ANVIL__length cell_to_address__bit_count_cell_ID;
+    ANVIL__length cell_to_address__destination_cell_ID;
 
     // file to buffer temps
-    ANVIL__register_ID file_to_buffer__file_name_start;
-    ANVIL__register_ID file_to_buffer__file_name_end;
-    ANVIL__register_ID file_to_buffer__file_data_start;
-    ANVIL__register_ID file_to_buffer__file_data_end;
+    ANVIL__cell_ID file_to_buffer__file_name_start;
+    ANVIL__cell_ID file_to_buffer__file_name_end;
+    ANVIL__cell_ID file_to_buffer__file_data_start;
+    ANVIL__cell_ID file_to_buffer__file_data_end;
     ANVIL__buffer file_to_buffer__file_name;
     ANVIL__buffer file_to_buffer__file_data;
 
     // buffer to file temps
-    ANVIL__register_ID buffer_to_file__file_data_start;
-    ANVIL__register_ID buffer_to_file__file_data_end;
-    ANVIL__register_ID buffer_to_file__file_name_start;
-    ANVIL__register_ID buffer_to_file__file_name_end;
+    ANVIL__cell_ID buffer_to_file__file_data_start;
+    ANVIL__cell_ID buffer_to_file__file_data_end;
+    ANVIL__cell_ID buffer_to_file__file_name_start;
+    ANVIL__cell_ID buffer_to_file__file_name_end;
     ANVIL__buffer buffer_to_file__file_data;
     ANVIL__buffer buffer_to_file__file_name;
     ANVIL__bt buffer_to_file__error;
 
     // run temps
-    ANVIL__register_ID run__context_buffer_start;
-    ANVIL__register_ID run__context_buffer_end;
-    ANVIL__register_ID run__instruction_count;
+    ANVIL__cell_ID run__context_buffer_start;
+    ANVIL__cell_ID run__context_buffer_end;
+    ANVIL__cell_ID run__instruction_count;
 
     // debug putchar temps
-    ANVIL__register_ID debug__putchar__printing_register_ID;
+    ANVIL__cell_ID debug__putchar__printing_cell_ID;
 
-    // debug print register as decimal temps
-    ANVIL__register_ID debug__print_register_as_decimal__printing_register_ID;
+    // debug print cell as decimal temps
+    ANVIL__cell_ID debug__print_cell_as_decimal__printing_cell_ID;
 
     // debug fgets temps
-    ANVIL__register_ID debug__fgets__buffer_address_start;
-    ANVIL__register_ID debug__fgets__buffer_address_end;
+    ANVIL__cell_ID debug__fgets__buffer_address_start;
+    ANVIL__cell_ID debug__fgets__buffer_address_end;
     ANVIL__u8 debug__fgets__temporary_string[ANVIL__define__input_string_max_length];
     ANVIL__buffer debug__fgets__buffer;
     ANVIL__length debug__fgets__buffer_length;
 
     // debug mark data section temps
-    ANVIL__register debug__mark_data_section__section_length;
+    ANVIL__cell debug__mark_data_section__section_length;
 
     // debug mark code section temps
-    ANVIL__register debug__mark_code_section__section_length;
+    ANVIL__cell debug__mark_code_section__section_length;
 
     // setup execution read address
-    execution_read_address = ANVIL__get__register_address_from_context(context, ANVIL__rt__program_current_address);
+    execution_read_address = ANVIL__get__cell_address_from_context(context, ANVIL__rt__program_current_address);
 
     // get instruction ID from program
     instruction_ID = (ANVIL__it)ANVIL__read_next__instruction_ID(execution_read_address);
@@ -936,103 +936,103 @@ ANVIL__nit ANVIL__run__instruction(ANVIL__context* context) {
 
         // return exit context
         return ANVIL__nit__return_context;
-    // overwrite register value
-    case ANVIL__it__write_register:
+    // overwrite cell value
+    case ANVIL__it__write_cell:
         // get parameters
-        write_register__register = ANVIL__read_next__register(execution_read_address);
-        write_register__register_ID = ANVIL__read_next__register_ID(execution_read_address);
+        write_cell__cell = ANVIL__read_next__cell(execution_read_address);
+        write_cell__cell_ID = ANVIL__read_next__cell_ID(execution_read_address);
 
         // do action
-        (*context).registers[write_register__register_ID] = write_register__register;
+        (*context).cells[write_cell__cell_ID] = write_cell__cell;
 
         break;
-    // operate between registers
+    // operate between cells
     case ANVIL__it__operate:
         // get parameters
         operate__flag_ID = ANVIL__read_next__flag_ID(execution_read_address);
         operate__operation_ID = ANVIL__read_next__operation_ID(execution_read_address);
-        operate__input_register_ID_0 = ANVIL__read_next__register_ID(execution_read_address);
-        operate__input_register_ID_1 = ANVIL__read_next__register_ID(execution_read_address);
-        operate__input_register_ID_2 = ANVIL__read_next__register_ID(execution_read_address);
-        operate__output_register_ID_0 = ANVIL__read_next__register_ID(execution_read_address);
+        operate__input_cell_ID_0 = ANVIL__read_next__cell_ID(execution_read_address);
+        operate__input_cell_ID_1 = ANVIL__read_next__cell_ID(execution_read_address);
+        operate__input_cell_ID_2 = ANVIL__read_next__cell_ID(execution_read_address);
+        operate__output_cell_ID_0 = ANVIL__read_next__cell_ID(execution_read_address);
 
         // if flag enabled
         if (ANVIL__get__flag_from_context(context, operate__flag_ID) == ANVIL__bt__true) {
             // perform operation
-            return ANVIL__run__operation(context, (ANVIL__ot)operate__operation_ID, operate__input_register_ID_0, operate__input_register_ID_1, operate__input_register_ID_2, operate__output_register_ID_0);
+            return ANVIL__run__operation(context, (ANVIL__ot)operate__operation_ID, operate__input_cell_ID_0, operate__input_cell_ID_1, operate__input_cell_ID_2, operate__output_cell_ID_0);
         }
 
         break;
     // ask os for new buffer
     case ANVIL__it__request_memory:
         // get parameters
-        request_memory__allocation_size = ANVIL__read_next__register_ID(execution_read_address);
-        request_memory__allocation_start = ANVIL__read_next__register_ID(execution_read_address);
-        request_memory__allocation_end = ANVIL__read_next__register_ID(execution_read_address);
+        request_memory__allocation_size = ANVIL__read_next__cell_ID(execution_read_address);
+        request_memory__allocation_start = ANVIL__read_next__cell_ID(execution_read_address);
+        request_memory__allocation_end = ANVIL__read_next__cell_ID(execution_read_address);
 
         // do action
-        request_memory__allocation = ANVIL__open__buffer((ANVIL__length)(*context).registers[request_memory__allocation_size]);
+        request_memory__allocation = ANVIL__open__buffer((ANVIL__length)(*context).cells[request_memory__allocation_size]);
 
-        // set register data
-        (*context).registers[request_memory__allocation_start] = request_memory__allocation.start;
-        (*context).registers[request_memory__allocation_end] = request_memory__allocation.end;
+        // set cell data
+        (*context).cells[request_memory__allocation_start] = request_memory__allocation.start;
+        (*context).cells[request_memory__allocation_end] = request_memory__allocation.end;
 
         break;
     // return buffer to OS
     case ANVIL__it__return_memory:
         // get parameters
-        return_memory__allocation_start = ANVIL__read_next__register_ID(execution_read_address);
-        return_memory__allocation_end = ANVIL__read_next__register_ID(execution_read_address);
+        return_memory__allocation_start = ANVIL__read_next__cell_ID(execution_read_address);
+        return_memory__allocation_end = ANVIL__read_next__cell_ID(execution_read_address);
 
         // get parameters
-        return_memory__allocation.start = (*context).registers[return_memory__allocation_start];
-        return_memory__allocation.end = (*context).registers[return_memory__allocation_end];
+        return_memory__allocation.start = (*context).cells[return_memory__allocation_start];
+        return_memory__allocation.end = (*context).cells[return_memory__allocation_end];
 
         // deallocate
         ANVIL__close__buffer(return_memory__allocation);
 
         break;
-    // take data from an address and put it into a register
-    case ANVIL__it__address_to_register:
+    // take data from an address and put it into a cell
+    case ANVIL__it__address_to_cell:
         // get parameters
-        address_to_register__flag_ID = ANVIL__read_next__flag_ID(execution_read_address);
-        address_to_register__source_register_ID = ANVIL__read_next__register_ID(execution_read_address);
-        address_to_register__bit_count_register_ID = ANVIL__read_next__register_ID(execution_read_address);
-        address_to_register__destination_register_ID = ANVIL__read_next__register_ID(execution_read_address);
+        address_to_cell__flag_ID = ANVIL__read_next__flag_ID(execution_read_address);
+        address_to_cell__source_cell_ID = ANVIL__read_next__cell_ID(execution_read_address);
+        address_to_cell__bit_count_cell_ID = ANVIL__read_next__cell_ID(execution_read_address);
+        address_to_cell__destination_cell_ID = ANVIL__read_next__cell_ID(execution_read_address);
 
         // if flag enabled
-        if (ANVIL__get__flag_from_context(context, address_to_register__flag_ID) == ANVIL__bt__true) {
-            // read data into register
-            (*context).registers[address_to_register__destination_register_ID] = (ANVIL__register)ANVIL__read__buffer((ANVIL__address)(*context).registers[address_to_register__source_register_ID], ((ANVIL__length)(*context).registers[address_to_register__bit_count_register_ID]) / ANVIL__define__bits_in_byte);
+        if (ANVIL__get__flag_from_context(context, address_to_cell__flag_ID) == ANVIL__bt__true) {
+            // read data into cell
+            (*context).cells[address_to_cell__destination_cell_ID] = (ANVIL__cell)ANVIL__read__buffer((ANVIL__address)(*context).cells[address_to_cell__source_cell_ID], ((ANVIL__length)(*context).cells[address_to_cell__bit_count_cell_ID]) / ANVIL__define__bits_in_byte);
         }
 
         break;
-    // take data from a register and put it at an address
-    case ANVIL__it__register_to_address:
+    // take data from a cell and put it at an address
+    case ANVIL__it__cell_to_address:
         // get parameters
-        register_to_address__flag_ID = ANVIL__read_next__flag_ID(execution_read_address);
-        register_to_address__source_register_ID = ANVIL__read_next__register_ID(execution_read_address);
-        register_to_address__bit_count_register_ID = ANVIL__read_next__register_ID(execution_read_address);
-        register_to_address__destination_register_ID = ANVIL__read_next__register_ID(execution_read_address);
+        cell_to_address__flag_ID = ANVIL__read_next__flag_ID(execution_read_address);
+        cell_to_address__source_cell_ID = ANVIL__read_next__cell_ID(execution_read_address);
+        cell_to_address__bit_count_cell_ID = ANVIL__read_next__cell_ID(execution_read_address);
+        cell_to_address__destination_cell_ID = ANVIL__read_next__cell_ID(execution_read_address);
 
         // if flag enabled
-        if (ANVIL__get__flag_from_context(context, register_to_address__flag_ID) == ANVIL__bt__true) {
+        if (ANVIL__get__flag_from_context(context, cell_to_address__flag_ID) == ANVIL__bt__true) {
             // write data to an address
-            ANVIL__write__buffer((ANVIL__u64)(*context).registers[register_to_address__source_register_ID], ((ANVIL__length)(*context).registers[register_to_address__bit_count_register_ID]) / ANVIL__define__bits_in_byte, (*context).registers[register_to_address__destination_register_ID]);
+            ANVIL__write__buffer((ANVIL__u64)(*context).cells[cell_to_address__source_cell_ID], ((ANVIL__length)(*context).cells[cell_to_address__bit_count_cell_ID]) / ANVIL__define__bits_in_byte, (*context).cells[cell_to_address__destination_cell_ID]);
         }
 
         break;
     // take data from a file and create a buffer with it
     case ANVIL__it__file_to_buffer:
         // get parameters
-        file_to_buffer__file_name_start = ANVIL__read_next__register_ID(execution_read_address);
-        file_to_buffer__file_name_end = ANVIL__read_next__register_ID(execution_read_address);
-        file_to_buffer__file_data_start = ANVIL__read_next__register_ID(execution_read_address);
-        file_to_buffer__file_data_end = ANVIL__read_next__register_ID(execution_read_address);
+        file_to_buffer__file_name_start = ANVIL__read_next__cell_ID(execution_read_address);
+        file_to_buffer__file_name_end = ANVIL__read_next__cell_ID(execution_read_address);
+        file_to_buffer__file_data_start = ANVIL__read_next__cell_ID(execution_read_address);
+        file_to_buffer__file_data_end = ANVIL__read_next__cell_ID(execution_read_address);
 
         // setup temps
-        file_to_buffer__file_name.start = (*context).registers[file_to_buffer__file_name_start];
-        file_to_buffer__file_name.end = (*context).registers[file_to_buffer__file_name_end];
+        file_to_buffer__file_name.start = (*context).cells[file_to_buffer__file_name_start];
+        file_to_buffer__file_name.end = (*context).cells[file_to_buffer__file_name_end];
 
         // get data from file
         file_to_buffer__file_data = ANVIL__move__file_to_buffer(file_to_buffer__file_name);
@@ -1040,27 +1040,27 @@ ANVIL__nit ANVIL__run__instruction(ANVIL__context* context) {
         // check for errors
         if (file_to_buffer__file_data.start == 0) {
             // set error
-            ANVIL__set__error_code_register(context, ANVIL__et__file_not_found);
+            ANVIL__set__error_code_cell(context, ANVIL__et__file_not_found);
         }
 
-        // write data to registers
-        (*context).registers[file_to_buffer__file_data_start] = file_to_buffer__file_data.start;
-        (*context).registers[file_to_buffer__file_data_end] = file_to_buffer__file_data.end;
+        // write data to cells
+        (*context).cells[file_to_buffer__file_data_start] = file_to_buffer__file_data.start;
+        (*context).cells[file_to_buffer__file_data_end] = file_to_buffer__file_data.end;
 
         break;
     // take a buffer and overwrite a file with it
     case ANVIL__it__buffer_to_file:
         // get parameters
-        buffer_to_file__file_data_start = ANVIL__read_next__register_ID(execution_read_address);
-        buffer_to_file__file_data_end = ANVIL__read_next__register_ID(execution_read_address);
-        buffer_to_file__file_name_start = ANVIL__read_next__register_ID(execution_read_address);
-        buffer_to_file__file_name_end = ANVIL__read_next__register_ID(execution_read_address);
+        buffer_to_file__file_data_start = ANVIL__read_next__cell_ID(execution_read_address);
+        buffer_to_file__file_data_end = ANVIL__read_next__cell_ID(execution_read_address);
+        buffer_to_file__file_name_start = ANVIL__read_next__cell_ID(execution_read_address);
+        buffer_to_file__file_name_end = ANVIL__read_next__cell_ID(execution_read_address);
 
         // setup temps
-        buffer_to_file__file_data.start = (*context).registers[buffer_to_file__file_data_start];
-        buffer_to_file__file_data.end = (*context).registers[buffer_to_file__file_data_end];
-        buffer_to_file__file_name.start = (*context).registers[buffer_to_file__file_name_start];
-        buffer_to_file__file_name.end = (*context).registers[buffer_to_file__file_name_end];
+        buffer_to_file__file_data.start = (*context).cells[buffer_to_file__file_data_start];
+        buffer_to_file__file_data.end = (*context).cells[buffer_to_file__file_data_end];
+        buffer_to_file__file_name.start = (*context).cells[buffer_to_file__file_name_start];
+        buffer_to_file__file_name.end = (*context).cells[buffer_to_file__file_name_end];
 
         // create file
         ANVIL__move__buffer_to_file(&buffer_to_file__error, buffer_to_file__file_name, buffer_to_file__file_data);
@@ -1068,50 +1068,50 @@ ANVIL__nit ANVIL__run__instruction(ANVIL__context* context) {
         // check for errors
         if (buffer_to_file__error == ANVIL__bt__true) {
             // set error
-            ANVIL__set__error_code_register(context, ANVIL__et__file_not_created);
+            ANVIL__set__error_code_cell(context, ANVIL__et__file_not_created);
         }
 
         break;
     // run a context like a program
     case ANVIL__it__run:
         // get parameters
-        run__context_buffer_start = ANVIL__read_next__register_ID(execution_read_address);
-        run__context_buffer_end = ANVIL__read_next__register_ID(execution_read_address);
-        run__instruction_count = ANVIL__read_next__register_ID(execution_read_address);
+        run__context_buffer_start = ANVIL__read_next__cell_ID(execution_read_address);
+        run__context_buffer_end = ANVIL__read_next__cell_ID(execution_read_address);
+        run__instruction_count = ANVIL__read_next__cell_ID(execution_read_address);
 
         // useless operation to quiet compiler
         run__context_buffer_end = run__context_buffer_end;
 
         // run context
-        ANVIL__run__context((ANVIL__context*)(*context).registers[run__context_buffer_start], (u64)(*context).registers[run__instruction_count]);
+        ANVIL__run__context((ANVIL__context*)(*context).cells[run__context_buffer_start], (u64)(*context).cells[run__instruction_count]);
 
         break;
     // print one char to stdout
     case ANVIL__it__debug__putchar:
         // get parameters
-        debug__putchar__printing_register_ID = ANVIL__read_next__register_ID(execution_read_address);
+        debug__putchar__printing_cell_ID = ANVIL__read_next__cell_ID(execution_read_address);
 
         // print
-        putchar((u8)(u64)((*context).registers[debug__putchar__printing_register_ID]));
+        putchar((u8)(u64)((*context).cells[debug__putchar__printing_cell_ID]));
 
         // flush stream for full update
         fflush(stdout);
 
         break;
-    // print one register as a decimal number
-    case ANVIL__it__debug__print_register_as_decimal:
+    // print one cell as a decimal number
+    case ANVIL__it__debug__print_cell_as_decimal:
         // get parameters
-        debug__print_register_as_decimal__printing_register_ID = ANVIL__read_next__register_ID(execution_read_address);
+        debug__print_cell_as_decimal__printing_cell_ID = ANVIL__read_next__cell_ID(execution_read_address);
 
         // print
-        printf("%lu", (u64)(*context).registers[debug__print_register_as_decimal__printing_register_ID]);
+        printf("%lu", (u64)(*context).cells[debug__print_cell_as_decimal__printing_cell_ID]);
 
         break;
     // read one string from stdin
     case ANVIL__it__debug__fgets:
         // get parameters
-        debug__fgets__buffer_address_start = ANVIL__read_next__register_ID(execution_read_address);
-        debug__fgets__buffer_address_end = ANVIL__read_next__register_ID(execution_read_address);
+        debug__fgets__buffer_address_start = ANVIL__read_next__cell_ID(execution_read_address);
+        debug__fgets__buffer_address_end = ANVIL__read_next__cell_ID(execution_read_address);
 
         // zero out temporaries
         for (ANVIL__length i = 0; i < ANVIL__define__input_string_max_length; i++) {
@@ -1138,24 +1138,24 @@ ANVIL__nit ANVIL__run__instruction(ANVIL__context* context) {
             ANVIL__write__buffer((u8)debug__fgets__temporary_string[i], sizeof(ANVIL__u8), (ANVIL__u8*)debug__fgets__buffer.start + (i * sizeof(ANVIL__u8)));
         }
 
-        // setup registers
-        (*context).registers[debug__fgets__buffer_address_start] = debug__fgets__buffer.start;
-        (*context).registers[debug__fgets__buffer_address_end] = debug__fgets__buffer.end;
+        // setup cells
+        (*context).cells[debug__fgets__buffer_address_start] = debug__fgets__buffer.start;
+        (*context).cells[debug__fgets__buffer_address_end] = debug__fgets__buffer.end;
 
         break;
     // mark section of data
     case ANVIL__it__debug__mark_data_section:
         // get parameters
-        debug__mark_data_section__section_length = ANVIL__read_next__register(execution_read_address);
+        debug__mark_data_section__section_length = ANVIL__read_next__cell(execution_read_address);
 
         // skip over data section
-        (*context).registers[ANVIL__rt__program_current_address] = (ANVIL__address)((u64)(*context).registers[ANVIL__rt__program_current_address] + (u64)debug__mark_data_section__section_length);
+        (*context).cells[ANVIL__rt__program_current_address] = (ANVIL__address)((u64)(*context).cells[ANVIL__rt__program_current_address] + (u64)debug__mark_data_section__section_length);
 
         break;
     // mark section of code
     case ANVIL__it__debug__mark_code_section:
         // instruction does nothing but mark code space, so get length and do nothing
-        debug__mark_code_section__section_length = ANVIL__read_next__register(execution_read_address);
+        debug__mark_code_section__section_length = ANVIL__read_next__cell(execution_read_address);
 
         // useless operation to quiet compiler
         debug__mark_code_section__section_length = debug__mark_code_section__section_length;
@@ -1164,7 +1164,7 @@ ANVIL__nit ANVIL__run__instruction(ANVIL__context* context) {
     // in case instruction ID was invalid
     default:
         // set error
-        ANVIL__set__error_code_register(context, ANVIL__et__invalid_instruction_ID);
+        ANVIL__set__error_code_cell(context, ANVIL__et__invalid_instruction_ID);
 
         // return exit context
         return ANVIL__nit__return_context;
@@ -1320,30 +1320,30 @@ void ANVIL__write_next__operation_ID(ANVIL__workspace* workspace, ANVIL__operati
     return;
 }
 
-// write register ID
-void ANVIL__write_next__register_ID(ANVIL__workspace* workspace, ANVIL__register_ID register_ID) {
+// write cell ID
+void ANVIL__write_next__cell_ID(ANVIL__workspace* workspace, ANVIL__cell_ID cell_ID) {
     // write value
     if ((*workspace).pass == ANVIL__pt__write_program) {
-        *((ANVIL__register_ID*)(*workspace).write_to) = register_ID;
+        *((ANVIL__cell_ID*)(*workspace).write_to) = cell_ID;
     }
 
     // advance
-    (*workspace).current_program_offset += sizeof(ANVIL__register_ID);
-    (*workspace).write_to = (ANVIL__address)((u64)(*workspace).write_to + sizeof(ANVIL__register_ID));
+    (*workspace).current_program_offset += sizeof(ANVIL__cell_ID);
+    (*workspace).write_to = (ANVIL__address)((u64)(*workspace).write_to + sizeof(ANVIL__cell_ID));
 
     return;
 }
 
-// write register value
-void ANVIL__write_next__register(ANVIL__workspace* workspace, ANVIL__register register_value) {
+// write cell value
+void ANVIL__write_next__cell(ANVIL__workspace* workspace, ANVIL__cell cell_value) {
     // write value
     if ((*workspace).pass == ANVIL__pt__write_program) {
-        *((ANVIL__register*)(*workspace).write_to) = register_value;
+        *((ANVIL__cell*)(*workspace).write_to) = cell_value;
     }
 
     // advance
-    (*workspace).current_program_offset += sizeof(ANVIL__register);
-    (*workspace).write_to = (ANVIL__address)((u64)(*workspace).write_to + sizeof(ANVIL__register));
+    (*workspace).current_program_offset += sizeof(ANVIL__cell);
+    (*workspace).write_to = (ANVIL__address)((u64)(*workspace).write_to + sizeof(ANVIL__cell));
 
     return;
 }
@@ -1393,152 +1393,152 @@ void ANVIL__code__stop(ANVIL__workspace* workspace) {
     return;
 }
 
-// write write register instruction
-void ANVIL__code__write_register(ANVIL__workspace* workspace, ANVIL__register value, ANVIL__register_ID value_destination) {
+// write write cell instruction
+void ANVIL__code__write_cell(ANVIL__workspace* workspace, ANVIL__cell value, ANVIL__cell_ID value_destination) {
     // write instruction
-    ANVIL__write_next__instruction_ID(workspace, ANVIL__it__write_register);
-    ANVIL__write_next__register(workspace, value);
-    ANVIL__write_next__register_ID(workspace, value_destination);
+    ANVIL__write_next__instruction_ID(workspace, ANVIL__it__write_cell);
+    ANVIL__write_next__cell(workspace, value);
+    ANVIL__write_next__cell_ID(workspace, value_destination);
 
     return;
 }
 
 // write operate instruction
-void ANVIL__code__operate(ANVIL__workspace* workspace, ANVIL__flag_ID flag_ID, ANVIL__operation_ID operation_ID, ANVIL__register_ID input_0, ANVIL__register_ID input_1, ANVIL__register_ID input_2, ANVIL__register_ID output_0) {
+void ANVIL__code__operate(ANVIL__workspace* workspace, ANVIL__flag_ID flag_ID, ANVIL__operation_ID operation_ID, ANVIL__cell_ID input_0, ANVIL__cell_ID input_1, ANVIL__cell_ID input_2, ANVIL__cell_ID output_0) {
     // write instruction
     ANVIL__write_next__instruction_ID(workspace, ANVIL__it__operate);
     ANVIL__write_next__flag_ID(workspace, flag_ID);
     ANVIL__write_next__operation_ID(workspace, operation_ID);
-    ANVIL__write_next__register_ID(workspace, input_0);
-    ANVIL__write_next__register_ID(workspace, input_1);
-    ANVIL__write_next__register_ID(workspace, input_2);
-    ANVIL__write_next__register_ID(workspace, output_0);
+    ANVIL__write_next__cell_ID(workspace, input_0);
+    ANVIL__write_next__cell_ID(workspace, input_1);
+    ANVIL__write_next__cell_ID(workspace, input_2);
+    ANVIL__write_next__cell_ID(workspace, output_0);
 
     return;
 }
 
 // write request memory instruction
-void ANVIL__code__request_memory(ANVIL__workspace* workspace, ANVIL__register_ID allocation_size, ANVIL__register_ID allocation_start, ANVIL__register_ID allocation_end) {
+void ANVIL__code__request_memory(ANVIL__workspace* workspace, ANVIL__cell_ID allocation_size, ANVIL__cell_ID allocation_start, ANVIL__cell_ID allocation_end) {
     // write instruction
     ANVIL__write_next__instruction_ID(workspace, ANVIL__it__request_memory);
-    ANVIL__write_next__register_ID(workspace, allocation_size);
-    ANVIL__write_next__register_ID(workspace, allocation_start);
-    ANVIL__write_next__register_ID(workspace, allocation_end);
+    ANVIL__write_next__cell_ID(workspace, allocation_size);
+    ANVIL__write_next__cell_ID(workspace, allocation_start);
+    ANVIL__write_next__cell_ID(workspace, allocation_end);
 
     return;
 }
 
 // write return memory instruction
-void ANVIL__code__return_memory(ANVIL__workspace* workspace, ANVIL__register_ID allocation_start, ANVIL__register_ID allocation_end) {
+void ANVIL__code__return_memory(ANVIL__workspace* workspace, ANVIL__cell_ID allocation_start, ANVIL__cell_ID allocation_end) {
     // write instruction
     ANVIL__write_next__instruction_ID(workspace, ANVIL__it__return_memory);
-    ANVIL__write_next__register_ID(workspace, allocation_start);
-    ANVIL__write_next__register_ID(workspace, allocation_end);
+    ANVIL__write_next__cell_ID(workspace, allocation_start);
+    ANVIL__write_next__cell_ID(workspace, allocation_end);
 
     return;
 }
 
-// write address to register instruction
-void ANVIL__code__address_to_register(ANVIL__workspace* workspace, ANVIL__flag_ID flag_ID, ANVIL__register_ID source_address, ANVIL__register_ID bit_count, ANVIL__register_ID destination_register) {
+// write address to cell instruction
+void ANVIL__code__address_to_cell(ANVIL__workspace* workspace, ANVIL__flag_ID flag_ID, ANVIL__cell_ID source_address, ANVIL__cell_ID bit_count, ANVIL__cell_ID destination_cell) {
     // write instruction
-    ANVIL__write_next__instruction_ID(workspace, ANVIL__it__address_to_register);
+    ANVIL__write_next__instruction_ID(workspace, ANVIL__it__address_to_cell);
     ANVIL__write_next__flag_ID(workspace, flag_ID);
-    ANVIL__write_next__register_ID(workspace, source_address);
-    ANVIL__write_next__register_ID(workspace, bit_count);
-    ANVIL__write_next__register_ID(workspace, destination_register);
+    ANVIL__write_next__cell_ID(workspace, source_address);
+    ANVIL__write_next__cell_ID(workspace, bit_count);
+    ANVIL__write_next__cell_ID(workspace, destination_cell);
 
     return;
 }
 
-// write register to address instruction
-void ANVIL__code__register_to_address(ANVIL__workspace* workspace, ANVIL__flag_ID flag_ID, ANVIL__register_ID source_register, ANVIL__register_ID bit_count, ANVIL__register_ID destination_address) {
+// write cell to address instruction
+void ANVIL__code__cell_to_address(ANVIL__workspace* workspace, ANVIL__flag_ID flag_ID, ANVIL__cell_ID source_cell, ANVIL__cell_ID bit_count, ANVIL__cell_ID destination_address) {
     // write instruction
-    ANVIL__write_next__instruction_ID(workspace, ANVIL__it__register_to_address);
+    ANVIL__write_next__instruction_ID(workspace, ANVIL__it__cell_to_address);
     ANVIL__write_next__flag_ID(workspace, flag_ID);
-    ANVIL__write_next__register_ID(workspace, source_register);
-    ANVIL__write_next__register_ID(workspace, bit_count);
-    ANVIL__write_next__register_ID(workspace, destination_address);
+    ANVIL__write_next__cell_ID(workspace, source_cell);
+    ANVIL__write_next__cell_ID(workspace, bit_count);
+    ANVIL__write_next__cell_ID(workspace, destination_address);
 
     return;
 }
 
 // write file to buffer instruction
-void ANVIL__code__file_to_buffer(ANVIL__workspace* workspace, ANVIL__register_ID file_name_start, ANVIL__register_ID file_name_end, ANVIL__register_ID file_data_start, ANVIL__register_ID file_data_end) {
+void ANVIL__code__file_to_buffer(ANVIL__workspace* workspace, ANVIL__cell_ID file_name_start, ANVIL__cell_ID file_name_end, ANVIL__cell_ID file_data_start, ANVIL__cell_ID file_data_end) {
     // write instruction
     ANVIL__write_next__instruction_ID(workspace, ANVIL__it__file_to_buffer);
-    ANVIL__write_next__register_ID(workspace, file_name_start);
-    ANVIL__write_next__register_ID(workspace, file_name_end);
-    ANVIL__write_next__register_ID(workspace, file_data_start);
-    ANVIL__write_next__register_ID(workspace, file_data_end);
+    ANVIL__write_next__cell_ID(workspace, file_name_start);
+    ANVIL__write_next__cell_ID(workspace, file_name_end);
+    ANVIL__write_next__cell_ID(workspace, file_data_start);
+    ANVIL__write_next__cell_ID(workspace, file_data_end);
 
     return;
 }
 
 // write buffer to file instruction
-void ANVIL__code__buffer_to_file(ANVIL__workspace* workspace, ANVIL__register_ID file_data_start, ANVIL__register_ID file_data_end, ANVIL__register_ID file_name_start, ANVIL__register_ID file_name_end) {
+void ANVIL__code__buffer_to_file(ANVIL__workspace* workspace, ANVIL__cell_ID file_data_start, ANVIL__cell_ID file_data_end, ANVIL__cell_ID file_name_start, ANVIL__cell_ID file_name_end) {
     // write instruction
     ANVIL__write_next__instruction_ID(workspace, ANVIL__it__buffer_to_file);
-    ANVIL__write_next__register_ID(workspace, file_data_start);
-    ANVIL__write_next__register_ID(workspace, file_data_end);
-    ANVIL__write_next__register_ID(workspace, file_name_start);
-    ANVIL__write_next__register_ID(workspace, file_name_end);
+    ANVIL__write_next__cell_ID(workspace, file_data_start);
+    ANVIL__write_next__cell_ID(workspace, file_data_end);
+    ANVIL__write_next__cell_ID(workspace, file_name_start);
+    ANVIL__write_next__cell_ID(workspace, file_name_end);
 
     return;
 }
 
 // write run instruction
-void ANVIL__code__run(ANVIL__workspace* workspace, ANVIL__register_ID context_buffer_start, ANVIL__register_ID context_buffer_end, ANVIL__register_ID instruction_count) {
+void ANVIL__code__run(ANVIL__workspace* workspace, ANVIL__cell_ID context_buffer_start, ANVIL__cell_ID context_buffer_end, ANVIL__cell_ID instruction_count) {
     // write instruction
     ANVIL__write_next__instruction_ID(workspace, ANVIL__it__run);
-    ANVIL__write_next__register_ID(workspace, context_buffer_start);
-    ANVIL__write_next__register_ID(workspace, context_buffer_end);
-    ANVIL__write_next__register_ID(workspace, instruction_count);
+    ANVIL__write_next__cell_ID(workspace, context_buffer_start);
+    ANVIL__write_next__cell_ID(workspace, context_buffer_end);
+    ANVIL__write_next__cell_ID(workspace, instruction_count);
 
     return;
 }
 
 // write debug putchar instruction
-void ANVIL__code__debug__putchar(ANVIL__workspace* workspace, ANVIL__register_ID printing_register_ID) {
+void ANVIL__code__debug__putchar(ANVIL__workspace* workspace, ANVIL__cell_ID printing_cell_ID) {
     // write instruction
     ANVIL__write_next__instruction_ID(workspace, ANVIL__it__debug__putchar);
-    ANVIL__write_next__register_ID(workspace, printing_register_ID);
+    ANVIL__write_next__cell_ID(workspace, printing_cell_ID);
 
     return;
 }
 
-// write debug print register as decimal instruction
-void ANVIL__code__debug__print_register_as_decimal(ANVIL__workspace* workspace, ANVIL__register_ID printing_register_ID) {
+// write debug print cell as decimal instruction
+void ANVIL__code__debug__print_cell_as_decimal(ANVIL__workspace* workspace, ANVIL__cell_ID printing_cell_ID) {
     // write instruction
-    ANVIL__write_next__instruction_ID(workspace, ANVIL__it__debug__print_register_as_decimal);
-    ANVIL__write_next__register_ID(workspace, printing_register_ID);
+    ANVIL__write_next__instruction_ID(workspace, ANVIL__it__debug__print_cell_as_decimal);
+    ANVIL__write_next__cell_ID(workspace, printing_cell_ID);
 
     return;
 }
 
 // write debug fgets instruction
-void ANVIL__code__debug__fgets(ANVIL__workspace* workspace, ANVIL__register_ID buffer_start_ID, ANVIL__register_ID buffer_end_ID) {
+void ANVIL__code__debug__fgets(ANVIL__workspace* workspace, ANVIL__cell_ID buffer_start_ID, ANVIL__cell_ID buffer_end_ID) {
     // write instruction
     ANVIL__write_next__instruction_ID(workspace, ANVIL__it__debug__fgets);
-    ANVIL__write_next__register_ID(workspace, buffer_start_ID);
-    ANVIL__write_next__register_ID(workspace, buffer_end_ID);
+    ANVIL__write_next__cell_ID(workspace, buffer_start_ID);
+    ANVIL__write_next__cell_ID(workspace, buffer_end_ID);
 
     return;
 }
 
 // write debug mark data section instruction
-void ANVIL__code__debug__mark_data_section(ANVIL__workspace* workspace, ANVIL__register buffer_length) {
+void ANVIL__code__debug__mark_data_section(ANVIL__workspace* workspace, ANVIL__cell buffer_length) {
     // write instruction
     ANVIL__write_next__instruction_ID(workspace, ANVIL__it__debug__mark_data_section);
-    ANVIL__write_next__register(workspace, buffer_length);
+    ANVIL__write_next__cell(workspace, buffer_length);
 
     return;
 }
 
 // write debug mark code section instruction
-void ANVIL__code__debug__mark_code_section(ANVIL__workspace* workspace, ANVIL__register code_buffer_length) {
+void ANVIL__code__debug__mark_code_section(ANVIL__workspace* workspace, ANVIL__cell code_buffer_length) {
     // write instruction
     ANVIL__write_next__instruction_ID(workspace, ANVIL__it__debug__mark_code_section);
-    ANVIL__write_next__register(workspace, code_buffer_length);
+    ANVIL__write_next__cell(workspace, code_buffer_length);
 
     return;
 }
@@ -1549,12 +1549,12 @@ typedef u64 ANVIL__preserve;
 typedef ANVIL__preserve ANVIL__preserve__start;
 typedef ANVIL__preserve ANVIL__preserve__end;
 
-// stack register types
+// stack cell types
 typedef enum ANVIL__srt {
-    // start of registers
+    // start of cells
     ANVIL__srt__START = ANVIL__rt__END,
 
-    // constant registers
+    // constant cells
     ANVIL__srt__constant__0 = ANVIL__srt__START,
     ANVIL__srt__constant__1,
     ANVIL__srt__constant__2,
@@ -1567,24 +1567,24 @@ typedef enum ANVIL__srt {
     ANVIL__srt__constant__48,
     ANVIL__srt__constant__56,
     ANVIL__srt__constant__64,
-    ANVIL__srt__constant__register_byte_size,
+    ANVIL__srt__constant__cell_byte_size,
     ANVIL__srt__constant__return_address_offset_creation_size,
 
-    // context io registers
+    // context io cells
     ANVIL__srt__input_buffer_start,
     ANVIL__srt__input_buffer_end,
     ANVIL__srt__output_buffer_start,
     ANVIL__srt__output_buffer_end,
 
-    // stack registers
+    // stack cells
     ANVIL__srt__stack__start_address,
     ANVIL__srt__stack__current_address,
     ANVIL__srt__stack__end_address,
 
-    // control flow registers
+    // control flow cells
     ANVIL__srt__return_address,
 
-    // temporary registers
+    // temporary cells
     ANVIL__srt__temp__write,
     ANVIL__srt__temp__offset,
     ANVIL__srt__temp__address,
@@ -1592,14 +1592,14 @@ typedef enum ANVIL__srt {
     ANVIL__srt__temp__flag_ID,
     ANVIL__srt__temp__bit_count,
 
-    // end of registers
+    // end of cells
     ANVIL__srt__END,
 
     // aliases
     ANVIL__srt__constant__true = ANVIL__srt__constant__1,
     ANVIL__srt__constant__false = ANVIL__srt__constant__0,
-    ANIVL__srt__constant__register_byte_count = ANVIL__srt__constant__8,
-    ANIVL__srt__constant__register_bit_count = ANVIL__srt__constant__64,
+    ANIVL__srt__constant__cell_byte_count = ANVIL__srt__constant__8,
+    ANIVL__srt__constant__cell_bit_count = ANVIL__srt__constant__64,
     ANVIL__srt__constant__bits_in_byte = ANVIL__srt__constant__8,
 
     // locations
@@ -1612,12 +1612,12 @@ typedef enum ANVIL__srt {
 
 // stack instruction length types
 typedef enum ANVIL__silt {
-    ANVIL__silt__register_to_register = ANVIL__ilt__operate,
-    ANVIL__silt__push_register = ANVIL__ilt__register_to_address + ANVIL__ilt__operate,
-    ANVIL__silt__pop_register = ANVIL__ilt__operate + ANVIL__ilt__address_to_register,
+    ANVIL__silt__cell_to_cell = ANVIL__ilt__operate,
+    ANVIL__silt__push_cell = ANVIL__ilt__cell_to_address + ANVIL__ilt__operate,
+    ANVIL__silt__pop_cell = ANVIL__ilt__operate + ANVIL__ilt__address_to_cell,
     ANVIL__silt__calculate_dynamically__offset_address = ANVIL__ilt__operate,
-    ANVIL__silt__calculate_statically__offset_address = ANVIL__ilt__write_register + ANVIL__silt__calculate_dynamically__offset_address,
-    ANVIL__silt__jump__explicit = ANVIL__silt__register_to_register,
+    ANVIL__silt__calculate_statically__offset_address = ANVIL__ilt__write_cell + ANVIL__silt__calculate_dynamically__offset_address,
+    ANVIL__silt__jump__explicit = ANVIL__silt__cell_to_cell,
     ANVIL__silt__jump__static = ANVIL__silt__calculate_statically__offset_address + ANVIL__silt__jump__explicit,
 } ANVIL__silt;
 
@@ -1641,56 +1641,56 @@ typedef u64 ANVIL__stack_size;
 /* Context IO */
 // pass input
 void ANVIL__set__input(ANVIL__context* context, ANVIL__buffer input) {
-    // write data to registers
-    (*context).registers[ANVIL__srt__input_buffer_start] = (ANVIL__register)input.start;
-    (*context).registers[ANVIL__srt__input_buffer_end] = (ANVIL__register)input.end;
+    // write data to cells
+    (*context).cells[ANVIL__srt__input_buffer_start] = (ANVIL__cell)input.start;
+    (*context).cells[ANVIL__srt__input_buffer_end] = (ANVIL__cell)input.end;
 
     return;
 }
 
 /* Stack ABI Code */
-// move one register to the next
-void ANVIL__code__register_to_register(ANVIL__workspace* workspace, ANVIL__flag_ID flag, ANVIL__register_ID source, ANVIL__register_ID destination) {
+// move one cell to the next
+void ANVIL__code__cell_to_cell(ANVIL__workspace* workspace, ANVIL__flag_ID flag, ANVIL__cell_ID source, ANVIL__cell_ID destination) {
     // write code
-    ANVIL__code__operate(workspace, flag, ANVIL__ot__register_to_register, source, ANVIL__unused_register_ID, ANVIL__unused_register_ID, destination);
+    ANVIL__code__operate(workspace, flag, ANVIL__ot__cell_to_cell, source, ANVIL__unused_cell_ID, ANVIL__unused_cell_ID, destination);
 
     return;
 }
 
-// push a register onto the stack
-void ANVIL__code__push_register(ANVIL__workspace* workspace, ANVIL__flag_ID flag, ANVIL__register_ID source_register) {
+// push a cell onto the stack
+void ANVIL__code__push_cell(ANVIL__workspace* workspace, ANVIL__flag_ID flag, ANVIL__cell_ID source_cell) {
     // write data to stack
-    ANVIL__code__register_to_address(workspace, flag, source_register, ANVIL__srt__constant__64, ANVIL__srt__stack__current_address);
+    ANVIL__code__cell_to_address(workspace, flag, source_cell, ANVIL__srt__constant__64, ANVIL__srt__stack__current_address);
 
     // increase stack pointer
-    ANVIL__code__operate(workspace, flag, ANVIL__ot__integer_add, ANVIL__srt__stack__current_address, ANVIL__srt__constant__register_byte_size, ANVIL__unused_register_ID, ANVIL__srt__stack__current_address);
+    ANVIL__code__operate(workspace, flag, ANVIL__ot__integer_add, ANVIL__srt__stack__current_address, ANVIL__srt__constant__cell_byte_size, ANVIL__unused_cell_ID, ANVIL__srt__stack__current_address);
 
     return;
 }
 
-// pop a register from the stack
-void ANVIL__code__pop_register(ANVIL__workspace* workspace, ANVIL__flag_ID flag, ANVIL__register_ID destination_register) {
+// pop a cell from the stack
+void ANVIL__code__pop_cell(ANVIL__workspace* workspace, ANVIL__flag_ID flag, ANVIL__cell_ID destination_cell) {
     // decrease stack pointer
-    ANVIL__code__operate(workspace, flag, ANVIL__ot__integer_subtract, ANVIL__srt__stack__current_address, ANVIL__srt__constant__register_byte_size, ANVIL__unused_register_ID, ANVIL__srt__stack__current_address);
+    ANVIL__code__operate(workspace, flag, ANVIL__ot__integer_subtract, ANVIL__srt__stack__current_address, ANVIL__srt__constant__cell_byte_size, ANVIL__unused_cell_ID, ANVIL__srt__stack__current_address);
 
     // read data from stack
-    ANVIL__code__address_to_register(workspace, flag, ANVIL__srt__stack__current_address, ANVIL__srt__constant__64, destination_register);
+    ANVIL__code__address_to_cell(workspace, flag, ANVIL__srt__stack__current_address, ANVIL__srt__constant__64, destination_cell);
 
     return;
 }
 
-// calculate an address from the program start and an offset register
-void ANVIL__code__calculate_dynamically__offset_address(ANVIL__workspace* workspace, ANVIL__flag_ID flag, ANVIL__register_ID offset_register, ANVIL__register_ID destination) {
+// calculate an address from the program start and an offset cell
+void ANVIL__code__calculate_dynamically__offset_address(ANVIL__workspace* workspace, ANVIL__flag_ID flag, ANVIL__cell_ID offset_cell, ANVIL__cell_ID destination) {
     // calculate address
-    ANVIL__code__operate(workspace, flag, ANVIL__ot__integer_add, ANVIL__rt__program_start_address, offset_register, ANVIL__unused_register_ID, destination);
+    ANVIL__code__operate(workspace, flag, ANVIL__ot__integer_add, ANVIL__rt__program_start_address, offset_cell, ANVIL__unused_cell_ID, destination);
 
     return;
 }
 
 // calculate an address from the program start and an offset
-void ANVIL__code__calculate_statically__offset_address(ANVIL__workspace* workspace, ANVIL__flag_ID flag, ANVIL__offset offset, ANVIL__register_ID destination) {
+void ANVIL__code__calculate_statically__offset_address(ANVIL__workspace* workspace, ANVIL__flag_ID flag, ANVIL__offset offset, ANVIL__cell_ID destination) {
     // write temp
-    ANVIL__code__write_register(workspace, (ANVIL__register)offset, ANVIL__srt__temp__offset);
+    ANVIL__code__write_cell(workspace, (ANVIL__cell)offset, ANVIL__srt__temp__offset);
 
     // calculate address
     ANVIL__code__calculate_dynamically__offset_address(workspace, flag, ANVIL__srt__temp__offset, destination);
@@ -1699,9 +1699,9 @@ void ANVIL__code__calculate_statically__offset_address(ANVIL__workspace* workspa
 }
 
 // jump to a specific address
-void ANVIL__code__jump__explicit(ANVIL__workspace* workspace, ANVIL__flag_ID flag, ANVIL__register_ID address) {
+void ANVIL__code__jump__explicit(ANVIL__workspace* workspace, ANVIL__flag_ID flag, ANVIL__cell_ID address) {
     // jump
-    ANVIL__code__register_to_register(workspace, flag, address, ANVIL__rt__program_current_address);
+    ANVIL__code__cell_to_cell(workspace, flag, address, ANVIL__rt__program_current_address);
 
     return;
 }
@@ -1718,17 +1718,17 @@ void ANVIL__code__jump__static(ANVIL__workspace* workspace, ANVIL__flag_ID flag,
 }
 
 // create return address
-void ANVIL__code__create_return_address__directly_after_jump(ANVIL__workspace* workspace, ANVIL__flag_ID flag, ANVIL__register_ID destination) {
+void ANVIL__code__create_return_address__directly_after_jump(ANVIL__workspace* workspace, ANVIL__flag_ID flag, ANVIL__cell_ID destination) {
     // create offset
-    ANVIL__code__operate(workspace, flag, ANVIL__ot__integer_add, ANVIL__rt__program_current_address, ANVIL__srt__constant__return_address_offset_creation_size, ANVIL__unused_register_ID, destination);
+    ANVIL__code__operate(workspace, flag, ANVIL__ot__integer_add, ANVIL__rt__program_current_address, ANVIL__srt__constant__return_address_offset_creation_size, ANVIL__unused_cell_ID, destination);
 
     return;
 }
 
 // call function explicitly
-void ANVIL__code__call__explicit(ANVIL__workspace* workspace, ANVIL__flag_ID flag, ANVIL__register_ID address) {
+void ANVIL__code__call__explicit(ANVIL__workspace* workspace, ANVIL__flag_ID flag, ANVIL__cell_ID address) {
     // preserve return address
-    ANVIL__code__push_register(workspace, flag, ANVIL__srt__return_address);
+    ANVIL__code__push_cell(workspace, flag, ANVIL__srt__return_address);
 
     // setup new return address
     ANVIL__code__create_return_address__directly_after_jump(workspace, flag, ANVIL__srt__return_address);
@@ -1737,7 +1737,7 @@ void ANVIL__code__call__explicit(ANVIL__workspace* workspace, ANVIL__flag_ID fla
     ANVIL__code__jump__explicit(workspace, flag, address);
 
     // restore return address
-    ANVIL__code__pop_register(workspace, flag, ANVIL__srt__return_address);
+    ANVIL__code__pop_cell(workspace, flag, ANVIL__srt__return_address);
 
     return;
 }
@@ -1758,39 +1758,39 @@ void ANVIL__code__start(ANVIL__workspace* workspace, ANVIL__stack_size stack_siz
     // setup code marker
     ANVIL__code__debug__mark_code_section(workspace, 0);
 
-    // setup error register
-    ANVIL__code__write_register(workspace, (ANVIL__register)0, ANVIL__rt__error_code);
+    // setup error cell
+    ANVIL__code__write_cell(workspace, (ANVIL__cell)0, ANVIL__rt__error_code);
 
-    // setup flag registers
-    ANVIL__code__write_register(workspace, (ANVIL__register)1, ANVIL__rt__flags_0);
-    ANVIL__code__write_register(workspace, (ANVIL__register)0, ANVIL__rt__flags_1);
-    ANVIL__code__write_register(workspace, (ANVIL__register)0, ANVIL__rt__flags_2);
-    ANVIL__code__write_register(workspace, (ANVIL__register)0, ANVIL__rt__flags_3);
+    // setup flag cells
+    ANVIL__code__write_cell(workspace, (ANVIL__cell)1, ANVIL__rt__flags_0);
+    ANVIL__code__write_cell(workspace, (ANVIL__cell)0, ANVIL__rt__flags_1);
+    ANVIL__code__write_cell(workspace, (ANVIL__cell)0, ANVIL__rt__flags_2);
+    ANVIL__code__write_cell(workspace, (ANVIL__cell)0, ANVIL__rt__flags_3);
 
     // setup constants
-    ANVIL__code__write_register(workspace, (ANVIL__register)0, ANVIL__srt__constant__0);
-    ANVIL__code__write_register(workspace, (ANVIL__register)1, ANVIL__srt__constant__1);
-    ANVIL__code__write_register(workspace, (ANVIL__register)2, ANVIL__srt__constant__2);
-    ANVIL__code__write_register(workspace, (ANVIL__register)4, ANVIL__srt__constant__4);
-    ANVIL__code__write_register(workspace, (ANVIL__register)8, ANVIL__srt__constant__8);
-    ANVIL__code__write_register(workspace, (ANVIL__register)16, ANVIL__srt__constant__16);
-    ANVIL__code__write_register(workspace, (ANVIL__register)24, ANVIL__srt__constant__24);
-    ANVIL__code__write_register(workspace, (ANVIL__register)32, ANVIL__srt__constant__32);
-    ANVIL__code__write_register(workspace, (ANVIL__register)40, ANVIL__srt__constant__40);
-    ANVIL__code__write_register(workspace, (ANVIL__register)48, ANVIL__srt__constant__48);
-    ANVIL__code__write_register(workspace, (ANVIL__register)56, ANVIL__srt__constant__56);
-    ANVIL__code__write_register(workspace, (ANVIL__register)64, ANVIL__srt__constant__64);
-    ANVIL__code__write_register(workspace, (ANVIL__register)sizeof(ANVIL__register), ANVIL__srt__constant__register_byte_size);
-    ANVIL__code__write_register(workspace, (ANVIL__register)ANVIL__silt__jump__explicit, ANVIL__srt__constant__return_address_offset_creation_size);
+    ANVIL__code__write_cell(workspace, (ANVIL__cell)0, ANVIL__srt__constant__0);
+    ANVIL__code__write_cell(workspace, (ANVIL__cell)1, ANVIL__srt__constant__1);
+    ANVIL__code__write_cell(workspace, (ANVIL__cell)2, ANVIL__srt__constant__2);
+    ANVIL__code__write_cell(workspace, (ANVIL__cell)4, ANVIL__srt__constant__4);
+    ANVIL__code__write_cell(workspace, (ANVIL__cell)8, ANVIL__srt__constant__8);
+    ANVIL__code__write_cell(workspace, (ANVIL__cell)16, ANVIL__srt__constant__16);
+    ANVIL__code__write_cell(workspace, (ANVIL__cell)24, ANVIL__srt__constant__24);
+    ANVIL__code__write_cell(workspace, (ANVIL__cell)32, ANVIL__srt__constant__32);
+    ANVIL__code__write_cell(workspace, (ANVIL__cell)40, ANVIL__srt__constant__40);
+    ANVIL__code__write_cell(workspace, (ANVIL__cell)48, ANVIL__srt__constant__48);
+    ANVIL__code__write_cell(workspace, (ANVIL__cell)56, ANVIL__srt__constant__56);
+    ANVIL__code__write_cell(workspace, (ANVIL__cell)64, ANVIL__srt__constant__64);
+    ANVIL__code__write_cell(workspace, (ANVIL__cell)sizeof(ANVIL__cell), ANVIL__srt__constant__cell_byte_size);
+    ANVIL__code__write_cell(workspace, (ANVIL__cell)ANVIL__silt__jump__explicit, ANVIL__srt__constant__return_address_offset_creation_size);
 
     // setup output
-    ANVIL__code__register_to_register(workspace, ANVIL__sft__always_run, ANVIL__srt__constant__0, ANVIL__srt__output_buffer_start);
-    ANVIL__code__register_to_register(workspace, ANVIL__sft__always_run, ANVIL__srt__constant__0, ANVIL__srt__output_buffer_end);
+    ANVIL__code__cell_to_cell(workspace, ANVIL__sft__always_run, ANVIL__srt__constant__0, ANVIL__srt__output_buffer_start);
+    ANVIL__code__cell_to_cell(workspace, ANVIL__sft__always_run, ANVIL__srt__constant__0, ANVIL__srt__output_buffer_end);
 
     // setup stack
-    ANVIL__code__write_register(workspace, (ANVIL__register)stack_size, ANVIL__srt__temp__write);
+    ANVIL__code__write_cell(workspace, (ANVIL__cell)stack_size, ANVIL__srt__temp__write);
     ANVIL__code__request_memory(workspace, ANVIL__srt__temp__write, ANVIL__srt__stack__start_address, ANVIL__srt__stack__end_address);
-    ANVIL__code__register_to_register(workspace, (ANVIL__flag_ID)ANVIL__sft__always_run, ANVIL__srt__stack__start_address, ANVIL__srt__stack__current_address);
+    ANVIL__code__cell_to_cell(workspace, (ANVIL__flag_ID)ANVIL__sft__always_run, ANVIL__srt__stack__start_address, ANVIL__srt__stack__current_address);
 
     // jump to main
     ANVIL__code__call__static(workspace, ANVIL__sft__always_run, jump_to);
@@ -1807,18 +1807,18 @@ void ANVIL__code__start(ANVIL__workspace* workspace, ANVIL__stack_size stack_siz
 // preserve workspace
 void ANVIL__code__preserve_workspace(ANVIL__workspace* workspace, ANVIL__flag_ID flag, ANVIL__preserve__start preserve_start, ANVIL__preserve__end preserve_end) {
     // preserve flags
-    ANVIL__code__push_register(workspace, flag, ANVIL__rt__flags_0);
-    ANVIL__code__push_register(workspace, flag, ANVIL__rt__flags_1);
-    ANVIL__code__push_register(workspace, flag, ANVIL__rt__flags_2);
-    ANVIL__code__push_register(workspace, flag, ANVIL__rt__flags_3);
+    ANVIL__code__push_cell(workspace, flag, ANVIL__rt__flags_0);
+    ANVIL__code__push_cell(workspace, flag, ANVIL__rt__flags_1);
+    ANVIL__code__push_cell(workspace, flag, ANVIL__rt__flags_2);
+    ANVIL__code__push_cell(workspace, flag, ANVIL__rt__flags_3);
 
     // preserve error code
-    ANVIL__code__push_register(workspace, flag, ANVIL__rt__error_code);
+    ANVIL__code__push_cell(workspace, flag, ANVIL__rt__error_code);
 
-    // preserve workspace registers
+    // preserve workspace cells
     for (ANVIL__preserve i = preserve_start; i <= preserve_end; i++) {
-        // preserve register
-        ANVIL__code__push_register(workspace, flag, i);
+        // preserve cell
+        ANVIL__code__push_cell(workspace, flag, i);
     }
 
     return;
@@ -1826,42 +1826,42 @@ void ANVIL__code__preserve_workspace(ANVIL__workspace* workspace, ANVIL__flag_ID
 
 // restore workspace
 void ANVIL__code__restore_workspace(ANVIL__workspace* workspace, ANVIL__flag_ID flag, ANVIL__preserve__start preserve_start, ANVIL__preserve__end preserve_end) {
-    // preserve workspace registers
+    // preserve workspace cells
     for (ANVIL__preserve i = preserve_end; i >= preserve_start; i--) {
-        // preserve register
-        ANVIL__code__pop_register(workspace, flag, i);
+        // preserve cell
+        ANVIL__code__pop_cell(workspace, flag, i);
     }
 
     // preserve error code
-    ANVIL__code__pop_register(workspace, flag, ANVIL__rt__error_code);
+    ANVIL__code__pop_cell(workspace, flag, ANVIL__rt__error_code);
 
     // restore flags
-    ANVIL__code__pop_register(workspace, flag, ANVIL__rt__flags_3);
-    ANVIL__code__pop_register(workspace, flag, ANVIL__rt__flags_2);
-    ANVIL__code__pop_register(workspace, flag, ANVIL__rt__flags_1);
-    ANVIL__code__pop_register(workspace, flag, ANVIL__rt__flags_0);
+    ANVIL__code__pop_cell(workspace, flag, ANVIL__rt__flags_3);
+    ANVIL__code__pop_cell(workspace, flag, ANVIL__rt__flags_2);
+    ANVIL__code__pop_cell(workspace, flag, ANVIL__rt__flags_1);
+    ANVIL__code__pop_cell(workspace, flag, ANVIL__rt__flags_0);
 
     return;
 }
 
 // operate flag
-void ANVIL__code__operate__flag(ANVIL__workspace* workspace, ANVIL__flag_ID flag, ANVIL__register_ID lower_bound, ANVIL__register_ID value, ANVIL__register_ID upper_bound, ANVIL__flag_ID invert_result, ANVIL__register_ID output_flag_ID) {
+void ANVIL__code__operate__flag(ANVIL__workspace* workspace, ANVIL__flag_ID flag, ANVIL__cell_ID lower_bound, ANVIL__cell_ID value, ANVIL__cell_ID upper_bound, ANVIL__flag_ID invert_result, ANVIL__cell_ID output_flag_ID) {
     // get comparison result set to variable
     ANVIL__code__operate(workspace, flag, ANVIL__ot__integer_within_range, lower_bound, value, upper_bound, ANVIL__srt__temp__flag);
 
     // write flag
-    ANVIL__code__operate(workspace, flag, ANVIL__ot__flag_set, ANVIL__srt__temp__flag, ANVIL__unused_register_ID, ANVIL__unused_register_ID, output_flag_ID);
+    ANVIL__code__operate(workspace, flag, ANVIL__ot__flag_set, ANVIL__srt__temp__flag, ANVIL__unused_cell_ID, ANVIL__unused_cell_ID, output_flag_ID);
 
     // invert flag
-    ANVIL__code__operate(workspace, invert_result, ANVIL__ot__flag_invert, output_flag_ID, ANVIL__unused_register_ID, ANVIL__unused_register_ID, output_flag_ID);
+    ANVIL__code__operate(workspace, invert_result, ANVIL__ot__flag_invert, output_flag_ID, ANVIL__unused_cell_ID, ANVIL__unused_cell_ID, output_flag_ID);
 
     return;
 }
 
 // operate jump explicitly
-void ANVIL__code__operate__jump__explicit(ANVIL__workspace* workspace, ANVIL__flag_ID flag, ANVIL__register_ID lower_bound, ANVIL__register_ID value, ANVIL__register_ID upper_bound, ANVIL__flag_ID invert_result, ANVIL__register_ID jump_address) {
+void ANVIL__code__operate__jump__explicit(ANVIL__workspace* workspace, ANVIL__flag_ID flag, ANVIL__cell_ID lower_bound, ANVIL__cell_ID value, ANVIL__cell_ID upper_bound, ANVIL__flag_ID invert_result, ANVIL__cell_ID jump_address) {
     // setup flag temp
-    ANVIL__code__write_register(workspace, (ANVIL__register)ANVIL__sft__temp, ANVIL__srt__temp__flag_ID);
+    ANVIL__code__write_cell(workspace, (ANVIL__cell)ANVIL__sft__temp, ANVIL__srt__temp__flag_ID);
 
     // perform comparison
     ANVIL__code__operate__flag(workspace, flag, lower_bound, value, upper_bound, invert_result, ANVIL__srt__temp__flag_ID);
@@ -1873,9 +1873,9 @@ void ANVIL__code__operate__jump__explicit(ANVIL__workspace* workspace, ANVIL__fl
 }
 
 // operate jump dynamically
-void ANVIL__code__operate__jump__dynamic(ANVIL__workspace* workspace, ANVIL__flag_ID flag, ANVIL__register_ID lower_bound, ANVIL__register_ID value, ANVIL__register_ID upper_bound, ANVIL__flag_ID invert_result, ANVIL__register_ID jump_offset_register) {
+void ANVIL__code__operate__jump__dynamic(ANVIL__workspace* workspace, ANVIL__flag_ID flag, ANVIL__cell_ID lower_bound, ANVIL__cell_ID value, ANVIL__cell_ID upper_bound, ANVIL__flag_ID invert_result, ANVIL__cell_ID jump_offset_cell) {
     // calculate offset
-    ANVIL__code__calculate_dynamically__offset_address(workspace, flag, jump_offset_register, ANVIL__srt__temp__address);
+    ANVIL__code__calculate_dynamically__offset_address(workspace, flag, jump_offset_cell, ANVIL__srt__temp__address);
 
     // attempt jump
     ANVIL__code__operate__jump__explicit(workspace, flag, lower_bound, value, upper_bound, invert_result, ANVIL__srt__temp__address);
@@ -1884,9 +1884,9 @@ void ANVIL__code__operate__jump__dynamic(ANVIL__workspace* workspace, ANVIL__fla
 }
 
 // operate jump statically
-void ANVIL__code__operate__jump__static(ANVIL__workspace* workspace, ANVIL__flag_ID flag, ANVIL__register_ID lower_bound, ANVIL__register_ID value, ANVIL__register_ID upper_bound, ANVIL__flag_ID invert_result, ANVIL__offset jump_offset) {
-    // write offset to register
-    ANVIL__code__write_register(workspace, (ANVIL__register)jump_offset, ANVIL__srt__temp__offset);
+void ANVIL__code__operate__jump__static(ANVIL__workspace* workspace, ANVIL__flag_ID flag, ANVIL__cell_ID lower_bound, ANVIL__cell_ID value, ANVIL__cell_ID upper_bound, ANVIL__flag_ID invert_result, ANVIL__offset jump_offset) {
+    // write offset to cell
+    ANVIL__code__write_cell(workspace, (ANVIL__cell)jump_offset, ANVIL__srt__temp__offset);
 
     // attempt jump
     ANVIL__code__operate__jump__dynamic(workspace, flag, lower_bound, value, upper_bound, invert_result, ANVIL__srt__temp__offset);
@@ -1895,9 +1895,9 @@ void ANVIL__code__operate__jump__static(ANVIL__workspace* workspace, ANVIL__flag
 }
 
 /*// operate call explicitly
-void ANVIL__code__operate__call__explicit(ANVIL__workspace* workspace, ANVIL__flag_ID flag, ANVIL__register_ID lower_bound, ANVIL__register_ID value, ANVIL__register_ID upper_bound, ANVIL__flag_ID invert_result, ANVIL__register_ID address) {
+void ANVIL__code__operate__call__explicit(ANVIL__workspace* workspace, ANVIL__flag_ID flag, ANVIL__cell_ID lower_bound, ANVIL__cell_ID value, ANVIL__cell_ID upper_bound, ANVIL__flag_ID invert_result, ANVIL__cell_ID address) {
     // setup flag temp
-    ANVIL__code__write_register(workspace, (ANVIL__register)ANVIL__sft__temp, ANVIL__srt__temp__flag_ID);
+    ANVIL__code__write_cell(workspace, (ANVIL__cell)ANVIL__sft__temp, ANVIL__srt__temp__flag_ID);
 
     // perform comparison
     ANVIL__code__operate__flag(workspace, flag, lower_bound, value, upper_bound, invert_result, ANVIL__srt__temp__flag_ID);
@@ -1909,9 +1909,9 @@ void ANVIL__code__operate__call__explicit(ANVIL__workspace* workspace, ANVIL__fl
 }
 
 // operate call statically
-void ANVIL__code__operate__call__static(ANVIL__workspace* workspace, ANVIL__flag_ID flag, ANVIL__register_ID lower_bound, ANVIL__register_ID value, ANVIL__register_ID upper_bound, ANVIL__flag_ID invert_result, ANVIL__offset jump_offset) {
+void ANVIL__code__operate__call__static(ANVIL__workspace* workspace, ANVIL__flag_ID flag, ANVIL__cell_ID lower_bound, ANVIL__cell_ID value, ANVIL__cell_ID upper_bound, ANVIL__flag_ID invert_result, ANVIL__offset jump_offset) {
     // setup flag temp
-    ANVIL__code__write_register(workspace, (ANVIL__register)ANVIL__sft__temp, ANVIL__srt__temp__flag_ID);
+    ANVIL__code__write_cell(workspace, (ANVIL__cell)ANVIL__sft__temp, ANVIL__srt__temp__flag_ID);
 
     // perform comparison
     ANVIL__code__operate__flag(workspace, flag, lower_bound, value, upper_bound, invert_result, ANVIL__srt__temp__flag_ID);
@@ -1923,25 +1923,25 @@ void ANVIL__code__operate__call__static(ANVIL__workspace* workspace, ANVIL__flag
 }*/
 
 // setup context
-void ANVIL__code__setup__context(ANVIL__workspace* workspace, ANVIL__register_ID program_buffer_start, ANVIL__register_ID program_buffer_end, ANVIL__register_ID context_buffer_start, ANVIL__register_ID context_buffer_end) {
+void ANVIL__code__setup__context(ANVIL__workspace* workspace, ANVIL__cell_ID program_buffer_start, ANVIL__cell_ID program_buffer_end, ANVIL__cell_ID context_buffer_start, ANVIL__cell_ID context_buffer_end) {
     // setup allocation size
-    ANVIL__code__write_register(workspace, (ANVIL__register)sizeof(ANVIL__context), ANVIL__srt__temp__write);
+    ANVIL__code__write_cell(workspace, (ANVIL__cell)sizeof(ANVIL__context), ANVIL__srt__temp__write);
 
     // allocate context
     ANVIL__code__request_memory(workspace, ANVIL__srt__temp__write, context_buffer_start, context_buffer_end);
 
     // setup skeleton context
     // setup buffer start
-    ANVIL__code__register_to_register(workspace, ANVIL__sft__always_run, context_buffer_start, ANVIL__srt__temp__address);
-    ANVIL__code__register_to_address(workspace, ANVIL__sft__always_run, program_buffer_start, ANIVL__srt__constant__register_bit_count, ANVIL__srt__temp__address);
+    ANVIL__code__cell_to_cell(workspace, ANVIL__sft__always_run, context_buffer_start, ANVIL__srt__temp__address);
+    ANVIL__code__cell_to_address(workspace, ANVIL__sft__always_run, program_buffer_start, ANIVL__srt__constant__cell_bit_count, ANVIL__srt__temp__address);
 
     // setup current address
-    ANVIL__code__operate(workspace, ANVIL__sft__always_run, ANVIL__ot__integer_add, ANVIL__srt__temp__address, ANIVL__srt__constant__register_byte_count, ANVIL__unused_register_ID, ANVIL__srt__temp__address);
-    ANVIL__code__register_to_address(workspace, ANVIL__sft__always_run, program_buffer_start, ANIVL__srt__constant__register_bit_count, ANVIL__srt__temp__address);
+    ANVIL__code__operate(workspace, ANVIL__sft__always_run, ANVIL__ot__integer_add, ANVIL__srt__temp__address, ANIVL__srt__constant__cell_byte_count, ANVIL__unused_cell_ID, ANVIL__srt__temp__address);
+    ANVIL__code__cell_to_address(workspace, ANVIL__sft__always_run, program_buffer_start, ANIVL__srt__constant__cell_bit_count, ANVIL__srt__temp__address);
 
     // setup end address
-    ANVIL__code__operate(workspace, ANVIL__sft__always_run, ANVIL__ot__integer_add, ANVIL__srt__temp__address, ANIVL__srt__constant__register_byte_count, ANVIL__unused_register_ID, ANVIL__srt__temp__address);
-    ANVIL__code__register_to_address(workspace, ANVIL__sft__always_run, program_buffer_end, ANIVL__srt__constant__register_bit_count, ANVIL__srt__temp__address);
+    ANVIL__code__operate(workspace, ANVIL__sft__always_run, ANVIL__ot__integer_add, ANVIL__srt__temp__address, ANIVL__srt__constant__cell_byte_count, ANVIL__unused_cell_ID, ANVIL__srt__temp__address);
+    ANVIL__code__cell_to_address(workspace, ANVIL__sft__always_run, program_buffer_end, ANIVL__srt__constant__cell_bit_count, ANVIL__srt__temp__address);
     
     return;
 }

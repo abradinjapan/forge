@@ -20,7 +20,7 @@ typedef enum ESS__ot {
     ESS__ot__write_byte__start,
     ESS__ot__write_byte__return,
 
-    // print register as decimal
+    // print cell as decimal
     ESS__ot__print_hexadecimal__start,
     ESS__ot__print_hexadecimal__loop__start,
     ESS__ot__print_hexadecimal__return,
@@ -35,7 +35,7 @@ typedef struct ESS__offsets {
 } ESS__offsets;
 
 /* Printing */
-// print buffer registers
+// print buffer cells
 typedef enum ESS__rt__print_buffer {
     // preserve start
     ESS__rt__print_buffer__preserve__START = ANVIL__srt__start__workspace,
@@ -58,10 +58,10 @@ typedef enum ESS__rt__print_buffer {
 } ESS__rt__print_buffer;
 
 // call print buffer
-void ESS__code__call__print_buffer(ANVIL__workspace* workspace, ESS__offsets* essential_offsets, ANVIL__flag_ID flag, ANVIL__register_ID buffer_start, ANVIL__register_ID buffer_end) {
+void ESS__code__call__print_buffer(ANVIL__workspace* workspace, ESS__offsets* essential_offsets, ANVIL__flag_ID flag, ANVIL__cell_ID buffer_start, ANVIL__cell_ID buffer_end) {
     // pass parameters
-    ANVIL__code__register_to_register(workspace, flag, buffer_start, ESS__rt__print_buffer__input__buffer_start);
-    ANVIL__code__register_to_register(workspace, flag, buffer_end, ESS__rt__print_buffer__input__buffer_end);
+    ANVIL__code__cell_to_cell(workspace, flag, buffer_start, ESS__rt__print_buffer__input__buffer_start);
+    ANVIL__code__cell_to_cell(workspace, flag, buffer_end, ESS__rt__print_buffer__input__buffer_end);
 
     // call code
     ANVIL__code__call__static(workspace, flag, (*essential_offsets).offsets[ESS__ot__print_buffer__start]);
@@ -78,11 +78,11 @@ void ESS__code__print_buffer(ANVIL__workspace* workspace, ESS__offsets* essentia
     ANVIL__code__preserve_workspace(workspace, ANVIL__sft__always_run, ESS__rt__print_buffer__preserve__START, ESS__rt__print_buffer__preserve__END);
 
     // get parameters
-    ANVIL__code__register_to_register(workspace, ANVIL__sft__always_run, ESS__rt__print_buffer__input__buffer_start, ESS__rt__print_buffer__buffer_start);
-    ANVIL__code__register_to_register(workspace, ANVIL__sft__always_run, ESS__rt__print_buffer__input__buffer_end, ESS__rt__print_buffer__buffer_end);
+    ANVIL__code__cell_to_cell(workspace, ANVIL__sft__always_run, ESS__rt__print_buffer__input__buffer_start, ESS__rt__print_buffer__buffer_start);
+    ANVIL__code__cell_to_cell(workspace, ANVIL__sft__always_run, ESS__rt__print_buffer__input__buffer_end, ESS__rt__print_buffer__buffer_end);
 
     // setup variables
-    ANVIL__code__register_to_register(workspace, ANVIL__sft__always_run, ESS__rt__print_buffer__buffer_start, ESS__rt__print_buffer__buffer_current);
+    ANVIL__code__cell_to_cell(workspace, ANVIL__sft__always_run, ESS__rt__print_buffer__buffer_start, ESS__rt__print_buffer__buffer_current);
 
     // setup loop offset
     (*essential_offsets).offsets[ESS__ot__print_buffer__loop__start] = ANVIL__get__offset(workspace);
@@ -91,10 +91,10 @@ void ESS__code__print_buffer(ANVIL__workspace* workspace, ESS__offsets* essentia
     ANVIL__code__operate__jump__static(workspace, ANVIL__sft__always_run, ESS__rt__print_buffer__buffer_start, ESS__rt__print_buffer__buffer_current, ESS__rt__print_buffer__buffer_end, ANVIL__sft__always_run, (*essential_offsets).offsets[ESS__ot__print_buffer__return]);
 
     // get character
-    ANVIL__code__address_to_register(workspace, ANVIL__sft__always_run, ESS__rt__print_buffer__buffer_current, ANVIL__srt__constant__8, ESS__rt__print_buffer__character);
+    ANVIL__code__address_to_cell(workspace, ANVIL__sft__always_run, ESS__rt__print_buffer__buffer_current, ANVIL__srt__constant__8, ESS__rt__print_buffer__character);
 
     // advance to next character
-    ANVIL__code__operate(workspace, ANVIL__sft__always_run, ANVIL__ot__integer_add, ESS__rt__print_buffer__buffer_current, ANVIL__srt__constant__1, ANVIL__unused_register_ID, ESS__rt__print_buffer__buffer_current);
+    ANVIL__code__operate(workspace, ANVIL__sft__always_run, ANVIL__ot__integer_add, ESS__rt__print_buffer__buffer_current, ANVIL__srt__constant__1, ANVIL__unused_cell_ID, ESS__rt__print_buffer__buffer_current);
 
     // print character
     ANVIL__code__debug__putchar(workspace, ESS__rt__print_buffer__character);
@@ -124,7 +124,7 @@ void ESS__code__quick_print_buffer(ANVIL__workspace* workspace, ANVIL__buffer bu
     // print each character individually
     while (current <= buffer.end) {
         // print character
-        ANVIL__code__write_register(workspace, (ANVIL__register)(u64)(*((u8*)current)), ANVIL__srt__temp__write);
+        ANVIL__code__write_cell(workspace, (ANVIL__cell)(u64)(*((u8*)current)), ANVIL__srt__temp__write);
         ANVIL__code__debug__putchar(workspace, ANVIL__srt__temp__write);
 
         // next character
@@ -162,16 +162,16 @@ typedef enum ESS__rt__retrieve_buffer {
 } ESS__rt__retrieve_buffer;
 
 // call function (the input buffer address MUST start at the length of the buffer right before the data!)
-void ESS__code__call__retrieve_buffer__explicit(ANVIL__workspace* workspace, ESS__offsets* essential_offsets, ANVIL__flag_ID flag, ANVIL__register_ID message_buffer_start_address, ANVIL__register_ID buffer_start, ANVIL__register_ID buffer_end) {
+void ESS__code__call__retrieve_buffer__explicit(ANVIL__workspace* workspace, ESS__offsets* essential_offsets, ANVIL__flag_ID flag, ANVIL__cell_ID message_buffer_start_address, ANVIL__cell_ID buffer_start, ANVIL__cell_ID buffer_end) {
     // pass parameters
-    ANVIL__code__register_to_register(workspace, flag, message_buffer_start_address, ESS__rt__retrieve_buffer__input__message_buffer_start_address);
+    ANVIL__code__cell_to_cell(workspace, flag, message_buffer_start_address, ESS__rt__retrieve_buffer__input__message_buffer_start_address);
 
     // call function
     ANVIL__code__call__static(workspace, flag, (*essential_offsets).offsets[ESS__ot__retrieve_buffer__start]);
 
     // pass outputs
-    ANVIL__code__register_to_register(workspace, flag, ESS__rt__retrieve_buffer__output__buffer_start, buffer_start);
-    ANVIL__code__register_to_register(workspace, flag, ESS__rt__retrieve_buffer__output__buffer_end, buffer_end);
+    ANVIL__code__cell_to_cell(workspace, flag, ESS__rt__retrieve_buffer__output__buffer_start, buffer_start);
+    ANVIL__code__cell_to_cell(workspace, flag, ESS__rt__retrieve_buffer__output__buffer_end, buffer_end);
 
     return;
 }
@@ -185,25 +185,25 @@ void ESS__code__retrieve_buffer__explicit(ANVIL__workspace* workspace, ESS__offs
     ANVIL__code__preserve_workspace(workspace, ANVIL__sft__always_run, ESS__rt__retrieve_buffer__preserve__START, ESS__rt__retrieve_buffer__preserve__END);
 
     // get parameters
-    ANVIL__code__register_to_register(workspace, ANVIL__sft__always_run, ESS__rt__retrieve_buffer__input__message_buffer_start_address, ESS__rt__retrieve_buffer__message_buffer_start);
+    ANVIL__code__cell_to_cell(workspace, ANVIL__sft__always_run, ESS__rt__retrieve_buffer__input__message_buffer_start_address, ESS__rt__retrieve_buffer__message_buffer_start);
 
     // setup variables
-    ANVIL__code__write_register(workspace, (ANVIL__register)(sizeof(ANVIL__length) * ANVIL__define__bits_in_byte), ESS__rt__retrieve_buffer__bit_size_of_buffer_length);
-    ANVIL__code__write_register(workspace, (ANVIL__register)sizeof(ANVIL__length), ESS__rt__retrieve_buffer__byte_size_of_buffer_length);
+    ANVIL__code__write_cell(workspace, (ANVIL__cell)(sizeof(ANVIL__length) * ANVIL__define__bits_in_byte), ESS__rt__retrieve_buffer__bit_size_of_buffer_length);
+    ANVIL__code__write_cell(workspace, (ANVIL__cell)sizeof(ANVIL__length), ESS__rt__retrieve_buffer__byte_size_of_buffer_length);
 
     // get buffer length from address
-    ANVIL__code__address_to_register(workspace, ANVIL__sft__always_run, ESS__rt__retrieve_buffer__message_buffer_start, ESS__rt__retrieve_buffer__bit_size_of_buffer_length, ESS__rt__retrieve_buffer__buffer_length);
+    ANVIL__code__address_to_cell(workspace, ANVIL__sft__always_run, ESS__rt__retrieve_buffer__message_buffer_start, ESS__rt__retrieve_buffer__bit_size_of_buffer_length, ESS__rt__retrieve_buffer__buffer_length);
 
     // calculate data start address
-    ANVIL__code__operate(workspace, ANVIL__sft__always_run, ANVIL__ot__integer_add, ESS__rt__retrieve_buffer__byte_size_of_buffer_length, ESS__rt__retrieve_buffer__message_buffer_start, ANVIL__unused_register_ID, ESS__rt__retrieve_buffer__message_data_start);
+    ANVIL__code__operate(workspace, ANVIL__sft__always_run, ANVIL__ot__integer_add, ESS__rt__retrieve_buffer__byte_size_of_buffer_length, ESS__rt__retrieve_buffer__message_buffer_start, ANVIL__unused_cell_ID, ESS__rt__retrieve_buffer__message_data_start);
 
     // calculate buffer end address
-    ANVIL__code__operate(workspace, ANVIL__sft__always_run, ANVIL__ot__integer_add, ESS__rt__retrieve_buffer__message_data_start, ESS__rt__retrieve_buffer__buffer_length, ANVIL__unused_register_ID, ESS__rt__retrieve_buffer__message_buffer_end);
-    ANVIL__code__operate(workspace, ANVIL__sft__always_run, ANVIL__ot__integer_subtract, ESS__rt__retrieve_buffer__message_buffer_end, ANVIL__srt__constant__1, ANVIL__unused_register_ID, ESS__rt__retrieve_buffer__message_buffer_end);
+    ANVIL__code__operate(workspace, ANVIL__sft__always_run, ANVIL__ot__integer_add, ESS__rt__retrieve_buffer__message_data_start, ESS__rt__retrieve_buffer__buffer_length, ANVIL__unused_cell_ID, ESS__rt__retrieve_buffer__message_buffer_end);
+    ANVIL__code__operate(workspace, ANVIL__sft__always_run, ANVIL__ot__integer_subtract, ESS__rt__retrieve_buffer__message_buffer_end, ANVIL__srt__constant__1, ANVIL__unused_cell_ID, ESS__rt__retrieve_buffer__message_buffer_end);
 
     // pass outputs
-    ANVIL__code__register_to_register(workspace, ANVIL__sft__always_run, ESS__rt__retrieve_buffer__message_data_start, ESS__rt__retrieve_buffer__output__buffer_start);
-    ANVIL__code__register_to_register(workspace, ANVIL__sft__always_run, ESS__rt__retrieve_buffer__message_buffer_end, ESS__rt__retrieve_buffer__output__buffer_end);
+    ANVIL__code__cell_to_cell(workspace, ANVIL__sft__always_run, ESS__rt__retrieve_buffer__message_data_start, ESS__rt__retrieve_buffer__output__buffer_start);
+    ANVIL__code__cell_to_cell(workspace, ANVIL__sft__always_run, ESS__rt__retrieve_buffer__message_buffer_end, ESS__rt__retrieve_buffer__output__buffer_end);
 
     // restore workspace
     ANVIL__code__restore_workspace(workspace, ANVIL__sft__always_run, ESS__rt__retrieve_buffer__preserve__START, ESS__rt__retrieve_buffer__preserve__END);

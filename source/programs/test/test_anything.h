@@ -20,7 +20,7 @@ typedef struct TEST__offsets {
 
 
 /* Main */
-// register types
+// cell types
 typedef enum TEST__rt__main {
     // preserve start
     TEST__rt__main__preserve__START = ANVIL__srt__start__workspace,
@@ -54,13 +54,13 @@ void TEST__code__main(ANVIL__workspace* workspace, TEST__offsets* test_offsets, 
     ANVIL__code__preserve_workspace(workspace, ANVIL__sft__always_run, TEST__rt__main__preserve__START, TEST__rt__main__preserve__END);
 
     // print test characters
-    ANVIL__code__write_register(workspace, (ANVIL__register)'H', ANVIL__srt__temp__write);
+    ANVIL__code__write_cell(workspace, (ANVIL__cell)'H', ANVIL__srt__temp__write);
     ANVIL__code__debug__putchar(workspace, ANVIL__srt__temp__write);
-    ANVIL__code__write_register(workspace, (ANVIL__register)'i', ANVIL__srt__temp__write);
+    ANVIL__code__write_cell(workspace, (ANVIL__cell)'i', ANVIL__srt__temp__write);
     ANVIL__code__debug__putchar(workspace, ANVIL__srt__temp__write);
-    ANVIL__code__write_register(workspace, (ANVIL__register)'!', ANVIL__srt__temp__write);
+    ANVIL__code__write_cell(workspace, (ANVIL__cell)'!', ANVIL__srt__temp__write);
     ANVIL__code__debug__putchar(workspace, ANVIL__srt__temp__write);
-    ANVIL__code__write_register(workspace, (ANVIL__register)'\n', ANVIL__srt__temp__write);
+    ANVIL__code__write_cell(workspace, (ANVIL__cell)'\n', ANVIL__srt__temp__write);
     ANVIL__code__debug__putchar(workspace, ANVIL__srt__temp__write);
 
     // get buffer
@@ -69,17 +69,17 @@ void TEST__code__main(ANVIL__workspace* workspace, TEST__offsets* test_offsets, 
     ESS__code__call__print_buffer(workspace, essential_offsets, ANVIL__sft__always_run, TEST__rt__main__buffer_start, TEST__rt__main__buffer_end);
 
     // print buffer stats
-    ANVIL__code__write_register(workspace, (ANVIL__register)'\n', ANVIL__srt__temp__write);
+    ANVIL__code__write_cell(workspace, (ANVIL__cell)'\n', ANVIL__srt__temp__write);
     ANVIL__code__debug__putchar(workspace, ANVIL__srt__temp__write);
-    ANVIL__code__debug__print_register_as_decimal(workspace, TEST__rt__main__buffer_start);
-    ANVIL__code__write_register(workspace, (ANVIL__register)'\n', ANVIL__srt__temp__write);
+    ANVIL__code__debug__print_cell_as_decimal(workspace, TEST__rt__main__buffer_start);
+    ANVIL__code__write_cell(workspace, (ANVIL__cell)'\n', ANVIL__srt__temp__write);
     ANVIL__code__debug__putchar(workspace, ANVIL__srt__temp__write);
-    ANVIL__code__debug__print_register_as_decimal(workspace, TEST__rt__main__buffer_end);
-    ANVIL__code__write_register(workspace, (ANVIL__register)'\n', ANVIL__srt__temp__write);
+    ANVIL__code__debug__print_cell_as_decimal(workspace, TEST__rt__main__buffer_end);
+    ANVIL__code__write_cell(workspace, (ANVIL__cell)'\n', ANVIL__srt__temp__write);
     ANVIL__code__debug__putchar(workspace, ANVIL__srt__temp__write);
-    ANVIL__code__operate(workspace, ANVIL__sft__always_run, ANVIL__ot__integer_subtract, TEST__rt__main__buffer_end, TEST__rt__main__buffer_start, ANVIL__unused_register_ID, TEST__rt__main__buffer_length);
-    ANVIL__code__operate(workspace, ANVIL__sft__always_run, ANVIL__ot__integer_add, TEST__rt__main__buffer_length, ANVIL__srt__constant__1, ANVIL__unused_register_ID, TEST__rt__main__buffer_length);
-    ANVIL__code__debug__print_register_as_decimal(workspace, TEST__rt__main__buffer_length);
+    ANVIL__code__operate(workspace, ANVIL__sft__always_run, ANVIL__ot__integer_subtract, TEST__rt__main__buffer_end, TEST__rt__main__buffer_start, ANVIL__unused_cell_ID, TEST__rt__main__buffer_length);
+    ANVIL__code__operate(workspace, ANVIL__sft__always_run, ANVIL__ot__integer_add, TEST__rt__main__buffer_length, ANVIL__srt__constant__1, ANVIL__unused_cell_ID, TEST__rt__main__buffer_length);
+    ANVIL__code__debug__print_cell_as_decimal(workspace, TEST__rt__main__buffer_length);
 
     // get user input
     ANVIL__code__debug__fgets(workspace, TEST__rt__main__buffer_start, TEST__rt__main__buffer_end);
@@ -89,29 +89,29 @@ void TEST__code__main(ANVIL__workspace* workspace, TEST__offsets* test_offsets, 
     ANVIL__code__return_memory(workspace, TEST__rt__main__buffer_start, TEST__rt__main__buffer_end);
 
     // setup variables for flag tests
-    ANVIL__code__write_register(workspace, (ANVIL__register)ANVIL__sft__always_run, TEST__rt__main__always_run_flag_ID);
-    ANVIL__code__write_register(workspace, (ANVIL__register)4/* Random Flag */, TEST__rt__main__extra_flag_ID0);
-    ANVIL__code__write_register(workspace, (ANVIL__register)5/* Random Flag */, TEST__rt__main__extra_flag_ID1);
+    ANVIL__code__write_cell(workspace, (ANVIL__cell)ANVIL__sft__always_run, TEST__rt__main__always_run_flag_ID);
+    ANVIL__code__write_cell(workspace, (ANVIL__cell)4/* Random Flag */, TEST__rt__main__extra_flag_ID0);
+    ANVIL__code__write_cell(workspace, (ANVIL__cell)5/* Random Flag */, TEST__rt__main__extra_flag_ID1);
 
     // test flag get
-    ANVIL__code__operate(workspace, ANVIL__sft__always_run, ANVIL__ot__flag_get, TEST__rt__main__extra_flag_ID0, ANVIL__unused_register_ID, ANVIL__unused_register_ID, TEST__rt__main__flag_value);
+    ANVIL__code__operate(workspace, ANVIL__sft__always_run, ANVIL__ot__flag_get, TEST__rt__main__extra_flag_ID0, ANVIL__unused_cell_ID, ANVIL__unused_cell_ID, TEST__rt__main__flag_value);
     ESS__code__quick_print_buffer(workspace, ANVIL__open__buffer_from_string((u8*)"1) Flag Value: ", ANVIL__bt__false, ANVIL__bt__false));
-    ANVIL__code__debug__print_register_as_decimal(workspace, TEST__rt__main__flag_value);
+    ANVIL__code__debug__print_cell_as_decimal(workspace, TEST__rt__main__flag_value);
     ESS__code__quick_print_buffer(workspace, ANVIL__open__buffer_from_string((u8*)"\n", ANVIL__bt__false, ANVIL__bt__false));
 
     // test flag get 2
-    ANVIL__code__operate(workspace, ANVIL__sft__always_run, ANVIL__ot__flag_get, TEST__rt__main__always_run_flag_ID, ANVIL__unused_register_ID, ANVIL__unused_register_ID, TEST__rt__main__flag_value);
+    ANVIL__code__operate(workspace, ANVIL__sft__always_run, ANVIL__ot__flag_get, TEST__rt__main__always_run_flag_ID, ANVIL__unused_cell_ID, ANVIL__unused_cell_ID, TEST__rt__main__flag_value);
     ESS__code__quick_print_buffer(workspace, ANVIL__open__buffer_from_string((u8*)"2) Flag Value: ", ANVIL__bt__false, ANVIL__bt__false));
-    ANVIL__code__debug__print_register_as_decimal(workspace, TEST__rt__main__flag_value);
+    ANVIL__code__debug__print_cell_as_decimal(workspace, TEST__rt__main__flag_value);
     ESS__code__quick_print_buffer(workspace, ANVIL__open__buffer_from_string((u8*)"\n", ANVIL__bt__false, ANVIL__bt__false));
 
     // test flag set
-    ANVIL__code__operate(workspace, ANVIL__sft__always_run, ANVIL__ot__flag_set, TEST__rt__main__flag_value, ANVIL__unused_register_ID, ANVIL__unused_register_ID, TEST__rt__main__extra_flag_ID0);
+    ANVIL__code__operate(workspace, ANVIL__sft__always_run, ANVIL__ot__flag_set, TEST__rt__main__flag_value, ANVIL__unused_cell_ID, ANVIL__unused_cell_ID, TEST__rt__main__extra_flag_ID0);
 
     // test flag get 3
-    ANVIL__code__operate(workspace, ANVIL__sft__always_run, ANVIL__ot__flag_get, TEST__rt__main__extra_flag_ID0, ANVIL__unused_register_ID, ANVIL__unused_register_ID, TEST__rt__main__flag_value);
+    ANVIL__code__operate(workspace, ANVIL__sft__always_run, ANVIL__ot__flag_get, TEST__rt__main__extra_flag_ID0, ANVIL__unused_cell_ID, ANVIL__unused_cell_ID, TEST__rt__main__flag_value);
     ESS__code__quick_print_buffer(workspace, ANVIL__open__buffer_from_string((u8*)"3) Flag Value: ", ANVIL__bt__false, ANVIL__bt__false));
-    ANVIL__code__debug__print_register_as_decimal(workspace, TEST__rt__main__flag_value);
+    ANVIL__code__debug__print_cell_as_decimal(workspace, TEST__rt__main__flag_value);
     ESS__code__quick_print_buffer(workspace, ANVIL__open__buffer_from_string((u8*)"\n", ANVIL__bt__false, ANVIL__bt__false));
 
     // restore workspace
