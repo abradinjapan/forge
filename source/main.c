@@ -70,7 +70,7 @@ void MAIN__test__scratch() {
     ANVIL__run__context(&context, ANVIL__define__run_forever);
 
     // DEBUG
-    MAIN__print__context(&context);
+    //MAIN__print__context(&context);
 
     // clean up
     ANVIL__close__buffer(program);
