@@ -36,6 +36,9 @@ typedef ANVIL__u64 ANVIL__instruction_count;
 
 typedef ANVIL__u8 ANVIL__character;
 
+typedef ANVIL__u64 ANVIL__bit_count;
+typedef ANVIL__u64 ANVIL__byte_count;
+
 #define ANVIL__unused_cell_ID 0
 #define ANVIL__define__bits_in_byte 8
 #define ANVIL__define__run_forever (ANVIL__u64)-1
@@ -272,14 +275,164 @@ void ANVIL__print__buffer(ANVIL__buffer buffer) {
     return;
 }
 
+/* List */
+// list types
+typedef ANVIL__u64 ANVIL__list_filled_index;
+typedef ANVIL__u64 ANVIL__list_increase;
+
+// list object
+typedef struct ANVIL__list {
+    ANVIL__buffer buffer;
+    ANVIL__list_filled_index filled_index;
+    ANVIL__list_increase increase;
+} ANVIL__list;
+
+// create a list
+ANVIL__list ANVIL__create__list(ANVIL__buffer buffer, ANVIL__list_filled_index filled_index, ANVIL__list_increase increase) {
+    ANVIL__list output;
+
+    // setup output
+    output.buffer = buffer;
+    output.filled_index = filled_index;
+    output.increase = increase;
+
+    return output;
+}
+
+// create a null list
+ANVIL__list ANVIL__create_null__list() {
+    // return empty list
+    return ANVIL__create__list(ANVIL__create_null__buffer(), 0, 0);
+}
+
+// open a list
+ANVIL__list ANVIL__open__list(ANVIL__list_increase increase, ANVIL__bt* error_occured) {
+    ANVIL__list output;
+    ANVIL__buffer allocation;
+
+    // allocate list
+    allocation = ANVIL__open__buffer(increase);
+
+    // check list validity
+    if (allocation.start == 0) {
+        // set error
+        *error_occured = ANVIL__bt__true;
+
+        // return empty
+        return ANVIL__create_null__list();
+    // list is valid
+    } else {
+        // set error to false
+        *error_occured = ANVIL__bt__false;
+    }
+
+    // setup output
+    output.buffer = allocation;
+    output.filled_index = 0;
+    output.increase = increase;
+
+    return output;
+}
+
+// destroy a list
+void ANVIL__close__list(ANVIL__list list) {
+    // free buffer
+    ANVIL__close__buffer(ANVIL__create__buffer(list.buffer.start, list.buffer.end));
+
+    return;
+}
+
+// expand a list
+void ANVIL__list__expand(ANVIL__list* list, ANVIL__bt* error_occured) {
+    ANVIL__list_filled_index new_size;
+    ANVIL__buffer new_allocation;
+
+    // calculate new buffer size
+    new_size = ((ANVIL__u64)(*list).buffer.end - (ANVIL__u64)(*list).buffer.start + 1) + (*list).increase;
+
+    // request new memory
+    new_allocation = ANVIL__open__buffer(new_size);
+
+    // check for failure
+    if (new_allocation.start == 0) {
+        // set error
+        *error_occured = ANVIL__bt__true;
+
+        // return unmodified list
+        return;
+    }
+
+    // copy old data to new list
+    for (ANVIL__list_filled_index i = 0; i < (*list).filled_index; i++) {
+        // copy one byte
+        ((ANVIL__u8*)new_allocation.start)[i] = ((ANVIL__u8*)(*list).buffer.start)[i];
+    }
+
+    // free old buffer
+    ANVIL__close__buffer((*list).buffer);
+
+    // setup new list allocation
+    (*list).buffer = new_allocation;
+
+    return;
+}
+
+// request space for the list
+void ANVIL__list__request__space(ANVIL__list* list, ANVIL__byte_count byte_count, ANVIL__bt* error_occured) {
+    // expand the list until there is enough space
+    while (((ANVIL__u64)(*list).buffer.end - (ANVIL__u64)(*list).buffer.start + 1) < ((*list).filled_index + byte_count)) {
+        // expand the list
+        ANVIL__list__expand(list, error_occured);
+
+        // check for error
+        if (*error_occured == ANVIL__bt__true) {
+            // return last modified list
+            return;
+        }
+    }
+
+    return;
+}
+
+// calculate the tip of the list
+ANVIL__address ANVIL__calculate__list_current(ANVIL__list* list) {
+    return (*list).buffer.start + (*list).filled_index;
+}
+
+// add a buffer to a list
+void ANVIL__list__append__buffer(ANVIL__list* list, ANVIL__buffer buffer, ANVIL__bt* memory_error_occured) {
+    // request space
+    ANVIL__list__request__space(list, sizeof(ANVIL__buffer), memory_error_occured);
+
+    // append data
+    (*(ANVIL__buffer*)ANVIL__calculate__list_current(list)) = buffer;
+
+    // increase fill
+    (*list).filled_index += sizeof(ANVIL__buffer);
+
+    return;
+}
+
+// add a list to a list
+void ANVIL__list__append__list(ANVIL__list* list, ANVIL__list data, ANVIL__bt* memory_error_occured) {
+    // request space
+    ANVIL__list__request__space(list, sizeof(ANVIL__list), memory_error_occured);
+
+    // append data
+    (*(ANVIL__list*)ANVIL__calculate__list_current(list)) = data;
+
+    // increase fill
+    (*list).filled_index += sizeof(ANVIL__list);
+
+    return;
+}
+
 /* Machine Specifications */
 typedef ANVIL__address ANVIL__cell;
 typedef ANVIL__u8 ANVIL__instruction_ID;
 typedef ANVIL__u8 ANVIL__flag_ID;
 typedef ANVIL__u8 ANVIL__operation_ID;
 typedef ANVIL__u16 ANVIL__cell_ID;
-typedef ANVIL__u64 ANVIL__bit_count;
-typedef ANVIL__u64 ANVIL__byte_count;
 
 // scraplet types
 typedef enum ANVIL__st {

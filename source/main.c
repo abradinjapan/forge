@@ -112,13 +112,13 @@ void MAIN__test__built_in_compiler() {
     // first test
     {
         // setup variables
-        LIST__list user_codes;
+        ANVIL__list user_codes;
 
         // setup list
-        user_codes = LIST__open__list(sizeof(ANVIL__buffer) * 4, &memory_error_occured);
+        user_codes = ANVIL__open__list(sizeof(ANVIL__buffer) * 4, &memory_error_occured);
 
         // append files
-        LIST__append__buffer(&user_codes, ANVIL__open__buffer_from_string(programs[MAIN__cft__lexical_test], ANVIL__bt__false, ANVIL__bt__true), &memory_error_occured);
+        ANVIL__list__append__buffer(&user_codes, ANVIL__open__buffer_from_string(programs[MAIN__cft__lexical_test], ANVIL__bt__false, ANVIL__bt__true), &memory_error_occured);
 
         // print memory error
         if (memory_error_occured) {
@@ -129,19 +129,19 @@ void MAIN__test__built_in_compiler() {
         COMP__compile__files(user_codes, print_debug, &compilation_error_occured, &memory_error_occured);
 
         // close user codes buffer
-        LIST__close__list(user_codes);
+        ANVIL__close__list(user_codes);
     }
 
     // second test
     {
         // setup variables
-        LIST__list user_codes;
+        ANVIL__list user_codes;
 
         // setup list
-        user_codes = LIST__open__list(sizeof(ANVIL__buffer) * 4, &memory_error_occured);
+        user_codes = ANVIL__open__list(sizeof(ANVIL__buffer) * 4, &memory_error_occured);
 
         // append files
-        LIST__append__buffer(&user_codes, ANVIL__open__buffer_from_string(programs[MAIN__cft__parsing_test__4], ANVIL__bt__false, ANVIL__bt__true), &memory_error_occured);
+        ANVIL__list__append__buffer(&user_codes, ANVIL__open__buffer_from_string(programs[MAIN__cft__parsing_test__4], ANVIL__bt__false, ANVIL__bt__true), &memory_error_occured);
 
         // print memory error
         if (memory_error_occured) {
@@ -152,7 +152,7 @@ void MAIN__test__built_in_compiler() {
         COMP__compile__files(user_codes, print_debug, &compilation_error_occured, &memory_error_occured);
 
         // close user codes buffer
-        LIST__close__list(user_codes);
+        ANVIL__close__list(user_codes);
     }
 
     return;

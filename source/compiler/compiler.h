@@ -5,9 +5,6 @@
 // anvil / basic
 #include "../anvil/anvil.h"
 
-// list
-#include "../c_libraries/list.h"
-
 /* Define */
 // aliases
 typedef ANVIL__buffer COMP__current;
@@ -31,7 +28,7 @@ ANVIL__bt COMP__check__current_within_range(ANVIL__buffer current) {
 }
 
 // calculate a current buffer from a list
-COMP__current COMP__calculate__current_from_list_filled_index(LIST__list* list) {
+COMP__current COMP__calculate__current_from_list_filled_index(ANVIL__list* list) {
     // return calculation
     return ANVIL__create__buffer((*list).buffer.start, (*list).buffer.start + (*list).filled_index - 1);
 }
@@ -73,11 +70,11 @@ COMP__lexling COMP__create_null__lexling() {
 
 // lexlings
 typedef struct COMP__lexlings {
-    LIST__list data;
+    ANVIL__list data;
 } COMP__lexlings;
 
 // create custom lexlings
-COMP__lexlings COMP__create__lexlings(LIST__list list) {
+COMP__lexlings COMP__create__lexlings(ANVIL__list list) {
     COMP__lexlings output;
 
     // setup output
@@ -89,13 +86,13 @@ COMP__lexlings COMP__create__lexlings(LIST__list list) {
 // create null lexlings
 COMP__lexlings COMP__create_null__lexlings() {
     // return empty
-    return COMP__create__lexlings(LIST__create_null__list());
+    return COMP__create__lexlings(ANVIL__create_null__list());
 }
 
 // close lexlings
 void COMP__close__lexlings(COMP__lexlings lexlings) {
     // close buffer
-    LIST__close__list(lexlings.data);
+    ANVIL__close__list(lexlings.data);
 
     return;
 }
@@ -103,10 +100,10 @@ void COMP__close__lexlings(COMP__lexlings lexlings) {
 // append a lexling to the list
 void COMP__append__lexling(COMP__lexlings* lexlings, COMP__lexling lexling, ANVIL__bt* error_occured) {
     // request space
-    LIST__request__space(&((*lexlings).data), sizeof(COMP__lexling), error_occured);
+    ANVIL__list__request__space(&((*lexlings).data), sizeof(COMP__lexling), error_occured);
 
     // append data
-    (*(COMP__lexling*)LIST__calculate__list_current(&((*lexlings).data))) = lexling;
+    (*(COMP__lexling*)ANVIL__calculate__list_current(&((*lexlings).data))) = lexling;
 
     // increase fill
     (*lexlings).data.filled_index += sizeof(COMP__lexling);
@@ -115,12 +112,12 @@ void COMP__append__lexling(COMP__lexlings* lexlings, COMP__lexling lexling, ANVI
 }
 
 // append a lexlings to the list
-void COMP__append__lexlings(LIST__list* list, COMP__lexlings lexlings, ANVIL__bt* error_occured) {
+void COMP__append__lexlings(ANVIL__list* list, COMP__lexlings lexlings, ANVIL__bt* error_occured) {
     // request space
-    LIST__request__space(list, sizeof(COMP__lexlings), error_occured);
+    ANVIL__list__request__space(list, sizeof(COMP__lexlings), error_occured);
 
     // append data
-    (*(COMP__lexlings*)LIST__calculate__list_current(list)) = lexlings;
+    (*(COMP__lexlings*)ANVIL__calculate__list_current(list)) = lexlings;
 
     // increase fill
     (*list).filled_index += sizeof(COMP__lexlings);
@@ -153,7 +150,7 @@ COMP__lexlings COMP__compile__lex(ANVIL__buffer user_code, ANVIL__bt* lexing_err
     COMP__lexling_end temp_end;
 
     // setup output
-    output.data = LIST__open__list(sizeof(COMP__lexling) * 64, memory_error_occured);
+    output.data = ANVIL__open__list(sizeof(COMP__lexling) * 64, memory_error_occured);
 
     // check for error
     if (*memory_error_occured == ANVIL__bt__true) {
@@ -293,30 +290,30 @@ typedef struct COMP__parsling_statement {
     COMP__name name;
 
     // abstraction call data
-    LIST__list inputs;
-    LIST__list outputs;
+    ANVIL__list inputs;
+    ANVIL__list outputs;
 } COMP__parsling_statement;
 
 // one abstraction
 typedef struct COMP__parsling_abstraction {
     COMP__name name;
-    LIST__list inputs;
-    LIST__list outputs;
-    LIST__list statements;
+    ANVIL__list inputs;
+    ANVIL__list outputs;
+    ANVIL__list statements;
 } COMP__parsling_abstraction;
 
 // one program
 typedef struct COMP__parsling_program {
-    LIST__list abstractions;
+    ANVIL__list abstractions;
 } COMP__parsling_program;
 
 // append parsling statement
-void COMP__append__parsling_statement(LIST__list* list, COMP__parsling_statement data, ANVIL__bt* memory_error_occured) {
+void COMP__append__parsling_statement(ANVIL__list* list, COMP__parsling_statement data, ANVIL__bt* memory_error_occured) {
     // request space
-    LIST__request__space(list, sizeof(COMP__parsling_statement), memory_error_occured);
+    ANVIL__list__request__space(list, sizeof(COMP__parsling_statement), memory_error_occured);
 
     // append data
-    (*(COMP__parsling_statement*)LIST__calculate__list_current(list)) = data;
+    (*(COMP__parsling_statement*)ANVIL__calculate__list_current(list)) = data;
 
     // increase fill
     (*list).filled_index += sizeof(COMP__parsling_statement);
@@ -325,12 +322,12 @@ void COMP__append__parsling_statement(LIST__list* list, COMP__parsling_statement
 }
 
 // append parsling abstraction
-void COMP__append__parsling_abstraction(LIST__list* list, COMP__parsling_abstraction data, ANVIL__bt* memory_error_occured) {
+void COMP__append__parsling_abstraction(ANVIL__list* list, COMP__parsling_abstraction data, ANVIL__bt* memory_error_occured) {
     // request space
-    LIST__request__space(list, sizeof(COMP__parsling_abstraction), memory_error_occured);
+    ANVIL__list__request__space(list, sizeof(COMP__parsling_abstraction), memory_error_occured);
 
     // append data
-    (*(COMP__parsling_abstraction*)LIST__calculate__list_current(list)) = data;
+    (*(COMP__parsling_abstraction*)ANVIL__calculate__list_current(list)) = data;
 
     // increase fill
     (*list).filled_index += sizeof(COMP__parsling_abstraction);
@@ -339,12 +336,12 @@ void COMP__append__parsling_abstraction(LIST__list* list, COMP__parsling_abstrac
 }
 
 // append parsling program
-void COMP__append__parsling_program(LIST__list* list, COMP__parsling_program data, ANVIL__bt* memory_error_occured) {
+void COMP__append__parsling_program(ANVIL__list* list, COMP__parsling_program data, ANVIL__bt* memory_error_occured) {
     // request space
-    LIST__request__space(list, sizeof(COMP__parsling_program), memory_error_occured);
+    ANVIL__list__request__space(list, sizeof(COMP__parsling_program), memory_error_occured);
 
     // append data
-    (*(COMP__parsling_program*)LIST__calculate__list_current(list)) = data;
+    (*(COMP__parsling_program*)ANVIL__calculate__list_current(list)) = data;
 
     // increase fill
     (*list).filled_index += sizeof(COMP__parsling_program);
@@ -361,11 +358,11 @@ void COMP__advance__lexling_current(COMP__current* current, COMP__lexling_index 
 }
 
 // parse arguments
-LIST__list COMP__parse__arguments(COMP__current* current, ANVIL__bt* parse_error_occured, ANVIL__bt* memory_error_occured) {
-    LIST__list output;
+ANVIL__list COMP__parse__arguments(COMP__current* current, ANVIL__bt* parse_error_occured, ANVIL__bt* memory_error_occured) {
+    ANVIL__list output;
 
     // open names list
-    output = LIST__open__list(sizeof(ANVIL__buffer) * 8, memory_error_occured);
+    output = ANVIL__open__list(sizeof(ANVIL__buffer) * 8, memory_error_occured);
 
     // check for opening parenthesis
     if (COMP__check__current_within_range(*current) && COMP__read__lexling_from_current(*current).type == COMP__lt__left_parenthesis) {
@@ -385,7 +382,7 @@ LIST__list COMP__parse__arguments(COMP__current* current, ANVIL__bt* parse_error
     // get arguments
     while (COMP__check__current_within_range(*current) && COMP__read__lexling_from_current(*current).type == COMP__lt__name) {
         // get argument
-        LIST__append__buffer(&output, COMP__read__lexling_from_current(*current).value, memory_error_occured);
+        ANVIL__list__append__buffer(&output, COMP__read__lexling_from_current(*current).value, memory_error_occured);
 
         // next current
         COMP__advance__lexling_current(current, 1);
@@ -416,12 +413,12 @@ LIST__list COMP__parse__arguments(COMP__current* current, ANVIL__bt* parse_error
 }
 
 // parse a statement
-LIST__list COMP__parse__scope(COMP__current* current, ANVIL__bt* parse_error_occured, ANVIL__bt* memory_error_occured) {
-    LIST__list output;
+ANVIL__list COMP__parse__scope(COMP__current* current, ANVIL__bt* parse_error_occured, ANVIL__bt* memory_error_occured) {
+    ANVIL__list output;
     COMP__parsling_statement temp;
 
     // create list
-    output = LIST__open__list(sizeof(COMP__parsling_statement), memory_error_occured);
+    output = ANVIL__open__list(sizeof(COMP__parsling_statement), memory_error_occured);
 
     // check for scope opener
     if (COMP__check__current_within_range(*current) && COMP__read__lexling_from_current(*current).type == COMP__lt__left_curly_bracket) {
@@ -467,8 +464,8 @@ LIST__list COMP__parse__scope(COMP__current* current, ANVIL__bt* parse_error_occ
             }
 
             // null initialize unused data
-            temp.inputs = LIST__create_null__list();
-            temp.outputs = LIST__create_null__list();
+            temp.inputs = ANVIL__create_null__list();
+            temp.outputs = ANVIL__create_null__list();
 
             // add statement
             COMP__append__parsling_statement(&output, temp, memory_error_occured);
@@ -560,9 +557,9 @@ COMP__parsling_abstraction COMP__parse__abstraction(COMP__current* current, ANVI
 
         // setup blank
         output.name = ANVIL__create_null__buffer();
-        output.inputs = LIST__create_null__list();
-        output.outputs = LIST__create_null__list();
-        output.statements = LIST__create_null__list();
+        output.inputs = ANVIL__create_null__list();
+        output.outputs = ANVIL__create_null__list();
+        output.statements = ANVIL__create_null__list();
 
         return output;
     }
@@ -605,7 +602,7 @@ COMP__parsling_program COMP__parse__program(COMP__lexlings lexlings, ANVIL__bt* 
     current = COMP__calculate__current_from_list_filled_index(&lexlings.data);
 
     // open the abstraction list
-    output.abstractions = LIST__open__list(sizeof(COMP__parsling_abstraction) * 64, memory_error_occured);
+    output.abstractions = ANVIL__open__list(sizeof(COMP__parsling_abstraction) * 64, memory_error_occured);
 
     // parse abstractions
     while (COMP__check__current_within_range(current)) {
@@ -627,14 +624,14 @@ COMP__parsling_program COMP__parse__program(COMP__lexlings lexlings, ANVIL__bt* 
 // close statement
 void COMP__close__parsling_statement(COMP__parsling_statement statement) {
     // close io
-    LIST__close__list(statement.inputs);
-    LIST__close__list(statement.outputs);
+    ANVIL__close__list(statement.inputs);
+    ANVIL__close__list(statement.outputs);
 
     return;
 }
 
 // close statements
-void COMP__close__parsling_statements(LIST__list list) {
+void COMP__close__parsling_statements(ANVIL__list list) {
     COMP__current current_statement = COMP__calculate__current_from_list_filled_index(&list);
 
     // clean up each statement
@@ -647,7 +644,7 @@ void COMP__close__parsling_statements(LIST__list list) {
     }
 
     // clean up statements buffer
-    LIST__close__list(list);
+    ANVIL__close__list(list);
 
     return;
 }
@@ -655,8 +652,8 @@ void COMP__close__parsling_statements(LIST__list list) {
 // close abstraction
 void COMP__close__parsling_abstraction(COMP__parsling_abstraction abstraction) {
     // close io
-    LIST__close__list(abstraction.inputs);
-    LIST__close__list(abstraction.outputs);
+    ANVIL__close__list(abstraction.inputs);
+    ANVIL__close__list(abstraction.outputs);
     
     // close statements
     COMP__close__parsling_statements(abstraction.statements);
@@ -678,13 +675,13 @@ void COMP__close__parsling_program(COMP__parsling_program program) {
     }
 
     // free the abstraction list
-    LIST__close__list(program.abstractions);
+    ANVIL__close__list(program.abstractions);
 
     return;
 }
 
 // print arguments
-void COMP__print__arguments(LIST__list* arguments) {
+void COMP__print__arguments(ANVIL__list* arguments) {
     COMP__current current = COMP__calculate__current_from_list_filled_index(arguments);
 
     // print opener
@@ -793,7 +790,7 @@ typedef struct COMP__accountling_header {
 
 // header table
 typedef struct COMP__accountling_header_table {
-    LIST__list headers;
+    ANVIL__list headers;
 } COMP__accountling_header_table;
 
 // open header table
@@ -801,18 +798,18 @@ COMP__accountling_header_table COMP__open__accountling_header_table(ANVIL__bt* m
     COMP__accountling_header_table output;
 
     // open headers
-    output.headers = LIST__open__list(sizeof(COMP__accountling_header) * 32, memory_error_occured);
+    output.headers = ANVIL__open__list(sizeof(COMP__accountling_header) * 32, memory_error_occured);
 
     return output;
 }
 
 // append accountling header
-void COMP__append__accountling_header(LIST__list* list, COMP__accountling_header data, ANVIL__bt* memory_error_occured) {
+void COMP__append__accountling_header(ANVIL__list* list, COMP__accountling_header data, ANVIL__bt* memory_error_occured) {
     // request space
-    LIST__request__space(list, sizeof(COMP__accountling_header), memory_error_occured);
+    ANVIL__list__request__space(list, sizeof(COMP__accountling_header), memory_error_occured);
 
     // append data
-    (*(COMP__accountling_header*)LIST__calculate__list_current(list)) = data;
+    (*(COMP__accountling_header*)ANVIL__calculate__list_current(list)) = data;
 
     // increase fill
     (*list).filled_index += sizeof(COMP__accountling_header);
@@ -857,14 +854,14 @@ COMP__accountling_header_table COMP__account__header_table(COMP__parsling_progra
 /* Compile */
 // one compiled object across multiple stages
 typedef struct COMP__compilation_unit {
-    LIST__list user_codes;
-    LIST__list parsling_buffers;
+    ANVIL__list user_codes;
+    ANVIL__list parsling_buffers;
 } COMP__compilation_unit;
 
 // close a compilation unit
 void COMP__close__compilation_unit(COMP__compilation_unit unit) {
     // close user codes (Assumes that user codes are allocated elsewhere!)
-    LIST__close__list(unit.user_codes);
+    ANVIL__close__list(unit.user_codes);
 
     // close parsling buffers
     {
@@ -881,7 +878,7 @@ void COMP__close__compilation_unit(COMP__compilation_unit unit) {
         }
 
         // close parslings buffer
-        LIST__close__list(unit.parsling_buffers);
+        ANVIL__close__list(unit.parsling_buffers);
     }
 
     return;
@@ -938,7 +935,7 @@ COMP__parsling_program COMP__dissect__file(ANVIL__buffer user_code, ANVIL__bt pr
 }
 
 // compile a program
-void COMP__compile__files(LIST__list user_codes, ANVIL__bt print_debug, ANVIL__bt* compilation_error_occured, ANVIL__bt* memory_error_occured) {
+void COMP__compile__files(ANVIL__list user_codes, ANVIL__bt print_debug, ANVIL__bt* compilation_error_occured, ANVIL__bt* memory_error_occured) {
     COMP__compilation_unit compilation_unit;
     COMP__current current;
 
@@ -947,8 +944,8 @@ void COMP__compile__files(LIST__list user_codes, ANVIL__bt print_debug, ANVIL__b
     *memory_error_occured = ANVIL__bt__false;
 
     // setup compilation unit
-    compilation_unit.user_codes = LIST__open__list(sizeof(ANVIL__buffer) * 5, memory_error_occured);
-    compilation_unit.parsling_buffers = LIST__open__list(sizeof(COMP__parsling_program) * 5, memory_error_occured);
+    compilation_unit.user_codes = ANVIL__open__list(sizeof(ANVIL__buffer) * 5, memory_error_occured);
+    compilation_unit.parsling_buffers = ANVIL__open__list(sizeof(COMP__parsling_program) * 5, memory_error_occured);
 
     // setup current
     current = COMP__calculate__current_from_list_filled_index(&user_codes);
@@ -959,7 +956,7 @@ void COMP__compile__files(LIST__list user_codes, ANVIL__bt print_debug, ANVIL__b
         ANVIL__buffer user_code = *(ANVIL__buffer*)current.start;
 
         // append file
-        LIST__append__buffer(&compilation_unit.user_codes, user_code, memory_error_occured);
+        ANVIL__list__append__buffer(&compilation_unit.user_codes, user_code, memory_error_occured);
 
         // check for error
         if (*memory_error_occured) {
