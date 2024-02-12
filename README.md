@@ -1,4 +1,4 @@
-# Forge Project
+# Flame Project
 
 A byte machine interpreter written in C.
 
