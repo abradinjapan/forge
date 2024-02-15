@@ -1,5 +1,5 @@
-#ifndef ANVIL__template
-#define ANVIL__template
+#ifndef FROST__template
+#define FROST__template
 
 /* Include */
 // anvil

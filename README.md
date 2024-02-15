@@ -1,6 +1,6 @@
-# Flame Project
+# Frost Project
 
-A byte machine interpreter written in C.
+A simple programming language written in C.
 
 ## Build
 

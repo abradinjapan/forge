@@ -1,5 +1,5 @@
-#ifndef ANVIL__essentials
-#define ANVIL__essentials
+#ifndef FROST__essentials
+#define FROST__essentials
 
 /* Include */
 // anvil

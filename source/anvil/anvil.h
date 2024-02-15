@@ -1,5 +1,5 @@
-#ifndef ANVIL__alloy
-#define ANVIL__alloy
+#ifndef FROST__alloy
+#define FROST__alloy
 
 /* Include */
 #include <stdint.h>
