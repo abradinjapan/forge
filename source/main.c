@@ -87,7 +87,6 @@ typedef enum MAIN__cft {
     MAIN__cft__parsing_test__1,
     MAIN__cft__parsing_test__2,
     MAIN__cft__parsing_test__3,
-    MAIN__cft__parsing_test__4,
 
     // COUNT
     MAIN__cft__COUNT,
@@ -103,10 +102,9 @@ void MAIN__test__built_in_compiler() {
         (ANVIL__u8*)"((((()()()))((()))(!",
 
         // parsing tests
-        (ANVIL__u8*)"main.hi_yo()() {\n\thello()()\n}\n",
-        (ANVIL__u8*)"arguments(hi a)(lo b)\narguments(hi c)(b)\narguments(hi c)(b)",
-        (ANVIL__u8*)"test.start()() {\n\thello()()\n}\n",
-        (ANVIL__u8*)"main(a f)(b g) {\n\thi(a)(b h)\n\tthere(c i)(d)\n}\n\nthing(a)(b) {\n\thi(a)(b)\n\tthere(c)(d)\n\t@offset\n}",
+        (ANVIL__u8*)"main.hi_yo()() = {\n\thello()()\n}\n",
+        (ANVIL__u8*)"test.start()() = {\n\thello()()\n}\n",
+        (ANVIL__u8*)"main(a f)(b g) = {\n\thi(a)(b h)\n\tthere(c i)(d)\n}\n\nthing(a)(b) = {\n\thi(a)(b)\n\tthere(c)(d)\n\t@offset\n}",
     };
 
     // first test
@@ -141,7 +139,7 @@ void MAIN__test__built_in_compiler() {
         user_codes = ANVIL__open__list(sizeof(ANVIL__buffer) * 4, &memory_error_occured);
 
         // append files
-        ANVIL__list__append__buffer(&user_codes, ANVIL__open__buffer_from_string(programs[MAIN__cft__parsing_test__4], ANVIL__bt__false, ANVIL__bt__true), &memory_error_occured);
+        ANVIL__list__append__buffer(&user_codes, ANVIL__open__buffer_from_string(programs[MAIN__cft__parsing_test__3], ANVIL__bt__false, ANVIL__bt__true), &memory_error_occured);
 
         // print memory error
         if (memory_error_occured) {

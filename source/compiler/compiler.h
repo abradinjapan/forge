@@ -21,6 +21,47 @@ typedef ANVIL__u64 COMP__lexling_index;
 typedef ANVIL__u64 COMP__header_input_count;
 typedef ANVIL__u64 COMP__header_output_count;
 
+// program stage type
+typedef enum COMP__pst {
+    // stages
+    COMP__pst__loading, // getting all files into memory
+    COMP__pst__lexing, // lexing files
+    COMP__pst__parsing, // parsing files
+    COMP__pst__accounting, // semantics for all files
+    COMP__pst__generating, // building program
+    COMP__pst__running, // running program
+
+    // count
+    COMP__pst__COUNT,
+} COMP__pst;
+
+/* Error */
+// a compilation error
+typedef struct COMP__compilation_error {
+    ANVIL__buffer error_string;
+} COMP__compilation_error;
+
+// create a compilation error
+COMP__compilation_error COMP__create__compilation_error(ANVIL__buffer error_string) {
+    COMP__compilation_error output;
+
+    // setup output
+    output.error_string = error_string;
+
+    return output;
+}
+
+// create a null compilation error
+COMP__compilation_error COMP__create_null__compilation_error() {
+    // return empty
+    return COMP__create__compilation_error(ANVIL__create_null__buffer());
+}
+
+// open a compilation error
+COMP__compilation_error COMP__open__compilation_error() {
+
+}
+
 /* Current */
 // check if a current buffer is still valid
 ANVIL__bt COMP__check__current_within_range(ANVIL__buffer current) {
@@ -42,6 +83,8 @@ typedef enum COMP__lt {
     COMP__lt__right_curly_bracket,
     COMP__lt__name,
     COMP__lt__at,
+    COMP__lt__equals,
+    COMP__lt__string_literal,
     COMP__lt__COUNT,
 } COMP__lt;
 
@@ -203,7 +246,7 @@ COMP__lexlings COMP__compile__lex(ANVIL__buffer user_code, ANVIL__bt* lexing_err
             temp_end = temp_start - 1;
 
             // get lexling size
-            while (COMP__calculate__valid_name_character(current)) {
+            while (current.start < user_code.end && COMP__calculate__valid_name_character(current)) {
                 // next character
                 current.start += sizeof(ANVIL__character);
                 temp_end += sizeof(ANVIL__character);
@@ -214,6 +257,12 @@ COMP__lexlings COMP__compile__lex(ANVIL__buffer user_code, ANVIL__bt* lexing_err
         } else if (COMP__calculate__valid_character_range(current, '@', '@')) {
             // add lexling
             COMP__append__lexling(&output, COMP__create__lexling(COMP__lt__at, ANVIL__create__buffer(current.start, current.start)), memory_error_occured);
+
+            // next character
+            current.start += sizeof(ANVIL__character);
+        } else if (COMP__calculate__valid_character_range(current, '=', '=')) {
+            // add lexling
+            COMP__append__lexling(&output, COMP__create__lexling(COMP__lt__equals, ANVIL__create__buffer(current.start, current.start)), memory_error_occured);
 
             // next character
             current.start += sizeof(ANVIL__character);
