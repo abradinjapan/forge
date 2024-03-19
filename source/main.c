@@ -70,7 +70,7 @@ void MAIN__test__scratch() {
     ANVIL__run__context(&context, ANVIL__define__run_forever);
 
     // DEBUG
-    //MAIN__print__context(&context);
+    // MAIN__print__context(&context);
 
     // clean up
     ANVIL__close__buffer(program);
@@ -97,8 +97,8 @@ void MAIN__test__built_in_compiler() {
     ANVIL__bt compilation_error_occured;
     ANVIL__bt memory_error_occured;
     ANVIL__bt print_debug = ANVIL__bt__true;
-    ANVIL__u8* programs[] = {
-        // lexlical test
+    ANVIL__u8* programs[MAIN__cft__COUNT] = {
+        // lexical tests
         (ANVIL__u8*)"((((()()()))((()))(!",
 
         // parsing tests

@@ -10,6 +10,11 @@
 typedef ANVIL__buffer COMP__current;
 typedef ANVIL__buffer COMP__name;
 
+// error types
+typedef ANVIL__u64 COMP__character_index;
+typedef ANVIL__u64 COMP__line_number;
+typedef ANVIL__u64 COMP__file_index;
+
 // lexing types
 typedef ANVIL__u8 COMP__lexling_type;
 typedef ANVIL__address COMP__lexling_address;
@@ -36,17 +41,34 @@ typedef enum COMP__pst {
 } COMP__pst;
 
 /* Error */
+// compiler error type
+typedef enum COMP__cet {
+    // no error
+    COMP__cet__no_error,
+
+    // loading
+    COMP__cet__loading__file_not_found,
+
+    // lexing
+    COMP__cet__lexling__unrecognized_character,
+    COMP__cet__lexling__invalid_string_literal,
+} COMP__cet;
+
 // a compilation error
 typedef struct COMP__compilation_error {
-    ANVIL__buffer error_string;
+    COMP__file_index file_index;
+    COMP__character_index character_index;
+    COMP__cet error_code;
 } COMP__compilation_error;
 
 // create a compilation error
-COMP__compilation_error COMP__create__compilation_error(ANVIL__buffer error_string) {
+COMP__compilation_error COMP__create__compilation_error(COMP__file_index file_index, COMP__character_index character_index, COMP__cet error_code) {
     COMP__compilation_error output;
 
     // setup output
-    output.error_string = error_string;
+    output.file_index = file_index;
+    output.character_index = character_index;
+    output.error_code = error_code;
 
     return output;
 }
@@ -54,12 +76,7 @@ COMP__compilation_error COMP__create__compilation_error(ANVIL__buffer error_stri
 // create a null compilation error
 COMP__compilation_error COMP__create_null__compilation_error() {
     // return empty
-    return COMP__create__compilation_error(ANVIL__create_null__buffer());
-}
-
-// open a compilation error
-COMP__compilation_error COMP__open__compilation_error() {
-
+    return COMP__create__compilation_error(0, 0, COMP__cet__no_error);
 }
 
 /* Current */
@@ -343,18 +360,77 @@ typedef struct COMP__parsling_statement {
     ANVIL__list outputs;
 } COMP__parsling_statement;
 
+// create a custom statement
+COMP__parsling_statement COMP__create__parsling_statement(COMP__st type, COMP__name name, ANVIL__list inputs, ANVIL__list outputs) {
+    COMP__parsling_statement output;
+
+    // setup output
+    output.type = type;
+    output.name = name;
+    output.inputs = inputs;
+    output.outputs = outputs;
+
+    return output;
+}
+
+// create a null statement
+COMP__parsling_statement COMP__create_null__parsling_statement() {
+    // return empty
+    return COMP__create__parsling_statement(COMP__st__COUNT, ANVIL__create_null__buffer(), ANVIL__create_null__list(), ANVIL__create_null__list());
+}
+
 // one abstraction
 typedef struct COMP__parsling_abstraction {
+    // abstraction name
     COMP__name name;
+
+    // io
     ANVIL__list inputs;
     ANVIL__list outputs;
+
+    // body
     ANVIL__list statements;
 } COMP__parsling_abstraction;
+
+// create a custom abstraction
+COMP__parsling_abstraction COMP__create__parsling_abstraction(COMP__name name, ANVIL__list inputs, ANVIL__list outputs, ANVIL__list statements) {
+    COMP__parsling_abstraction output;
+
+    // setup output
+    output.name = name;
+    output.inputs = inputs;
+    output.outputs = outputs;
+    output.statements = statements;
+
+    return output;
+}
+
+// create a null abstraction
+COMP__parsling_abstraction COMP__create_null__parsling_abstraction() {
+    // return empty
+    return COMP__create__parsling_abstraction(ANVIL__create_null__buffer(), ANVIL__create_null__list(), ANVIL__create_null__list(), ANVIL__create_null__list());
+}
 
 // one program
 typedef struct COMP__parsling_program {
     ANVIL__list abstractions;
 } COMP__parsling_program;
+
+// create a custom program
+COMP__parsling_program COMP__create__parsling_program(ANVIL__list abstractions) {
+    COMP__parsling_program output;
+
+    // setup output
+    output.abstractions = abstractions;
+
+    return output;
+}
+
+// create a null program
+COMP__parsling_program COMP__create_null__parsling_program() {
+    // return empty
+    return COMP__create__parsling_program(ANVIL__create_null__list());
+}
 
 // append parsling statement
 void COMP__append__parsling_statement(ANVIL__list* list, COMP__parsling_statement data, ANVIL__bt* memory_error_occured) {
@@ -394,6 +470,65 @@ void COMP__append__parsling_program(ANVIL__list* list, COMP__parsling_program da
 
     // increase fill
     (*list).filled_index += sizeof(COMP__parsling_program);
+
+    return;
+}
+
+// close statement
+void COMP__close__parsling_statement(COMP__parsling_statement statement) {
+    // close io
+    ANVIL__close__list(statement.inputs);
+    ANVIL__close__list(statement.outputs);
+
+    return;
+}
+
+// close statements
+void COMP__close__parsling_statements(ANVIL__list list) {
+    COMP__current current_statement = COMP__calculate__current_from_list_filled_index(&list);
+
+    // clean up each statement
+    while (COMP__check__current_within_range(current_statement)) {
+        // clean up statement
+        COMP__close__parsling_statement(*(COMP__parsling_statement*)current_statement.start);
+
+        // next statement
+        current_statement.start += sizeof(COMP__parsling_statement);
+    }
+
+    // clean up statements buffer
+    ANVIL__close__list(list);
+
+    return;
+}
+
+// close abstraction
+void COMP__close__parsling_abstraction(COMP__parsling_abstraction abstraction) {
+    // close io
+    ANVIL__close__list(abstraction.inputs);
+    ANVIL__close__list(abstraction.outputs);
+    
+    // close statements
+    COMP__close__parsling_statements(abstraction.statements);
+
+    return;
+}
+
+// close parsling program
+void COMP__close__parsling_program(COMP__parsling_program program) {
+    COMP__current current = COMP__calculate__current_from_list_filled_index(&(program.abstractions));
+
+    // free each abstraction
+    while (COMP__check__current_within_range(current)) {
+        // free abstraction
+        COMP__close__parsling_abstraction(*(COMP__parsling_abstraction*)current.start);
+
+        // next abstraction
+        current.start += sizeof(COMP__parsling_abstraction);
+    }
+
+    // free the abstraction list
+    ANVIL__close__list(program.abstractions);
 
     return;
 }
@@ -604,13 +739,8 @@ COMP__parsling_abstraction COMP__parse__abstraction(COMP__current* current, ANVI
         // tell error
         printf("Parse Error: An abstraction definition has a name missing.\n");
 
-        // setup blank
-        output.name = ANVIL__create_null__buffer();
-        output.inputs = ANVIL__create_null__list();
-        output.outputs = ANVIL__create_null__list();
-        output.statements = ANVIL__create_null__list();
-
-        return output;
+        // return blank
+        return COMP__create_null__parsling_abstraction();
     }
 
     // get inputs
@@ -624,6 +754,22 @@ COMP__parsling_abstraction COMP__parse__abstraction(COMP__current* current, ANVI
 
     // get outputs
     output.outputs = COMP__parse__arguments(current, parse_error_occured, memory_error_occured);
+
+    // check for equals sign
+    if (COMP__check__current_within_range(*current) && COMP__read__lexling_from_current(*current).type == COMP__lt__equals) {
+        // no saving data necessary, next lexling
+        COMP__advance__lexling_current(current, 1);
+    // error
+    } else {
+        // set error
+        (*parse_error_occured) = ANVIL__bt__true;
+
+        // tell error
+        printf("Parse Error: An abstraction definition has an equals sign missing.\n");
+
+        // return blank
+        return COMP__create_null__parsling_abstraction();
+    }
 
     // check for error
     if (*parse_error_occured || *memory_error_occured) {
@@ -668,65 +814,6 @@ COMP__parsling_program COMP__parse__program(COMP__lexlings lexlings, ANVIL__bt* 
     }
 
     return output;
-}
-
-// close statement
-void COMP__close__parsling_statement(COMP__parsling_statement statement) {
-    // close io
-    ANVIL__close__list(statement.inputs);
-    ANVIL__close__list(statement.outputs);
-
-    return;
-}
-
-// close statements
-void COMP__close__parsling_statements(ANVIL__list list) {
-    COMP__current current_statement = COMP__calculate__current_from_list_filled_index(&list);
-
-    // clean up each statement
-    while (COMP__check__current_within_range(current_statement)) {
-        // clean up statement
-        COMP__close__parsling_statement(*(COMP__parsling_statement*)current_statement.start);
-
-        // next statement
-        current_statement.start += sizeof(COMP__parsling_statement);
-    }
-
-    // clean up statements buffer
-    ANVIL__close__list(list);
-
-    return;
-}
-
-// close abstraction
-void COMP__close__parsling_abstraction(COMP__parsling_abstraction abstraction) {
-    // close io
-    ANVIL__close__list(abstraction.inputs);
-    ANVIL__close__list(abstraction.outputs);
-    
-    // close statements
-    COMP__close__parsling_statements(abstraction.statements);
-
-    return;
-}
-
-// close parsling program
-void COMP__close__parsling_program(COMP__parsling_program program) {
-    COMP__current current = COMP__calculate__current_from_list_filled_index(&(program.abstractions));
-
-    // free each abstraction
-    while (COMP__check__current_within_range(current)) {
-        // free abstraction
-        COMP__close__parsling_abstraction(*(COMP__parsling_abstraction*)current.start);
-
-        // next abstraction
-        current.start += sizeof(COMP__parsling_abstraction);
-    }
-
-    // free the abstraction list
-    ANVIL__close__list(program.abstractions);
-
-    return;
 }
 
 // print arguments
