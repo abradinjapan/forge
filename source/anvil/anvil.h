@@ -106,6 +106,23 @@ ANVIL__length ANVIL__calculate__buffer_length(ANVIL__buffer buffer) {
     return (ANVIL__length)((u8*)buffer.end - (u8*)buffer.start) + 1;
 }
 
+// check to see if buffers are equal
+ANVIL__bt ANVIL__calculate__are_buffers_exactly_equivalent(ANVIL__buffer a, ANVIL__buffer b) {
+    return (ANVIL__bt)((a.start == b.start) && (a.end == b.end));
+}
+
+// calculate buffer contains range
+ANVIL__bt ANVIL__calculate__buffer_range_in_buffer_range_inclusive(ANVIL__buffer outside, ANVIL__buffer inside) {
+    // return calculation
+    return (outside.start <= inside.start) && (outside.end >= inside.end);
+}
+
+// check to see if it is an empty buffer
+ANVIL__bt ANVIL__check__empty_buffer(ANVIL__buffer buffer) {
+    // return calculation
+    return (ANVIL__bt)(buffer.start == 0);
+}
+
 // open buffer
 ANVIL__buffer ANVIL__open__buffer(ANVIL__length length) {
 	ANVIL__buffer output;
@@ -121,6 +138,29 @@ ANVIL__buffer ANVIL__open__buffer(ANVIL__length length) {
 	}
 
 	return output;
+}
+
+// check if buffers are the same size
+ANVIL__bt ANVIL__calculate__are_buffers_same_size(ANVIL__buffer a, ANVIL__buffer b) {
+    // return calculation
+    return (ANVIL__bt)((a.end - a.start) == (b.end - b.start));
+}
+
+// copy buffer
+void ANVIL__copy__buffer(ANVIL__buffer source, ANVIL__buffer destination, ANVIL__bt* error) {
+    // check for invalid buffer
+    if (ANVIL__calculate__are_buffers_same_size(source, destination) == ANVIL__bt__true) {
+        // copy buffer
+        for (ANVIL__length byte_index = 0; byte_index < (ANVIL__length)(destination.end - destination.start); byte_index++) {
+            // copy byte
+            ((ANVIL__u8*)destination.start)[byte_index] = ((ANVIL__u8*)source.start)[byte_index];
+        }
+    } else {
+        // set error
+        *error = ANVIL__bt__true;
+    }
+
+    return;
 }
 
 // create or open a buffer from a string literal (can either duplicate buffer or simply reference original) (can opt out of null termination)
@@ -394,9 +434,19 @@ void ANVIL__list__request__space(ANVIL__list* list, ANVIL__byte_count byte_count
     return;
 }
 
+// add index to address
+ANVIL__address ANVIL__calculate__address_from_buffer_index(ANVIL__address start, ANVIL__list_filled_index index) {
+    return start + index;
+}
+
 // calculate the tip of the list
-ANVIL__address ANVIL__calculate__list_current(ANVIL__list* list) {
-    return (*list).buffer.start + (*list).filled_index;
+ANVIL__address ANVIL__calculate__list_current_address(ANVIL__list* list) {
+    return ANVIL__calculate__address_from_buffer_index((*list).buffer.start, (*list).filled_index);
+}
+
+// calculate the current buffer
+ANVIL__buffer ANVIL__calculate__list_current_buffer(ANVIL__list* list) {
+    return ANVIL__create__buffer(((*list).buffer.start), ANVIL__calculate__list_current_address(list));
 }
 
 // add a buffer to a list
@@ -405,7 +455,7 @@ void ANVIL__list__append__buffer(ANVIL__list* list, ANVIL__buffer buffer, ANVIL_
     ANVIL__list__request__space(list, sizeof(ANVIL__buffer), memory_error_occured);
 
     // append data
-    (*(ANVIL__buffer*)ANVIL__calculate__list_current(list)) = buffer;
+    (*(ANVIL__buffer*)ANVIL__calculate__list_current_address(list)) = buffer;
 
     // increase fill
     (*list).filled_index += sizeof(ANVIL__buffer);
@@ -419,7 +469,7 @@ void ANVIL__list__append__list(ANVIL__list* list, ANVIL__list data, ANVIL__bt* m
     ANVIL__list__request__space(list, sizeof(ANVIL__list), memory_error_occured);
 
     // append data
-    (*(ANVIL__list*)ANVIL__calculate__list_current(list)) = data;
+    (*(ANVIL__list*)ANVIL__calculate__list_current_address(list)) = data;
 
     // increase fill
     (*list).filled_index += sizeof(ANVIL__list);
@@ -427,7 +477,34 @@ void ANVIL__list__append__list(ANVIL__list* list, ANVIL__list data, ANVIL__bt* m
     return;
 }
 
+// remove a slice of data from a list
+void ANVIL__list__erase__space(ANVIL__list* list, ANVIL__list_filled_index range_start_index, ANVIL__list_filled_index range_end_index) {
+    ANVIL__buffer old_right;
+    ANVIL__buffer new_right;
+    ANVIL__bt error;
+
+    // get new right buffer
+    old_right = ANVIL__create__buffer(ANVIL__calculate__address_from_buffer_index((*list).buffer.start, range_end_index), ANVIL__calculate__list_current_address(list));
+    new_right = ANVIL__create__buffer(old_right.start - (range_end_index - range_start_index), old_right.end - (range_end_index - range_start_index));
+
+    // move data from left to right filling in the gap
+    ANVIL__copy__buffer(old_right, new_right, &error);
+
+    // should not happen but handled anyways
+    if (error == ANVIL__bt__true) {
+        // tell user
+        printf("Internal Error: Buffer could not erase data.\n");
+    // buffer was clipped, change filled index
+    } else {
+        // change current
+        (*list).filled_index -= range_end_index - range_start_index;
+    }
+
+    return;
+}
+
 /* Machine Specifications */
+// instruction parts
 typedef ANVIL__address ANVIL__cell;
 typedef ANVIL__u8 ANVIL__instruction_ID;
 typedef ANVIL__u8 ANVIL__flag_ID;
@@ -457,6 +534,109 @@ typedef enum ANVIL__nit {
     // count
     ANVIL__nit__COUNT,
 } ANVIL__nit;
+
+/* Allocations */
+// allocations
+typedef struct ANVIL__allocations {
+    ANVIL__list buffers;
+} ANVIL__allocations;
+
+// find an allocation
+ANVIL__list_filled_index ANVIL__find__allocation(ANVIL__allocations* allocations, ANVIL__buffer allocation, ANVIL__bt* found) {
+    ANVIL__list_filled_index output = 0;
+    ANVIL__buffer current;
+    
+    // setup current
+    current = ANVIL__calculate__list_current_buffer(&((*allocations).buffers));
+
+    // check for valid allocation
+    while (current.start <= current.end) {
+        // check one allocation
+        if (ANVIL__calculate__are_buffers_exactly_equivalent(*(ANVIL__buffer*)current.start, allocation)) {
+            // allocation is valid
+            *found = ANVIL__bt__true;
+
+            return output;
+        }
+
+        // next allocation
+        current.start += sizeof(ANVIL__buffer);
+        output += sizeof(ANVIL__buffer);
+    }
+
+    // not valid
+    *found = ANVIL__bt__false;
+
+    return output;
+}
+
+// add a buffer
+void ANVIL__remember__allocation(ANVIL__allocations* allocations, ANVIL__buffer allocation, ANVIL__bt* list_error_occured) {
+    // append allocation
+    ANVIL__list__append__buffer(&((*allocations).buffers), allocation, list_error_occured);
+
+    return;
+}
+
+// remove a buffer
+void ANVIL__forget__allocation(ANVIL__allocations* allocations, ANVIL__buffer allocation, ANVIL__bt* buffer_did_not_exist) {
+    ANVIL__bt found = ANVIL__bt__false;
+
+    // find allocation index
+    ANVIL__list_filled_index start_index = ANVIL__find__allocation(allocations, allocation, &found);
+
+    // if found
+    if (found == ANVIL__bt__true) {
+        // erase from list
+        ANVIL__list__erase__space(&((*allocations).buffers), start_index, start_index + sizeof(ANVIL__buffer) - 1);
+    // not found, so not removed
+    } else {
+        // set error
+        *buffer_did_not_exist = ANVIL__bt__true;
+    }
+
+    return;
+}
+
+// check to see if an address is valid
+ANVIL__bt ANVIL__check__valid_address_range_in_allocations(ANVIL__allocations* allocations, ANVIL__buffer range) {
+    ANVIL__buffer current;
+    
+    // setup current
+    current = ANVIL__create__buffer((*allocations).buffers.buffer.start, ANVIL__calculate__list_current_address(&((*allocations).buffers)));
+
+    // check for valid allocation range
+    while (current.start <= current.end) {
+        // check one allocation
+        if (ANVIL__calculate__buffer_range_in_buffer_range_inclusive(*(ANVIL__buffer*)current.start, range)) {
+            // allocation is valid
+            return ANVIL__bt__true;
+        }
+        
+        // next allocation
+        current.start += sizeof(ANVIL__buffer);
+    }
+
+    return ANVIL__bt__false;
+}
+
+// open allocations
+ANVIL__allocations ANVIL__open__allocations(ANVIL__bt* memory_error_occured) {
+    ANVIL__allocations output;
+
+    // setup output
+    output.buffers = ANVIL__open__list(sizeof(ANVIL__buffer) * 256, memory_error_occured);
+
+    return output;
+}
+
+// close allocations (does NOT clear actual allocations)
+void ANVIL__close__allocations(ANVIL__allocations* allocations) {
+    // clean up
+    ANVIL__close__list((*allocations).buffers);
+
+    return;
+}
 
 /* Alloy Specification */
 // context cell organization defines
@@ -553,6 +733,9 @@ typedef enum ANVIL__et {
     ANVIL__et__file_not_created,
     ANVIL__et__invalid_address__address_to_cell,
     ANVIL__et__invalid_address__cell_to_address,
+    ANVIL__et__internal_allocation_tracking_error__could_not_record_buffer,
+    ANVIL__et__invalid_allocation__allocation_does_not_exist,
+    ANVIL__et__invalid_address_range,
 
     // count
     ANVIL__et__COUNT,
@@ -562,7 +745,6 @@ typedef enum ANVIL__et {
 typedef enum ANVIL__ot {
     // copy
     ANVIL__ot__cell_to_cell, // copies one cell to another without transformation
-    ANVIL__ot__fetch_cell, // find cell dynamically by ID inside another cell and copy it's value
 
     // binary operations
     ANVIL__ot__bits_or,
@@ -581,7 +763,7 @@ typedef enum ANVIL__ot {
     ANVIL__ot__integer_modulous,
 
     // comparison operations
-    ANVIL__ot__integer_within_range, // equivalent to (range_start <= integer_n <= range_end) -> boolean
+    ANVIL__ot__integer_within_range, // equivalent to (range_start <= integer_n && integer_n <= range_end) -> boolean
 
     // flag operations
     ANVIL__ot__flag_or,
@@ -703,7 +885,7 @@ ANVIL__context ANVIL__setup__context(ANVIL__buffer program) {
 }
 
 /* Run Alloy Code */
-void ANVIL__run__context(ANVIL__context* context, ANVIL__instruction_count instruction_count);
+void ANVIL__run__context(ANVIL__allocations* allocations, ANVIL__context* context, ANVIL__instruction_count instruction_count);
 
 // process operation (assumes flag was checked)
 ANVIL__nit ANVIL__run__operation(ANVIL__context* context, ANVIL__ot operation_type, ANVIL__cell_ID input_0, ANVIL__cell_ID input_1, ANVIL__cell_ID input_2, ANVIL__cell_ID output_0) {
@@ -718,12 +900,6 @@ ANVIL__nit ANVIL__run__operation(ANVIL__context* context, ANVIL__ot operation_ty
     case ANVIL__ot__cell_to_cell:
         // set value
         ANVIL__set__cell_by_address(ANVIL__get__cell_address_from_context(context, output_0), ANVIL__get__cell_from_context(context, input_0));
-
-        break;
-    // get cell dynamically
-    case ANVIL__ot__fetch_cell: // untested!
-        // set value
-        ANVIL__set__cell_by_address(ANVIL__get__cell_address_from_context(context, output_0), (ANVIL__cell)(ANVIL__u64)ANVIL__get__cell_from_context(context, (ANVIL__cell_ID)(ANVIL__u64)ANVIL__get__cell_from_context(context, input_0)));
 
         break;
     // binary or
@@ -988,7 +1164,7 @@ ANVIL__nit ANVIL__run__operation(ANVIL__context* context, ANVIL__ot operation_ty
 }
 
 // process instruction
-ANVIL__nit ANVIL__run__instruction(ANVIL__context* context) {
+ANVIL__nit ANVIL__run__instruction(ANVIL__allocations* allocations, ANVIL__context* context) {
     // execution current read address
     ANVIL__cell* execution_read_address;
 
@@ -1012,11 +1188,13 @@ ANVIL__nit ANVIL__run__instruction(ANVIL__context* context) {
     ANVIL__cell_ID request_memory__allocation_start;
     ANVIL__cell_ID request_memory__allocation_end;
     ANVIL__buffer request_memory__allocation;
+    ANVIL__bt request_memory__buffer_appending_error = ANVIL__bt__false;
 
     // return memory temps
     ANVIL__cell_ID return_memory__allocation_start;
     ANVIL__cell_ID return_memory__allocation_end;
     ANVIL__buffer return_memory__allocation;
+    ANVIL__bt return_memory__allocation_does_not_exist = ANVIL__bt__false;
 
     // address to cell temps
     ANVIL__flag_ID address_to_cell__flag_ID;
@@ -1037,6 +1215,7 @@ ANVIL__nit ANVIL__run__instruction(ANVIL__context* context) {
     ANVIL__cell_ID file_to_buffer__file_data_end;
     ANVIL__buffer file_to_buffer__file_name;
     ANVIL__buffer file_to_buffer__file_data;
+    ANVIL__bt file_to_buffer__buffer_appending_error = ANVIL__bt__false;
 
     // buffer to file temps
     ANVIL__cell_ID buffer_to_file__file_data_start;
@@ -1045,7 +1224,7 @@ ANVIL__nit ANVIL__run__instruction(ANVIL__context* context) {
     ANVIL__cell_ID buffer_to_file__file_name_end;
     ANVIL__buffer buffer_to_file__file_data;
     ANVIL__buffer buffer_to_file__file_name;
-    ANVIL__bt buffer_to_file__error;
+    ANVIL__bt buffer_to_file__error = ANVIL__bt__false;
 
     // run temps
     ANVIL__cell_ID run__context_buffer_start;
@@ -1064,6 +1243,7 @@ ANVIL__nit ANVIL__run__instruction(ANVIL__context* context) {
     ANVIL__u8 debug__fgets__temporary_string[ANVIL__define__input_string_max_length];
     ANVIL__buffer debug__fgets__buffer;
     ANVIL__length debug__fgets__buffer_length;
+    ANVIL__bt debug__fgets__buffer_appending_error = ANVIL__bt__false;
 
     // debug mark data section temps
     ANVIL__cell debug__mark_data_section__section_length;
@@ -1126,6 +1306,24 @@ ANVIL__nit ANVIL__run__instruction(ANVIL__context* context) {
         // do action
         request_memory__allocation = ANVIL__open__buffer((ANVIL__length)(*context).cells[request_memory__allocation_size]);
 
+        // add allocation if successful
+        if (ANVIL__check__empty_buffer(request_memory__allocation) == ANVIL__bt__false) {
+            // remember allocation
+            ANVIL__remember__allocation(allocations, request_memory__allocation, &request_memory__buffer_appending_error);
+
+            // if buffer could not be added
+            if (request_memory__buffer_appending_error == ANVIL__bt__true) {
+                // set internal error
+                ANVIL__set__error_code_cell(context, ANVIL__et__internal_allocation_tracking_error__could_not_record_buffer);
+
+                // free buffer since it could not be safely added and is thus useless
+                ANVIL__close__buffer(request_memory__allocation);
+
+                // setup empty buffer
+                request_memory__allocation = ANVIL__create_null__buffer();
+            }
+        }
+
         // set cell data
         (*context).cells[request_memory__allocation_start] = request_memory__allocation.start;
         (*context).cells[request_memory__allocation_end] = request_memory__allocation.end;
@@ -1141,8 +1339,18 @@ ANVIL__nit ANVIL__run__instruction(ANVIL__context* context) {
         return_memory__allocation.start = (*context).cells[return_memory__allocation_start];
         return_memory__allocation.end = (*context).cells[return_memory__allocation_end];
 
-        // deallocate
-        ANVIL__close__buffer(return_memory__allocation);
+        // remove buffer from valid allocation list
+        ANVIL__forget__allocation(allocations, return_memory__allocation, &return_memory__allocation_does_not_exist);
+
+        // if allocation existed
+        if (return_memory__allocation_does_not_exist == ANVIL__bt__false) {
+            // deallocate
+            ANVIL__close__buffer(return_memory__allocation);
+        // allocation did not exist
+        } else {
+            // set error
+            ANVIL__set__error_code_cell(context, ANVIL__et__invalid_allocation__allocation_does_not_exist);
+        }
 
         break;
     // take data from an address and put it into a cell
@@ -1153,10 +1361,17 @@ ANVIL__nit ANVIL__run__instruction(ANVIL__context* context) {
         address_to_cell__bit_count_cell_ID = ANVIL__read_next__cell_ID(execution_read_address);
         address_to_cell__destination_cell_ID = ANVIL__read_next__cell_ID(execution_read_address);
 
-        // if flag enabled
-        if (ANVIL__get__flag_from_context(context, address_to_cell__flag_ID) == ANVIL__bt__true) {
-            // read data into cell
-            (*context).cells[address_to_cell__destination_cell_ID] = (ANVIL__cell)ANVIL__read__buffer((ANVIL__address)(*context).cells[address_to_cell__source_cell_ID], ((ANVIL__length)(*context).cells[address_to_cell__bit_count_cell_ID]) / ANVIL__define__bits_in_byte);
+        // if valid address range
+        if (ANVIL__check__valid_address_range_in_allocations(allocations, ANVIL__create__buffer((ANVIL__address)(*context).cells[address_to_cell__source_cell_ID], (ANVIL__address)(*context).cells[address_to_cell__source_cell_ID] + (((ANVIL__length)(*context).cells[address_to_cell__bit_count_cell_ID]) / ANVIL__define__bits_in_byte) - 1))) {
+            // if flag enabled
+            if (ANVIL__get__flag_from_context(context, address_to_cell__flag_ID) == ANVIL__bt__true) {
+                // read data into cell
+                (*context).cells[address_to_cell__destination_cell_ID] = (ANVIL__cell)ANVIL__read__buffer((ANVIL__address)(*context).cells[address_to_cell__source_cell_ID], ((ANVIL__length)(*context).cells[address_to_cell__bit_count_cell_ID]) / ANVIL__define__bits_in_byte);
+            }
+        // invalid address range
+        } else {
+            // set error
+            ANVIL__set__error_code_cell(context, ANVIL__et__invalid_address_range);
         }
 
         break;
@@ -1168,10 +1383,17 @@ ANVIL__nit ANVIL__run__instruction(ANVIL__context* context) {
         cell_to_address__bit_count_cell_ID = ANVIL__read_next__cell_ID(execution_read_address);
         cell_to_address__destination_cell_ID = ANVIL__read_next__cell_ID(execution_read_address);
 
-        // if flag enabled
-        if (ANVIL__get__flag_from_context(context, cell_to_address__flag_ID) == ANVIL__bt__true) {
-            // write data to an address
-            ANVIL__write__buffer((ANVIL__u64)(*context).cells[cell_to_address__source_cell_ID], ((ANVIL__length)(*context).cells[cell_to_address__bit_count_cell_ID]) / ANVIL__define__bits_in_byte, (*context).cells[cell_to_address__destination_cell_ID]);
+        // if valid address range
+        if (ANVIL__check__valid_address_range_in_allocations(allocations, ANVIL__create__buffer((*context).cells[cell_to_address__destination_cell_ID], (*context).cells[cell_to_address__destination_cell_ID] + (((ANVIL__length)(*context).cells[cell_to_address__bit_count_cell_ID]) / ANVIL__define__bits_in_byte) - 1))) {
+            // if flag enabled
+            if (ANVIL__get__flag_from_context(context, cell_to_address__flag_ID) == ANVIL__bt__true) {
+                // write data to an address
+                ANVIL__write__buffer((ANVIL__u64)(*context).cells[cell_to_address__source_cell_ID], ((ANVIL__length)(*context).cells[cell_to_address__bit_count_cell_ID]) / ANVIL__define__bits_in_byte, (*context).cells[cell_to_address__destination_cell_ID]);
+            }
+        // invalid address range
+        } else {
+            // set error
+            ANVIL__set__error_code_cell(context, ANVIL__et__invalid_address_range);
         }
 
         break;
@@ -1194,6 +1416,22 @@ ANVIL__nit ANVIL__run__instruction(ANVIL__context* context) {
         if (file_to_buffer__file_data.start == 0) {
             // set error
             ANVIL__set__error_code_cell(context, ANVIL__et__file_not_found);
+        // append buffer as valid allocation
+        } else {
+            // remember allocation
+            ANVIL__remember__allocation(allocations, file_to_buffer__file_data, &file_to_buffer__buffer_appending_error);
+
+            // if buffer could not be added
+            if (file_to_buffer__buffer_appending_error == ANVIL__bt__true) {
+                // set internal error
+                ANVIL__set__error_code_cell(context, ANVIL__et__internal_allocation_tracking_error__could_not_record_buffer);
+
+                // free buffer since it could not be safely added and is thus useless
+                ANVIL__close__buffer(file_to_buffer__file_data);
+
+                // setup empty buffer
+                file_to_buffer__file_data = ANVIL__create_null__buffer();
+            }
         }
 
         // write data to cells
@@ -1215,13 +1453,20 @@ ANVIL__nit ANVIL__run__instruction(ANVIL__context* context) {
         buffer_to_file__file_name.start = (*context).cells[buffer_to_file__file_name_start];
         buffer_to_file__file_name.end = (*context).cells[buffer_to_file__file_name_end];
 
-        // create file
-        ANVIL__move__buffer_to_file(&buffer_to_file__error, buffer_to_file__file_name, buffer_to_file__file_data);
+        // if source allocations exists
+        if (ANVIL__check__valid_address_range_in_allocations(allocations, buffer_to_file__file_data) && ANVIL__check__valid_address_range_in_allocations(allocations, buffer_to_file__file_name)) {
+            // create file
+            ANVIL__move__buffer_to_file(&buffer_to_file__error, buffer_to_file__file_name, buffer_to_file__file_data);
 
-        // check for errors
-        if (buffer_to_file__error == ANVIL__bt__true) {
+            // check for errors
+            if (buffer_to_file__error == ANVIL__bt__true) {
+                // set error
+                ANVIL__set__error_code_cell(context, ANVIL__et__file_not_created);
+            }
+        // if any allocations do not exist
+        } else {
             // set error
-            ANVIL__set__error_code_cell(context, ANVIL__et__file_not_created);
+            ANVIL__set__error_code_cell(context, ANVIL__et__invalid_allocation__allocation_does_not_exist);
         }
 
         break;
@@ -1236,7 +1481,7 @@ ANVIL__nit ANVIL__run__instruction(ANVIL__context* context) {
         run__context_buffer_end = run__context_buffer_end;
 
         // run context
-        ANVIL__run__context((ANVIL__context*)(*context).cells[run__context_buffer_start], (u64)(*context).cells[run__instruction_count]);
+        ANVIL__run__context(allocations, (ANVIL__context*)(*context).cells[run__context_buffer_start], (u64)(*context).cells[run__instruction_count]);
 
         break;
     // print one char to stdout
@@ -1285,10 +1530,28 @@ ANVIL__nit ANVIL__run__instruction(ANVIL__context* context) {
         // create buffer based on string length
         debug__fgets__buffer = ANVIL__open__buffer(debug__fgets__buffer_length);
 
-        // copy data into buffer
-        for (ANVIL__u64 i = 0; i < debug__fgets__buffer_length; i++) {
-            // write character
-            ANVIL__write__buffer((u8)debug__fgets__temporary_string[i], sizeof(ANVIL__u8), (ANVIL__u8*)debug__fgets__buffer.start + (i * sizeof(ANVIL__u8)));
+        // if buffer is not empty
+        if (ANVIL__check__empty_buffer(debug__fgets__buffer) == ANVIL__bt__false) {
+            // copy data into buffer
+            for (ANVIL__u64 i = 0; i < debug__fgets__buffer_length; i++) {
+                // write character
+                ANVIL__write__buffer((u8)debug__fgets__temporary_string[i], sizeof(ANVIL__u8), (ANVIL__u8*)debug__fgets__buffer.start + (i * sizeof(ANVIL__u8)));
+            }
+
+            // remember allocation
+            ANVIL__remember__allocation(allocations, debug__fgets__buffer, &debug__fgets__buffer_appending_error);
+
+            // if buffer could not be added
+            if (debug__fgets__buffer_appending_error == ANVIL__bt__true) {
+                // set internal error
+                ANVIL__set__error_code_cell(context, ANVIL__et__internal_allocation_tracking_error__could_not_record_buffer);
+
+                // free buffer since it could not be safely added and is thus useless
+                ANVIL__close__buffer(debug__fgets__buffer);
+
+                // setup empty buffer
+                debug__fgets__buffer = ANVIL__create_null__buffer();
+            }
         }
 
         // setup cells
@@ -1328,7 +1591,7 @@ ANVIL__nit ANVIL__run__instruction(ANVIL__context* context) {
 }
 
 // run context
-void ANVIL__run__context(ANVIL__context* context, ANVIL__instruction_count instruction_count) {
+void ANVIL__run__context(ANVIL__allocations* allocations, ANVIL__context* context, ANVIL__instruction_count instruction_count) {
     ANVIL__nit next_instruction_action;
 
     // if an infinite amount of instructions can execute
@@ -1336,7 +1599,7 @@ void ANVIL__run__context(ANVIL__context* context, ANVIL__instruction_count instr
         // run instructions
         while (1) {
             // run instruction
-            next_instruction_action = ANVIL__run__instruction(context);
+            next_instruction_action = ANVIL__run__instruction(allocations, context);
 
             // if quit
             if (next_instruction_action == ANVIL__nit__return_context) {
@@ -1350,7 +1613,7 @@ void ANVIL__run__context(ANVIL__context* context, ANVIL__instruction_count instr
     } else {
         for (ANVIL__instruction_count i = 0; i < instruction_count; i++) {
             // run instruction
-            next_instruction_action = ANVIL__run__instruction(context);
+            next_instruction_action = ANVIL__run__instruction(allocations, context);
 
             // check for early quitting
             if (next_instruction_action == ANVIL__nit__return_context) {
@@ -1507,9 +1770,6 @@ void ANVIL__write_next__buffer(ANVIL__workspace* workspace, ANVIL__buffer buffer
 
     // set buffer length
     buffer_length = ANVIL__calculate__buffer_length(buffer);
-
-    // DEBUG
-    printf("Buffer length: %lu\n", buffer_length);
 
     // write buffer
     if ((*workspace).pass == ANVIL__pt__write_program) {
@@ -1979,13 +2239,13 @@ void ANVIL__code__preserve_workspace(ANVIL__workspace* workspace, ANVIL__flag_ID
 
 // restore workspace
 void ANVIL__code__restore_workspace(ANVIL__workspace* workspace, ANVIL__flag_ID flag, ANVIL__preserve__start preserve_start, ANVIL__preserve__end preserve_end) {
-    // preserve workspace cells
+    // restore workspace cells
     for (ANVIL__preserve i = preserve_end; i >= preserve_start; i--) {
-        // preserve cell
+        // restore cell
         ANVIL__code__pop_cell(workspace, flag, i);
     }
 
-    // preserve error code
+    // restore error code
     ANVIL__code__pop_cell(workspace, flag, ANVIL__rt__error_code);
 
     // restore flags

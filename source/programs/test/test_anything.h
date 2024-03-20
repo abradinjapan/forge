@@ -10,6 +10,7 @@
 typedef enum TEST__ot {
     TEST__ot__main__start,
     TEST__ot__start__message_1,
+    TEST__ot__test_allocations__start,
 
     TEST__ot__COUNT,
 } TEST__ot;
@@ -18,6 +19,54 @@ typedef struct TEST__offsets {
     ANVIL__offset offsets[TEST__ot__COUNT];
 } TEST__offsets;
 
+/* Test Allocations */
+// cell types
+typedef enum TEST__rt__test_allocations {
+    // preserve start
+    TEST__test_allocations__preserve__START = ANVIL__srt__start__workspace,
+
+    // variables
+    TEST__test_allocations__buffer_0_start = TEST__test_allocations__preserve__START,
+    TEST__test_allocations__buffer_0_end,
+    TEST__test_allocations__buffer_1_start,
+    TEST__test_allocations__buffer_1_end,
+    TEST__test_allocations__buffer_0_length,
+    TEST__test_allocations__buffer_1_length,
+
+    // preserve end
+    TEST__test_allocations__preserve__END,
+} TEST__rt__test_allocations;
+
+// call function
+void TEST__code__call__test_allocations(ANVIL__workspace* workspace, TEST__offsets* test_offsets, ANVIL__flag_ID flag) {
+    // call code
+    ANVIL__code__call__static(workspace, flag, (*test_offsets).offsets[TEST__ot__test_allocations__start]);
+
+    return;
+}
+
+// create function
+void TEST__code__test_allocations(ANVIL__workspace* workspace, TEST__offsets* test_offsets) {
+    // setup function start
+    (*test_offsets).offsets[TEST__ot__test_allocations__start] = ANVIL__get__offset(workspace);
+
+    // preserve workspace
+    ANVIL__code__preserve_workspace(workspace, ANVIL__sft__always_run, TEST__test_allocations__preserve__START, TEST__test_allocations__preserve__END);
+
+    // perform testing
+    ESS__code__quick_print_buffer(workspace, ANVIL__open__buffer_from_string((u8*)"Testing Allocations!\n", ANVIL__bt__false, ANVIL__bt__false));
+
+    // allocate memory
+    
+
+    // restore workspace
+    ANVIL__code__restore_workspace(workspace, ANVIL__sft__always_run, TEST__test_allocations__preserve__START, TEST__test_allocations__preserve__END);
+
+    // setup return
+    ANVIL__code__jump__explicit(workspace, ANVIL__sft__always_run, ANVIL__srt__return_address);
+
+    return;
+}
 
 /* Main */
 // cell types
@@ -62,6 +111,9 @@ void TEST__code__main(ANVIL__workspace* workspace, TEST__offsets* test_offsets, 
     ANVIL__code__debug__putchar(workspace, ANVIL__srt__temp__write);
     ANVIL__code__write_cell(workspace, (ANVIL__cell)'\n', ANVIL__srt__temp__write);
     ANVIL__code__debug__putchar(workspace, ANVIL__srt__temp__write);
+
+    // test allocations
+    TEST__code__call__test_allocations(workspace, test_offsets, ANVIL__sft__always_run);
 
     // get buffer
     ANVIL__code__calculate_statically__offset_address(workspace, ANVIL__sft__always_run, (*test_offsets).offsets[TEST__ot__start__message_1], TEST__rt__main__buffer_address);
@@ -134,6 +186,7 @@ void TEST__code__main(ANVIL__workspace* workspace, TEST__offsets* test_offsets, 
 void TEST__code__package(ANVIL__workspace* workspace, TEST__offsets* test_offsets, ESS__offsets* essential_offsets) {
     // build program
     TEST__code__main(workspace, test_offsets, essential_offsets);
+    TEST__code__test_allocations(workspace, test_offsets);
 
     return;
 }

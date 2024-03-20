@@ -51,6 +51,8 @@ void MAIN__print__context(ANVIL__context* context) {
 void MAIN__test__scratch() {
     ANVIL__context context;
     ANVIL__buffer program;
+    ANVIL__allocations allocations;
+    ANVIL__bt allocations_memory_failure = ANVIL__bt__false;
 
     // build program
     program = TEST__forge__program();
@@ -66,13 +68,23 @@ void MAIN__test__scratch() {
     // create context
     context = ANVIL__setup__context(program);
 
-    // run program
-    ANVIL__run__context(&context, ANVIL__define__run_forever);
+    // create allocations
+    allocations = ANVIL__open__allocations(&allocations_memory_failure);
+
+    // add program as an allocation
+    ANVIL__remember__allocation(&allocations, program, &allocations_memory_failure);
+
+    // if allocations were opened
+    if (allocations_memory_failure == ANVIL__bt__false) {
+        // run program
+        ANVIL__run__context(&allocations, &context, ANVIL__define__run_forever);
+    }
 
     // DEBUG
     // MAIN__print__context(&context);
 
     // clean up
+    ANVIL__close__allocations(&allocations);
     ANVIL__close__buffer(program);
 
     return;

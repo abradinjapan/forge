@@ -163,7 +163,7 @@ void COMP__append__lexling(COMP__lexlings* lexlings, COMP__lexling lexling, ANVI
     ANVIL__list__request__space(&((*lexlings).data), sizeof(COMP__lexling), error_occured);
 
     // append data
-    (*(COMP__lexling*)ANVIL__calculate__list_current(&((*lexlings).data))) = lexling;
+    (*(COMP__lexling*)ANVIL__calculate__list_current_address(&((*lexlings).data))) = lexling;
 
     // increase fill
     (*lexlings).data.filled_index += sizeof(COMP__lexling);
@@ -177,7 +177,7 @@ void COMP__append__lexlings(ANVIL__list* list, COMP__lexlings lexlings, ANVIL__b
     ANVIL__list__request__space(list, sizeof(COMP__lexlings), error_occured);
 
     // append data
-    (*(COMP__lexlings*)ANVIL__calculate__list_current(list)) = lexlings;
+    (*(COMP__lexlings*)ANVIL__calculate__list_current_address(list)) = lexlings;
 
     // increase fill
     (*list).filled_index += sizeof(COMP__lexlings);
@@ -438,7 +438,7 @@ void COMP__append__parsling_statement(ANVIL__list* list, COMP__parsling_statemen
     ANVIL__list__request__space(list, sizeof(COMP__parsling_statement), memory_error_occured);
 
     // append data
-    (*(COMP__parsling_statement*)ANVIL__calculate__list_current(list)) = data;
+    (*(COMP__parsling_statement*)ANVIL__calculate__list_current_address(list)) = data;
 
     // increase fill
     (*list).filled_index += sizeof(COMP__parsling_statement);
@@ -452,7 +452,7 @@ void COMP__append__parsling_abstraction(ANVIL__list* list, COMP__parsling_abstra
     ANVIL__list__request__space(list, sizeof(COMP__parsling_abstraction), memory_error_occured);
 
     // append data
-    (*(COMP__parsling_abstraction*)ANVIL__calculate__list_current(list)) = data;
+    (*(COMP__parsling_abstraction*)ANVIL__calculate__list_current_address(list)) = data;
 
     // increase fill
     (*list).filled_index += sizeof(COMP__parsling_abstraction);
@@ -466,7 +466,7 @@ void COMP__append__parsling_program(ANVIL__list* list, COMP__parsling_program da
     ANVIL__list__request__space(list, sizeof(COMP__parsling_program), memory_error_occured);
 
     // append data
-    (*(COMP__parsling_program*)ANVIL__calculate__list_current(list)) = data;
+    (*(COMP__parsling_program*)ANVIL__calculate__list_current_address(list)) = data;
 
     // increase fill
     (*list).filled_index += sizeof(COMP__parsling_program);
@@ -945,7 +945,7 @@ void COMP__append__accountling_header(ANVIL__list* list, COMP__accountling_heade
     ANVIL__list__request__space(list, sizeof(COMP__accountling_header), memory_error_occured);
 
     // append data
-    (*(COMP__accountling_header*)ANVIL__calculate__list_current(list)) = data;
+    (*(COMP__accountling_header*)ANVIL__calculate__list_current_address(list)) = data;
 
     // increase fill
     (*list).filled_index += sizeof(COMP__accountling_header);
