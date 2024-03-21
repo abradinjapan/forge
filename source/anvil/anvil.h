@@ -151,7 +151,7 @@ void ANVIL__copy__buffer(ANVIL__buffer source, ANVIL__buffer destination, ANVIL_
     // check for invalid buffer
     if (ANVIL__calculate__are_buffers_same_size(source, destination) == ANVIL__bt__true) {
         // copy buffer
-        for (ANVIL__length byte_index = 0; byte_index < (ANVIL__length)(destination.end - destination.start); byte_index++) {
+        for (ANVIL__length byte_index = 0; byte_index < (ANVIL__length)(destination.end - destination.start) + 1; byte_index++) {
             // copy byte
             ((ANVIL__u8*)destination.start)[byte_index] = ((ANVIL__u8*)source.start)[byte_index];
         }
@@ -446,7 +446,7 @@ ANVIL__address ANVIL__calculate__list_current_address(ANVIL__list* list) {
 
 // calculate the current buffer
 ANVIL__buffer ANVIL__calculate__list_current_buffer(ANVIL__list* list) {
-    return ANVIL__create__buffer(((*list).buffer.start), ANVIL__calculate__list_current_address(list));
+    return ANVIL__create__buffer(((*list).buffer.start), ANVIL__calculate__list_current_address(list) - 1);
 }
 
 // add a buffer to a list
@@ -459,6 +459,29 @@ void ANVIL__list__append__buffer(ANVIL__list* list, ANVIL__buffer buffer, ANVIL_
 
     // increase fill
     (*list).filled_index += sizeof(ANVIL__buffer);
+
+    return;
+}
+
+// add a buffer's data to a list
+void ANVIL__list__append__buffer_data(ANVIL__list* list, ANVIL__buffer buffer, ANVIL__bt* memory_error_occured) {
+    ANVIL__length buffer_length;
+    ANVIL__address buffer_old_end;
+
+    // calculate buffer length
+    buffer_length = ANVIL__calculate__buffer_length(buffer);
+
+    // calculate old buffer end
+    buffer_old_end = (*list).buffer.start + (*list).filled_index - 1;
+
+    // request space
+    ANVIL__list__request__space(list, buffer_length, memory_error_occured);
+
+    // append data
+    ANVIL__copy__buffer(buffer, ANVIL__create__buffer(buffer_old_end + 1, buffer_old_end + buffer_length), memory_error_occured);
+
+    // increase fill
+    (*list).filled_index += buffer_length;
 
     return;
 }
@@ -501,6 +524,26 @@ void ANVIL__list__erase__space(ANVIL__list* list, ANVIL__list_filled_index range
     }
 
     return;
+}
+
+// take a list and make a standalone buffer
+ANVIL__buffer ANVIL__list__create_buffer_from_list(ANVIL__list* list, ANVIL__bt* memory_error_occured) {
+    ANVIL__buffer output;
+
+    // allocate output
+    output = ANVIL__open__buffer((*list).filled_index);
+
+    // if buffer did not open
+    if (ANVIL__check__empty_buffer(output) == ANVIL__bt__true) {
+        // set error
+        *memory_error_occured = ANVIL__bt__true;
+    // if buffer opened
+    } else {
+        // copy data from list to buffer
+        ANVIL__copy__buffer(ANVIL__calculate__list_current_buffer(list), output, memory_error_occured);
+    }
+
+    return output;
 }
 
 /* Machine Specifications */

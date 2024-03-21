@@ -106,7 +106,8 @@ typedef enum MAIN__cft {
 
 // test built in compiler
 void MAIN__test__built_in_compiler() {
-    ANVIL__bt compilation_error_occured;
+    COMP__error error = COMP__create_null__error();
+    ANVIL__buffer error_json;
     ANVIL__bt memory_error_occured;
     ANVIL__bt print_debug = ANVIL__bt__true;
     ANVIL__u8* programs[MAIN__cft__COUNT] = {
@@ -116,7 +117,7 @@ void MAIN__test__built_in_compiler() {
         // parsing tests
         (ANVIL__u8*)"main.hi_yo()() = {\n\thello()()\n}\n",
         (ANVIL__u8*)"test.start()() = {\n\thello()()\n}\n",
-        (ANVIL__u8*)"main(a f)(b g) = {\n\thi(a)(b h)\n\tthere(c i)(d)\n}\n\nthing(a)(b) = {\n\thi(a)(b)\n\tthere(c)(d)\n\t@offset\n}",
+        (ANVIL__u8*)"main(a f)(b g) = {\n\thi(a)(b h)\n\tthere(c i)fd(d)\n}\n\nthing(a)(b) = {\n\thi(a)(b)\n\tthere(c)(d)\n\t@offset\n}",
     };
 
     // first test
@@ -136,7 +137,18 @@ void MAIN__test__built_in_compiler() {
         }
 
         // compile
-        COMP__compile__files(user_codes, print_debug, &compilation_error_occured, &memory_error_occured);
+        COMP__compile__files(user_codes, print_debug, &error);
+
+        // check for error
+        if (COMP__check__error_occured(&error) == ANVIL__bt__true) {
+            // print error
+            error_json = COMP__serialize__error_json(error, &memory_error_occured);
+            ANVIL__print__buffer(error_json);
+
+            // clean up
+            COMP__close__error(error);
+            ANVIL__close__buffer(error_json);
+        }
 
         // close user codes buffer
         ANVIL__close__list(user_codes);
@@ -159,7 +171,18 @@ void MAIN__test__built_in_compiler() {
         }
 
         // compile
-        COMP__compile__files(user_codes, print_debug, &compilation_error_occured, &memory_error_occured);
+        COMP__compile__files(user_codes, print_debug, &error);
+
+        // check for error
+        if (COMP__check__error_occured(&error) == ANVIL__bt__true) {
+            // print error
+            error_json = COMP__serialize__error_json(error, &memory_error_occured);
+            ANVIL__print__buffer(error_json);
+
+            // clean up
+            COMP__close__error(error);
+            ANVIL__close__buffer(error_json);
+        }
 
         // close user codes buffer
         ANVIL__close__list(user_codes);
