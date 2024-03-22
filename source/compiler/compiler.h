@@ -10,7 +10,7 @@
 typedef ANVIL__buffer COMP__current;
 
 // error types
-typedef ANVIL__u64 COMP__file_number;
+typedef ANVIL__u64 COMP__file_index;
 typedef ANVIL__u64 COMP__line_number;
 typedef ANVIL__u64 COMP__character_index;
 
@@ -95,19 +95,19 @@ ANVIL__buffer COMP__translate__integer_value_to_string(ANVIL__u64 number) {
 typedef struct COMP__error {
     ANVIL__bt occured;
     ANVIL__buffer message;
-    COMP__file_number file_number;
+    COMP__file_index file_index;
     COMP__line_number line_number;
     COMP__character_index character_index;
 } COMP__error;
 
 // create custom error
-COMP__error COMP__create__error(ANVIL__bt occured, ANVIL__buffer message, COMP__file_number file_number, COMP__line_number line_number, COMP__character_index character_index) {
+COMP__error COMP__create__error(ANVIL__bt occured, ANVIL__buffer message, COMP__file_index file_index, COMP__line_number line_number, COMP__character_index character_index) {
     COMP__error output;
 
     // setup output
     output.occured = occured;
     output.message = message;
-    output.file_number = file_number;
+    output.file_index = file_index;
     output.line_number = line_number;
     output.character_index = character_index;
 
@@ -137,8 +137,8 @@ ANVIL__buffer COMP__serialize__error_json(COMP__error error, ANVIL__bt* error_oc
     // generate json
     ANVIL__list__append__buffer_data(&json, ANVIL__open__buffer_from_string((u8*)"{\n\t\"message\": \"", ANVIL__bt__false, ANVIL__bt__false), error_occured);
     ANVIL__list__append__buffer_data(&json, error.message, error_occured);
-    ANVIL__list__append__buffer_data(&json, ANVIL__open__buffer_from_string((u8*)"\",\n\t\"file_number\": \"", ANVIL__bt__false, ANVIL__bt__false), error_occured);
-    temp_buffer = COMP__translate__integer_value_to_string(error.file_number);
+    ANVIL__list__append__buffer_data(&json, ANVIL__open__buffer_from_string((u8*)"\",\n\t\"file_index\": \"", ANVIL__bt__false, ANVIL__bt__false), error_occured);
+    temp_buffer = COMP__translate__integer_value_to_string(error.file_index);
     ANVIL__list__append__buffer_data(&json, temp_buffer, error_occured);
     ANVIL__close__buffer(temp_buffer);
     ANVIL__list__append__buffer_data(&json, ANVIL__open__buffer_from_string((u8*)"\",\n\t\"line_number\": \"", ANVIL__bt__false, ANVIL__bt__false), error_occured);
@@ -307,7 +307,7 @@ COMP__character_index COMP__calculate__character_index(ANVIL__buffer main_buffer
 }
 
 // lex a program
-COMP__lexlings COMP__compile__lex(ANVIL__buffer user_code, COMP__file_number file_number, COMP__error* error) {
+COMP__lexlings COMP__compile__lex(ANVIL__buffer user_code, COMP__file_index file_index, COMP__error* error) {
     COMP__lexlings output;
     COMP__current current;
     COMP__line_number current_line_number;
@@ -329,7 +329,7 @@ COMP__lexlings COMP__compile__lex(ANVIL__buffer user_code, COMP__file_number fil
 
     // setup current & trackers
     current = user_code;
-    current_line_number = 0;
+    current_line_number = 1;
 
     // lex program
     while (current.start < user_code.end) {
@@ -402,7 +402,7 @@ COMP__lexlings COMP__compile__lex(ANVIL__buffer user_code, COMP__file_number fil
         // no lexling found
         } else {
             // open error
-            *error = COMP__create__error(ANVIL__bt__true, ANVIL__open__buffer_from_string((u8*)"Lexical Error: Invalid character.", ANVIL__bt__true, ANVIL__bt__false), file_number, current_line_number, COMP__calculate__character_index(user_code, current));
+            *error = COMP__create__error(ANVIL__bt__true, ANVIL__open__buffer_from_string((u8*)"Lexical Error: Invalid character.", ANVIL__bt__true, ANVIL__bt__false), file_index, current_line_number, COMP__calculate__character_index(user_code, current));
 
             // quit
             return output;
@@ -731,7 +731,7 @@ void COMP__advance__lexling_current(COMP__current* current, COMP__lexling_index 
 }
 
 // parse arguments
-ANVIL__list COMP__parse__arguments(COMP__current* current, COMP__file_number current_file_number, COMP__error* error) {
+ANVIL__list COMP__parse__arguments(COMP__current* current, COMP__file_index current_file_index, COMP__error* error) {
     ANVIL__list output;
     ANVIL__bt memory_error_occured = ANVIL__bt__false;
 
@@ -753,7 +753,7 @@ ANVIL__list COMP__parse__arguments(COMP__current* current, COMP__file_number cur
     // not found, error
     } else {
         // set error
-        *error = COMP__create__error(ANVIL__bt__true, ANVIL__open__buffer_from_string((u8*)"Parse Error: Arguments is missing opening parethesis.", ANVIL__bt__true, ANVIL__bt__false), current_file_number, COMP__read__lexling_from_current(*current).line_number, COMP__read__lexling_from_current(*current).character_index);
+        *error = COMP__create__error(ANVIL__bt__true, ANVIL__open__buffer_from_string((u8*)"Parse Error: Arguments is missing opening parethesis.", ANVIL__bt__true, ANVIL__bt__false), current_file_index, COMP__read__lexling_from_current(*current).line_number, COMP__read__lexling_from_current(*current).character_index);
 
         return output;
     }
@@ -783,7 +783,7 @@ ANVIL__list COMP__parse__arguments(COMP__current* current, COMP__file_number cur
     // not found, error
     } else {
         // set error
-        *error = COMP__create__error(ANVIL__bt__true, ANVIL__open__buffer_from_string((u8*)"Parse Error: Arguments is missing closing parethesis.", ANVIL__bt__true, ANVIL__bt__false), current_file_number, COMP__read__lexling_from_current(*current).line_number, COMP__read__lexling_from_current(*current).character_index);
+        *error = COMP__create__error(ANVIL__bt__true, ANVIL__open__buffer_from_string((u8*)"Parse Error: Arguments is missing closing parethesis.", ANVIL__bt__true, ANVIL__bt__false), current_file_index, COMP__read__lexling_from_current(*current).line_number, COMP__read__lexling_from_current(*current).character_index);
 
         return output;
     }
@@ -792,7 +792,7 @@ ANVIL__list COMP__parse__arguments(COMP__current* current, COMP__file_number cur
 }
 
 // parse a statement
-ANVIL__list COMP__parse__scope(COMP__current* current, COMP__file_number current_file_number, COMP__error* error) {
+ANVIL__list COMP__parse__scope(COMP__current* current, COMP__file_index current_file_index, COMP__error* error) {
     ANVIL__list output;
     COMP__parsling_statement temp;
     ANVIL__bt memory_error_occured = ANVIL__bt__false;
@@ -807,7 +807,7 @@ ANVIL__list COMP__parse__scope(COMP__current* current, COMP__file_number current
     // scope opener not found, error
     } else {
         // set error
-        *error = COMP__create__error(ANVIL__bt__true, ANVIL__open__buffer_from_string((u8*)"Parse Error: Scope is missing left curly bracket.", ANVIL__bt__true, ANVIL__bt__false), current_file_number, COMP__read__lexling_from_current(*current).line_number, COMP__read__lexling_from_current(*current).character_index);
+        *error = COMP__create__error(ANVIL__bt__true, ANVIL__open__buffer_from_string((u8*)"Parse Error: Scope is missing left curly bracket.", ANVIL__bt__true, ANVIL__bt__false), current_file_index, COMP__read__lexling_from_current(*current).line_number, COMP__read__lexling_from_current(*current).character_index);
         
         return output;
     }
@@ -832,7 +832,7 @@ ANVIL__list COMP__parse__scope(COMP__current* current, COMP__file_number current
             // invalid syntax
             } else {
                 // set error
-                *error = COMP__create__error(ANVIL__bt__true, ANVIL__open__buffer_from_string((u8*)"Parse Error: Offset statement name is an invalid lexling.", ANVIL__bt__true, ANVIL__bt__false), current_file_number, COMP__read__lexling_from_current(*current).line_number, COMP__read__lexling_from_current(*current).character_index);
+                *error = COMP__create__error(ANVIL__bt__true, ANVIL__open__buffer_from_string((u8*)"Parse Error: Offset statement name is an invalid lexling.", ANVIL__bt__true, ANVIL__bt__false), current_file_index, COMP__read__lexling_from_current(*current).line_number, COMP__read__lexling_from_current(*current).character_index);
 
                 return output;
             }
@@ -863,7 +863,7 @@ ANVIL__list COMP__parse__scope(COMP__current* current, COMP__file_number current
             COMP__advance__lexling_current(current, 1);
 
             // get inputs
-            temp.inputs = COMP__parse__arguments(current, current_file_number, error);
+            temp.inputs = COMP__parse__arguments(current, current_file_index, error);
 
             // check for error
             if (COMP__check__error_occured(error) == ANVIL__bt__true) {
@@ -871,7 +871,7 @@ ANVIL__list COMP__parse__scope(COMP__current* current, COMP__file_number current
             }
 
             // get outputs
-            temp.outputs = COMP__parse__arguments(current, current_file_number, error);
+            temp.outputs = COMP__parse__arguments(current, current_file_index, error);
 
             // append statement
             COMP__append__parsling_statement(&output, temp, &memory_error_occured);
@@ -891,7 +891,7 @@ ANVIL__list COMP__parse__scope(COMP__current* current, COMP__file_number current
         // error
         } else {
             // set error
-            *error = COMP__create__error(ANVIL__bt__true, ANVIL__open__buffer_from_string((u8*)"Parse Error: Unrecognized statement type.", ANVIL__bt__true, ANVIL__bt__false), current_file_number, COMP__read__lexling_from_current(*current).line_number, COMP__read__lexling_from_current(*current).character_index);
+            *error = COMP__create__error(ANVIL__bt__true, ANVIL__open__buffer_from_string((u8*)"Parse Error: Unrecognized statement type.", ANVIL__bt__true, ANVIL__bt__false), current_file_index, COMP__read__lexling_from_current(*current).line_number, COMP__read__lexling_from_current(*current).character_index);
 
             return output;
         }
@@ -904,7 +904,7 @@ ANVIL__list COMP__parse__scope(COMP__current* current, COMP__file_number current
     // scope opener not found, error
     } else {
         // setup error
-        *error = COMP__create__error(ANVIL__bt__true, ANVIL__open__buffer_from_string((u8*)"Parse Error: Scope is missing right curly bracket.", ANVIL__bt__true, ANVIL__bt__false), current_file_number, COMP__read__lexling_from_current(*current).line_number, COMP__read__lexling_from_current(*current).character_index);
+        *error = COMP__create__error(ANVIL__bt__true, ANVIL__open__buffer_from_string((u8*)"Parse Error: Scope is missing right curly bracket.", ANVIL__bt__true, ANVIL__bt__false), current_file_index, COMP__read__lexling_from_current(*current).line_number, COMP__read__lexling_from_current(*current).character_index);
         
         return output;
     }
@@ -913,7 +913,7 @@ ANVIL__list COMP__parse__scope(COMP__current* current, COMP__file_number current
 }
 
 // parse an abstraction
-COMP__parsling_abstraction COMP__parse__abstraction(COMP__current* current, COMP__file_number current_file_number, COMP__error* error) {
+COMP__parsling_abstraction COMP__parse__abstraction(COMP__current* current, COMP__file_index current_file_index, COMP__error* error) {
     COMP__parsling_abstraction output = COMP__create_null__parsling_abstraction();
 
     // check for name
@@ -926,14 +926,14 @@ COMP__parsling_abstraction COMP__parse__abstraction(COMP__current* current, COMP
     // error
     } else {
         // set error
-        *error = COMP__create__error(ANVIL__bt__true, ANVIL__open__buffer_from_string((u8*)"Parse Error: An abstraction definition has a name missing.", ANVIL__bt__true, ANVIL__bt__false), current_file_number, COMP__read__lexling_from_current(*current).line_number, COMP__read__lexling_from_current(*current).character_index);
+        *error = COMP__create__error(ANVIL__bt__true, ANVIL__open__buffer_from_string((u8*)"Parse Error: An abstraction definition has a name missing.", ANVIL__bt__true, ANVIL__bt__false), current_file_index, COMP__read__lexling_from_current(*current).line_number, COMP__read__lexling_from_current(*current).character_index);
 
         // return blank
         return output;
     }
 
     // get inputs
-    output.inputs = COMP__parse__arguments(current, current_file_number, error);
+    output.inputs = COMP__parse__arguments(current, current_file_index, error);
 
     // check for error
     if (COMP__check__error_occured(error) == ANVIL__bt__true) {
@@ -942,7 +942,7 @@ COMP__parsling_abstraction COMP__parse__abstraction(COMP__current* current, COMP
     }
 
     // get outputs
-    output.outputs = COMP__parse__arguments(current, current_file_number, error);
+    output.outputs = COMP__parse__arguments(current, current_file_index, error);
 
     // check for error
     if (COMP__check__error_occured(error) == ANVIL__bt__true) {
@@ -957,20 +957,20 @@ COMP__parsling_abstraction COMP__parse__abstraction(COMP__current* current, COMP
     // error
     } else {
         // set error
-        *error = COMP__create__error(ANVIL__bt__true, ANVIL__open__buffer_from_string((u8*)"Parse Error: An abstraction definition has an equals sign missing.", ANVIL__bt__true, ANVIL__bt__false), current_file_number, COMP__read__lexling_from_current(*current).line_number, COMP__read__lexling_from_current(*current).character_index);
+        *error = COMP__create__error(ANVIL__bt__true, ANVIL__open__buffer_from_string((u8*)"Parse Error: An abstraction definition has an equals sign missing.", ANVIL__bt__true, ANVIL__bt__false), current_file_index, COMP__read__lexling_from_current(*current).line_number, COMP__read__lexling_from_current(*current).character_index);
 
         // quit
         return output;
     }
 
     // parse statements
-    output.statements = COMP__parse__scope(current, current_file_number, error);
+    output.statements = COMP__parse__scope(current, current_file_index, error);
 
     return output;
 }
 
 // parse a file (program)
-COMP__parsling_program COMP__parse__program(COMP__lexlings lexlings, COMP__file_number current_file_number, COMP__error* error) {
+COMP__parsling_program COMP__parse__program(COMP__lexlings lexlings, COMP__file_index current_file_index, COMP__error* error) {
     COMP__parsling_program output;
     COMP__parsling_abstraction temp;
     COMP__current current;
@@ -996,7 +996,7 @@ COMP__parsling_program COMP__parse__program(COMP__lexlings lexlings, COMP__file_
     // parse abstractions
     while (COMP__check__current_within_range(current)) {
         // parse abstraction
-        temp = COMP__parse__abstraction(&current, current_file_number, error);
+        temp = COMP__parse__abstraction(&current, current_file_index, error);
 
         // append abstraction
         COMP__append__parsling_abstraction(&(output.abstractions), temp, &memory_error_occured);
@@ -1200,10 +1200,10 @@ ANVIL__bt COMP__check__accounting_header_already_exists(COMP__accountling_header
 }
 
 // get the header table
-COMP__accountling_header_table COMP__account__header_table(ANVIL__list* parsling_programs, COMP__error* error) {
+COMP__accountling_header_table COMP__account__get_header_table(ANVIL__list* parsling_programs, COMP__error* error) {
     COMP__accountling_header_table output;
     COMP__current current_file;
-    COMP__file_number current_file_number = 0;
+    COMP__file_index current_file_index = 0;
     ANVIL__bt memory_error_occured = ANVIL__bt__false;
 
     // setup output
@@ -1228,7 +1228,7 @@ COMP__accountling_header_table COMP__account__header_table(ANVIL__list* parsling
             // check if header already exists
             if (COMP__check__accounting_header_already_exists(&output, header)) {
                 // error, duplicate abstraction
-                *error = COMP__create__error(ANVIL__bt__true, ANVIL__open__buffer_from_string((u8*)"Accounting Error. Header already exists.", ANVIL__bt__true, ANVIL__bt__false), current_file_number, header.name.lexling.line_number, header.name.lexling.character_index);
+                *error = COMP__create__error(ANVIL__bt__true, ANVIL__open__buffer_from_string((u8*)"Accounting Error. Header already exists.", ANVIL__bt__true, ANVIL__bt__false), current_file_index, header.name.lexling.line_number, header.name.lexling.character_index);
 
                 // quit
                 return output;
@@ -1243,7 +1243,7 @@ COMP__accountling_header_table COMP__account__header_table(ANVIL__list* parsling
 
         // next file
         current_file.start += sizeof(COMP__parsling_program);
-        current_file_number++;
+        current_file_index++;
     }
 
     // unfinished
@@ -1357,7 +1357,7 @@ COMP__accountling_skeleton COMP__account__parsling_programs(ANVIL__list* parslin
     output = COMP__create_null__accountling_skeleton();
 
     // get header table
-    output.header_table = COMP__account__header_table(parsling_buffers, error);
+    output.header_table = COMP__account__get_header_table(parsling_buffers, error);
 
     // DEBUG
     COMP__print__accountling_header_table(output.header_table);
@@ -1415,6 +1415,9 @@ void COMP__close__compilation_unit(COMP__compilation_unit unit) {
         ANVIL__close__list(unit.parsling_buffers);
     }
 
+    // close accountlings
+    // TODO
+
     return;
 }
 
@@ -1422,7 +1425,7 @@ void COMP__close__compilation_unit(COMP__compilation_unit unit) {
 void COMP__compile__files(ANVIL__list user_codes, ANVIL__bt print_debug, COMP__error* error) {
     COMP__compilation_unit compilation_unit;
     COMP__current current;
-    COMP__file_number current_file_number = 0;
+    COMP__file_index current_file_index = 0;
     ANVIL__bt memory_error_occured = ANVIL__bt__false;
 
     // setup blank error
@@ -1485,7 +1488,7 @@ void COMP__compile__files(ANVIL__list user_codes, ANVIL__bt print_debug, COMP__e
         }
 
         // lex file
-        COMP__lexlings lexlings = COMP__compile__lex(user_code, current_file_number, error);
+        COMP__lexlings lexlings = COMP__compile__lex(user_code, current_file_index, error);
 
         // append lexlings
         COMP__append__lexlings(&compilation_unit.lexling_buffers, lexlings, &memory_error_occured);
@@ -1507,7 +1510,7 @@ void COMP__compile__files(ANVIL__list user_codes, ANVIL__bt print_debug, COMP__e
         }
 
         // parse file
-        COMP__parsling_program parslings = COMP__parse__program(lexlings, current_file_number, error);
+        COMP__parsling_program parslings = COMP__parse__program(lexlings, current_file_index, error);
 
         // append program
         COMP__append__parsling_program(&compilation_unit.parsling_buffers, parslings, &memory_error_occured);
@@ -1530,7 +1533,7 @@ void COMP__compile__files(ANVIL__list user_codes, ANVIL__bt print_debug, COMP__e
 
         // advance current
         current.start += sizeof(ANVIL__buffer);
-        current_file_number++;
+        current_file_index++;
     }
 
     // account

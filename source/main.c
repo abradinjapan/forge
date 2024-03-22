@@ -103,6 +103,7 @@ typedef enum MAIN__cft {
     // accounting tests
     MAIN__cft__accounting_test__1,
     MAIN__cft__accounting_test__2,
+    MAIN__cft__accounting_test__3,
 
     // COUNT
     MAIN__cft__COUNT,
@@ -126,6 +127,7 @@ void MAIN__test__built_in_compiler() {
         // accounting tests
         (ANVIL__u8*)"main()() = {\n\ttest()()\n}\ntest()() = {\n\n}",
         (ANVIL__u8*)"foo(a)(b) = {\n\tbar(a)(b b)\n}\nbar(a)(b c) = {\n\n}",
+        (ANVIL__u8*)"boo(a)(b) = {\n\tbar(a)(b b)\n}\nbar(a)(b c) = {\n\n}",
     };
 
     // first test
@@ -207,6 +209,7 @@ void MAIN__test__built_in_compiler() {
         // append files
         ANVIL__list__append__buffer(&user_codes, ANVIL__open__buffer_from_string(programs[MAIN__cft__accounting_test__1], ANVIL__bt__false, ANVIL__bt__true), &memory_error_occured);
         ANVIL__list__append__buffer(&user_codes, ANVIL__open__buffer_from_string(programs[MAIN__cft__accounting_test__2], ANVIL__bt__false, ANVIL__bt__true), &memory_error_occured);
+        ANVIL__list__append__buffer(&user_codes, ANVIL__open__buffer_from_string(programs[MAIN__cft__accounting_test__3], ANVIL__bt__false, ANVIL__bt__true), &memory_error_occured);
 
         // print memory error
         if (memory_error_occured) {
