@@ -100,6 +100,10 @@ typedef enum MAIN__cft {
     MAIN__cft__parsing_test__2,
     MAIN__cft__parsing_test__3,
 
+    // accounting tests
+    MAIN__cft__accounting_test__1,
+    MAIN__cft__accounting_test__2,
+
     // COUNT
     MAIN__cft__COUNT,
 } MAIN__cft;
@@ -117,7 +121,11 @@ void MAIN__test__built_in_compiler() {
         // parsing tests
         (ANVIL__u8*)"main.hi_yo()() = {\n\thello()()\n}\n",
         (ANVIL__u8*)"test.start()() = {\n\thello()()\n}\n",
-        (ANVIL__u8*)"main(a f)(b g) = {\n\thi(a)(b h)\n\tthere(c i)fd(d)\n}\n\nthing(a)(b) = {\n\thi(a)(b)\n\tthere(c)(d)\n\t@offset\n}",
+        (ANVIL__u8*)"main(a f)(b g) = {\n\thi(a)(b h)\n\tthere(c i)(d)\n}\n\nthing(a)(b) = {\n\thi(a)(b)\n\tthere(c)(d)\n\t@offset\n}",
+
+        // accounting tests
+        (ANVIL__u8*)"main()() = {\n\ttest()()\n}\ntest()() = {\n\n}",
+        (ANVIL__u8*)"foo(a)(b) = {\n\tbar(a)(b b)\n}\nbar(a)(b c) = {\n\n}",
     };
 
     // first test
@@ -164,6 +172,41 @@ void MAIN__test__built_in_compiler() {
 
         // append files
         ANVIL__list__append__buffer(&user_codes, ANVIL__open__buffer_from_string(programs[MAIN__cft__parsing_test__3], ANVIL__bt__false, ANVIL__bt__true), &memory_error_occured);
+
+        // print memory error
+        if (memory_error_occured) {
+            printf("Test Error: User code buffer could not be appended.\n");
+        }
+
+        // compile
+        COMP__compile__files(user_codes, print_debug, &error);
+
+        // check for error
+        if (COMP__check__error_occured(&error) == ANVIL__bt__true) {
+            // print error
+            error_json = COMP__serialize__error_json(error, &memory_error_occured);
+            ANVIL__print__buffer(error_json);
+
+            // clean up
+            COMP__close__error(error);
+            ANVIL__close__buffer(error_json);
+        }
+
+        // close user codes buffer
+        ANVIL__close__list(user_codes);
+    }
+
+    // third test
+    {
+        // setup variables
+        ANVIL__list user_codes;
+
+        // setup list
+        user_codes = ANVIL__open__list(sizeof(ANVIL__buffer) * 4, &memory_error_occured);
+
+        // append files
+        ANVIL__list__append__buffer(&user_codes, ANVIL__open__buffer_from_string(programs[MAIN__cft__accounting_test__1], ANVIL__bt__false, ANVIL__bt__true), &memory_error_occured);
+        ANVIL__list__append__buffer(&user_codes, ANVIL__open__buffer_from_string(programs[MAIN__cft__accounting_test__2], ANVIL__bt__false, ANVIL__bt__true), &memory_error_occured);
 
         // print memory error
         if (memory_error_occured) {

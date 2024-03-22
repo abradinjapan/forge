@@ -25,6 +25,9 @@ typedef ANVIL__u64 COMP__lexling_index;
 // accounting types
 typedef ANVIL__u64 COMP__header_input_count;
 typedef ANVIL__u64 COMP__header_output_count;
+typedef ANVIL__u64 COMP__variable_index;
+typedef ANVIL__u64 COMP__call_index;
+typedef ANVIL__u64 COMP__offset_index;
 
 // program stage type
 typedef enum COMP__pst {
@@ -181,6 +184,36 @@ ANVIL__bt COMP__check__current_within_range(ANVIL__buffer current) {
 COMP__current COMP__calculate__current_from_list_filled_index(ANVIL__list* list) {
     // return calculation
     return ANVIL__create__buffer((*list).buffer.start, (*list).buffer.start + (*list).filled_index - 1);
+}
+
+/* Names */
+// check if two names are exactly the same
+ANVIL__bt COMP__check__name_data_is_identical(COMP__name a, COMP__name b) {
+    // check if names are same length
+    if (ANVIL__calculate__buffer_length(a) != ANVIL__calculate__buffer_length(b)) {
+        // not same length so not identical
+        return ANVIL__bt__false;
+    }
+
+    // get pointers
+    ANVIL__address a_current = a.start;
+    ANVIL__address b_current = b.start;
+
+    // check each character
+    while (a_current <= a.end) {
+        // check character
+        if (*(ANVIL__character*)a_current != *(ANVIL__character*)b_current) {
+            // character not identical, string not identical
+            return ANVIL__bt__false;
+        }
+
+        // next characters
+        a_current += sizeof(ANVIL__character);
+        b_current += sizeof(ANVIL__character);
+    }
+
+    // no issues found, buffers are identical
+    return ANVIL__bt__true;
 }
 
 /* Lexer */
@@ -1035,27 +1068,35 @@ void COMP__print__parsed_program(COMP__parsling_program program) {
 }
 
 /* Account */
-/*// one defined abstraction
+// one defined abstraction
 typedef struct COMP__accountling_header {
     COMP__name name;
     COMP__header_input_count input_count;
     COMP__header_output_count output_count;
 } COMP__accountling_header;
 
+// create a custom accountling header
+COMP__accountling_header COMP__create__accountling_header(COMP__name name, COMP__header_input_count input_count, COMP__header_output_count output_count) {
+    COMP__accountling_header output;
+
+    // setup output
+    output.name = name;
+    output.input_count = input_count;
+    output.output_count = output_count;
+
+    return output;
+}
+
+// create a null header
+COMP__accountling_header COMP__create_null__accountling_header() {
+    // return empty
+    return COMP__create__accountling_header(ANVIL__create_null__buffer(), 0, 0);
+}
+
 // header table
 typedef struct COMP__accountling_header_table {
     ANVIL__list headers;
 } COMP__accountling_header_table;
-
-// open header table
-COMP__accountling_header_table COMP__open__accountling_header_table(ANVIL__bt* memory_error_occured) {
-    COMP__accountling_header_table output;
-
-    // open headers
-    output.headers = ANVIL__open__list(sizeof(COMP__accountling_header) * 32, memory_error_occured);
-
-    return output;
-}
 
 // append accountling header
 void COMP__append__accountling_header(ANVIL__list* list, COMP__accountling_header data, ANVIL__bt* memory_error_occured) {
@@ -1071,51 +1112,207 @@ void COMP__append__accountling_header(ANVIL__list* list, COMP__accountling_heade
     return;
 }
 
+// check if headers are equal
+ANVIL__bt COMP__check__accountling_headers_are_equal(COMP__accountling_header a, COMP__accountling_header b) {
+    return (ANVIL__bt)(COMP__check__name_data_is_identical(a.name, b.name) && (a.input_count == b.input_count) && (a.output_count == b.output_count));
+}
+
+// check if a header already exists
+ANVIL__bt COMP__check__accounting_header_already_exists(COMP__accountling_header_table* header_table, COMP__accountling_header header) {
+    COMP__current current;
+
+    // setup current
+    current = COMP__calculate__current_from_list_filled_index(&((*header_table).headers));
+
+    // go over each header
+    while (COMP__check__current_within_range(current)) {
+        // get header
+        COMP__accountling_header temp_header = *(COMP__accountling_header*)current.start;
+
+        // check header
+        if (COMP__check__accountling_headers_are_equal(temp_header, header)) {
+            // header exists
+            return ANVIL__bt__true;
+        }
+
+        // next header
+        current.start += sizeof(COMP__accountling_header);
+    }
+
+    // not found
+    return ANVIL__bt__false;
+}
+
 // get the header table
-COMP__accountling_header_table COMP__account__header_table(COMP__parsling_program parslings, ANVIL__bt* memory_error_occured) {
+COMP__accountling_header_table COMP__account__header_table(ANVIL__list parsling_programs, COMP__error* error) {
     COMP__accountling_header_table output;
+    COMP__current current_file;
+    COMP__file_number current_file_number = 0;
+    ANVIL__bt memory_error_occured = ANVIL__bt__false;
 
     // setup output
-    output = COMP__open__accountling_header_table(memory_error_occured);
+    output.headers = ANVIL__open__list(sizeof(COMP__accountling_header) * 32, &memory_error_occured);
 
-    // get all headers
-    {
+    // setup current
+    current_file = COMP__calculate__current_from_list_filled_index(&parsling_programs);
+
+    // get all headers from all programs
+    while (COMP__check__current_within_range(current_file)) {
         // setup current abstraction
-        COMP__current current = COMP__calculate__current_from_list_filled_index(&parslings.abstractions);
+        COMP__current current_abstraction = COMP__calculate__current_from_list_filled_index(&((*(COMP__parsling_program*)current_file.start).abstractions));
 
-        // get current abstraction
-        COMP__parsling_abstraction abstraction = *(COMP__parsling_abstraction*)current.start;
+        // get all headers from one file
+        while (COMP__check__current_within_range(current_abstraction)) {
+            // get current abstraction
+            COMP__parsling_abstraction abstraction = *(COMP__parsling_abstraction*)current_abstraction.start;
 
-        // get header
-        COMP__accountling_header header;
-        header.name = abstraction.name;
-        header.input_count = abstraction.inputs.filled_index / sizeof(COMP__name);
-        header.output_count = abstraction.outputs.filled_index / sizeof(COMP__name);
+            // get found header
+            COMP__accountling_header header = COMP__create__accountling_header(abstraction.name, abstraction.inputs.filled_index / sizeof(COMP__name), abstraction.outputs.filled_index / sizeof(COMP__name));
 
-        // append header
-        COMP__append__accountling_header(&output.headers, header, memory_error_occured);
+            // check if header already exists
+            if (COMP__check__accounting_header_already_exists(&output, header)) {
+                // error, duplicate abstraction
+                *error = COMP__create__error(ANVIL__bt__true, ANVIL__open__buffer_from_string((u8*)"Accounting Error. Header already exists.", ANVIL__bt__true, ANVIL__bt__false), current_file_number, 0, 0);
 
-        // check memory error
-        if (*memory_error_occured) {
-            return output;
+                // quit
+                return output;
+            }
+
+            // append header
+            COMP__append__accountling_header(&output.headers, header, &memory_error_occured);
+
+            // next abstraction
+            current_abstraction.start += sizeof(COMP__parsling_abstraction);
         }
+
+        // next file
+        current_file.start += sizeof(COMP__parsling_program);
+        current_file_number++;
     }
 
     // unfinished
     return output;
-}*/
+}
+
+// print the header table
+void COMP__print__accountling_header_table(COMP__accountling_header_table header_table) {
+    COMP__current current = COMP__calculate__current_from_list_filled_index(&(header_table.headers));
+
+    // print initial message
+    printf("Header Table:\n");
+
+    // print each header
+    while (COMP__check__current_within_range(current)) {
+        // get header
+        COMP__accountling_header header = *(COMP__accountling_header*)current.start;
+
+        // print header
+        printf("\t");
+        ANVIL__print__buffer(header.name);
+        printf("(%lu)(%lu)\n", header.input_count, header.output_count);
+
+        // advance current
+        current.start += sizeof(COMP__accountling_header);
+    }
+
+    return;
+}
+
+// accountling variable type
+typedef enum COMP__avt {
+    COMP__avt__invalid,
+    COMP__avt__input,
+    COMP__avt__output,
+    COMP__avt__body,
+
+    // COUNT
+    COMP__avt__COUNT,
+} COMP__avt;
+
+// accountling variable
+typedef struct COMP__accountling_variable {
+    COMP__avt type;
+    COMP__variable_index variable_index;
+} COMP__accountling_variable;
+
+// accountling statement type
+typedef enum COMP__ast {
+    COMP__ast__invalid,
+    COMP__ast__call,
+    COMP__ast__offset,
+
+    // COUNT
+    COMP__ast__COUNT,
+} COMP__ast;
+
+// accountling statement frame
+typedef struct COMP__accountling_statement {
+    COMP__ast type;
+    COMP__call_index call_index;
+    COMP__offset_index offset_index;
+} COMP__accountling_statement;
+
+// accountling abstraction type
+typedef enum COMP__aat {
+    COMP__aat__invalid,
+    COMP__aat__predefined,
+    COMP__aat__abstraction_call,
+
+    // COUNT
+    COMP__aat__COUNT,
+} COMP__aat;
+
+// accountling abstraction
+typedef struct COMP__accountling_abstraction {
+    COMP__aat type;
+    ANVIL__list variables;
+    ANVIL__list statement_map;
+    ANVIL__list calls;
+    ANVIL__list offsets;
+} COMP__accountling_abstraction;
+
+// accountling skeleton
+typedef struct COMP__accountling_skeleton {
+    COMP__accountling_header_table header_table;
+    ANVIL__list abstractions;
+} COMP__accountling_skeleton;
+
+// account parslings
+COMP__accountling_skeleton COMP__account__parsling_programs(ANVIL__list* parsling_buffers) {
+
+}
 
 /* Compile */
 // one compiled object across multiple stages
 typedef struct COMP__compilation_unit {
     ANVIL__list user_codes;
+    ANVIL__list lexling_buffers;
     ANVIL__list parsling_buffers;
+    COMP__accountling_skeleton accountling_skeleton;
 } COMP__compilation_unit;
 
 // close a compilation unit
 void COMP__close__compilation_unit(COMP__compilation_unit unit) {
     // close user codes (Assumes that user codes are allocated elsewhere!)
     ANVIL__close__list(unit.user_codes);
+
+    // close lexling buffers
+    {
+        // setup current
+        COMP__current current = COMP__calculate__current_from_list_filled_index(&unit.lexling_buffers);
+
+        // close each buffer
+        while (COMP__check__current_within_range(current)) {
+            // close parsling buffer
+            COMP__close__lexlings(*(COMP__lexlings*)current.start);
+
+            // next program
+            current.start += sizeof(COMP__lexlings);
+        }
+
+        // close parslings buffer
+        ANVIL__close__list(unit.lexling_buffers);
+    }
 
     // close parsling buffers
     {
@@ -1138,57 +1335,6 @@ void COMP__close__compilation_unit(COMP__compilation_unit unit) {
     return;
 }
 
-// lex and parse one file
-COMP__parsling_program COMP__dissect__file(ANVIL__buffer user_code, COMP__file_number file_number, ANVIL__bt print_debug, COMP__error* error) {
-    COMP__parsling_program output;
-    COMP__lexlings lexlings;
-
-    // inform user of compilation start
-    if (print_debug) {
-        printf("Compiling:\n");
-        ANVIL__print__buffer(user_code);
-        printf("\n");
-    }
-
-    // lex user code
-    lexlings = COMP__compile__lex(user_code, file_number, error);
-
-    // check for error
-    if (COMP__check__error_occured(error)) {
-        // clean up
-        COMP__close__lexlings(lexlings);
-
-        return COMP__create_null__parsling_program();
-    }
-
-    // print lexlings
-    if (print_debug) {
-        COMP__debug__print_lexlings(lexlings);
-    }
-
-    // parse lexlings
-    output = COMP__parse__program(lexlings, file_number, error);
-
-    // check for error
-    if (COMP__check__error_occured(error)) {
-        // clean up
-        COMP__close__lexlings(lexlings);
-        COMP__close__parsling_program(output);
-        
-        return COMP__create_null__parsling_program();
-    }
-
-    // print parslings
-    if (print_debug) {
-        COMP__print__parsed_program(output);
-    }
-
-    // clean up
-    COMP__close__lexlings(lexlings);
-
-    return output;
-}
-
 // compile a program
 void COMP__compile__files(ANVIL__list user_codes, ANVIL__bt print_debug, COMP__error* error) {
     COMP__compilation_unit compilation_unit;
@@ -1199,10 +1345,8 @@ void COMP__compile__files(ANVIL__list user_codes, ANVIL__bt print_debug, COMP__e
     // setup blank error
     *error = COMP__create_null__error();
 
-    // setup compilation unit
+    // setup compilation unit user codes
     compilation_unit.user_codes = ANVIL__open__list(sizeof(ANVIL__buffer) * 5, &memory_error_occured);
-
-    // check for error
     if (memory_error_occured == ANVIL__bt__true) {
         // set error
         *error = COMP__create__internal_memory_error();
@@ -1210,10 +1354,17 @@ void COMP__compile__files(ANVIL__list user_codes, ANVIL__bt print_debug, COMP__e
         goto quit;
     }
 
-    // setup compilation unit
-    compilation_unit.parsling_buffers = ANVIL__open__list(sizeof(COMP__parsling_program) * 5, &memory_error_occured);
+    // setup compilation unit lexling buffers
+    compilation_unit.lexling_buffers = ANVIL__open__list(sizeof(COMP__lexlings) * 5, &memory_error_occured);
+    if (memory_error_occured == ANVIL__bt__true) {
+        // set error
+        *error = COMP__create__internal_memory_error();
 
-    // check for error
+        goto quit;
+    }
+
+    // setup compilation unit parsling buffers
+    compilation_unit.parsling_buffers = ANVIL__open__list(sizeof(COMP__parsling_program) * 5, &memory_error_occured);
     if (memory_error_occured == ANVIL__bt__true) {
         // set error
         *error = COMP__create__internal_memory_error();
@@ -1224,10 +1375,20 @@ void COMP__compile__files(ANVIL__list user_codes, ANVIL__bt print_debug, COMP__e
     // setup current
     current = COMP__calculate__current_from_list_filled_index(&user_codes);
 
+    // print compilation message
+    printf("Compiling Files.\n");
+
     // lex and parse each file
     while (COMP__check__current_within_range(current)) {
         // get file
         ANVIL__buffer user_code = *(ANVIL__buffer*)current.start;
+
+        // inform user of compilation start
+        if (print_debug) {
+            printf("Compiling User Code:\n");
+            ANVIL__print__buffer(user_code);
+            printf("\n");
+        }
 
         // append file
         ANVIL__list__append__buffer(&compilation_unit.user_codes, user_code, &memory_error_occured);
@@ -1240,30 +1401,47 @@ void COMP__compile__files(ANVIL__list user_codes, ANVIL__bt print_debug, COMP__e
             goto quit;
         }
 
-        // lex and parse file
-        COMP__parsling_program program = COMP__dissect__file(user_code, current_file_number, print_debug, error);
+        // lex file
+        COMP__lexlings lexlings = COMP__compile__lex(user_code, current_file_number, error);
 
-        // check for compilation error
+        // append lexlings
+        COMP__append__lexlings(&compilation_unit.lexling_buffers, lexlings, &memory_error_occured);
+
+        // print lexlings
+        if (print_debug) {
+            COMP__debug__print_lexlings(lexlings);
+        }
+
+        // check for errors
+        if (memory_error_occured == ANVIL__bt__true) {
+            // set error
+            *error = COMP__create__internal_memory_error();
+
+            goto quit;
+        }
         if (COMP__check__error_occured(error)) {
             goto quit;
         }
 
-        // check for memory error
+        // parse file
+        COMP__parsling_program parslings = COMP__parse__program(lexlings, current_file_number, error);
+
+        // append program
+        COMP__append__parsling_program(&compilation_unit.parsling_buffers, parslings, &memory_error_occured);
+
+        // print parslings
+        if (print_debug) {
+            COMP__print__parsed_program(parslings);
+        }
+
+        // check for errors
         if (memory_error_occured == ANVIL__bt__true) {
             // set error
             *error = COMP__create__internal_memory_error();
 
             goto quit;
         }
-
-        // append program
-        COMP__append__parsling_program(&compilation_unit.parsling_buffers, program, &memory_error_occured);
-
-        // check for memory error
-        if (memory_error_occured == ANVIL__bt__true) {
-            // set error
-            *error = COMP__create__internal_memory_error();
-
+        if (COMP__check__error_occured(error)) {
             goto quit;
         }
 
@@ -1271,6 +1449,12 @@ void COMP__compile__files(ANVIL__list user_codes, ANVIL__bt print_debug, COMP__e
         current.start += sizeof(ANVIL__buffer);
         current_file_number++;
     }
+
+    // account everything
+    COMP__accountling_header_table table = COMP__account__header_table(compilation_unit.parsling_buffers, error);
+
+    // DEBUG
+    COMP__print__accountling_header_table(table);
 
     // quit label
     quit:
