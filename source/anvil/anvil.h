@@ -27,6 +27,7 @@ typedef ANVIL__s32 s32;
 typedef ANVIL__s64 s64;
 
 typedef void* ANVIL__address;
+#define ANVIL__define__null_address 0
 
 typedef ANVIL__u64 ANVIL__length;
 
@@ -98,7 +99,7 @@ ANVIL__buffer ANVIL__create__buffer(ANVIL__address start, ANVIL__address end) {
 // create buffer in it's standard null setup
 ANVIL__buffer ANVIL__create_null__buffer() {
 	// return standard null buffer
-	return ANVIL__create__buffer(0, 0);
+	return ANVIL__create__buffer(ANVIL__define__null_address, ANVIL__define__null_address);
 }
 
 // calculate buffer length
@@ -120,7 +121,7 @@ ANVIL__bt ANVIL__calculate__buffer_range_in_buffer_range_inclusive(ANVIL__buffer
 // check to see if it is an empty buffer
 ANVIL__bt ANVIL__check__empty_buffer(ANVIL__buffer buffer) {
     // return calculation
-    return (ANVIL__bt)(buffer.start == 0);
+    return (ANVIL__bt)(buffer.start == ANVIL__define__null_address);
 }
 
 // open buffer
@@ -131,10 +132,10 @@ ANVIL__buffer ANVIL__open__buffer(ANVIL__length length) {
 	output.start = ANVIL__open__allocation(length);
 
 	// set end of buffer according to allocation success
-	if (output.start != 0) {
+	if (output.start != ANVIL__define__null_address) {
 		output.end = (ANVIL__address)((((ANVIL__u64)output.start) + length) - 1);
 	} else {
-		output.end = 0;
+		output.end = ANVIL__define__null_address;
 	}
 
 	return output;
@@ -187,7 +188,7 @@ ANVIL__buffer ANVIL__open__buffer_from_string(u8* string, ANVIL__bt duplicate, A
         output = ANVIL__open__buffer(length);
 
         // check for null allocation
-        if (output.start == 0) {
+        if (output.start == ANVIL__define__null_address) {
             // return empty buffer
             return output;
         }
@@ -258,7 +259,7 @@ ANVIL__buffer ANVIL__move__file_to_buffer(ANVIL__buffer null_terminated_file_nam
 	output = ANVIL__open__buffer(file_size);
 
 	// check if buffer allocated
-	if (output.start == 0) {
+	if (output.start == ANVIL__define__null_address) {
 		// close file handle
 		fclose(file_handle);
 
@@ -354,7 +355,7 @@ ANVIL__list ANVIL__open__list(ANVIL__list_increase increase, ANVIL__bt* error_oc
     allocation = ANVIL__open__buffer(increase);
 
     // check list validity
-    if (allocation.start == 0) {
+    if (allocation.start == ANVIL__define__null_address) {
         // set error
         *error_occured = ANVIL__bt__true;
 
@@ -394,7 +395,7 @@ void ANVIL__list__expand(ANVIL__list* list, ANVIL__bt* error_occured) {
     new_allocation = ANVIL__open__buffer(new_size);
 
     // check for failure
-    if (new_allocation.start == 0) {
+    if (new_allocation.start == ANVIL__define__null_address) {
         // set error
         *error_occured = ANVIL__bt__true;
 
@@ -1456,7 +1457,7 @@ ANVIL__nit ANVIL__run__instruction(ANVIL__allocations* allocations, ANVIL__conte
         file_to_buffer__file_data = ANVIL__move__file_to_buffer(file_to_buffer__file_name);
 
         // check for errors
-        if (file_to_buffer__file_data.start == 0) {
+        if (file_to_buffer__file_data.start == ANVIL__define__null_address) {
             // set error
             ANVIL__set__error_code_cell(context, ANVIL__et__file_not_found);
         // append buffer as valid allocation
