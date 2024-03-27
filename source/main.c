@@ -47,7 +47,7 @@ void MAIN__print__context(ANVIL__context* context) {
     return;
 }
 
-// test code
+/*// test code
 void MAIN__test__scratch() {
     ANVIL__context context;
     ANVIL__buffer program;
@@ -235,7 +235,7 @@ void MAIN__test__built_in_compiler() {
     }
 
     return;
-}
+}*/
 
 // test code generator
 void MAIN__test__code_generator() {
@@ -282,14 +282,78 @@ void MAIN__test__code_generator() {
 }
 
 // entry point
-int main() {
-    // notify testing start
-    printf("Starting Testing.\n");
+int main(int argc, char** argv) {
+    ANVIL__bt memory_error_occured = ANVIL__bt__false;
+    ANVIL__list files;
+    ANVIL__bt debug_mode = ANVIL__bt__false;
+    ANVIL__u64 current_argument = 1;
+    COMP__error error;
 
-    // perform tests
-    MAIN__test__scratch();
-    MAIN__test__built_in_compiler();
-    MAIN__test__code_generator();
+    // open files list
+    files = ANVIL__open__list(sizeof(ANVIL__buffer) * 32, &memory_error_occured);
+    if (memory_error_occured == ANVIL__bt__true) {
+        printf("Error, could not open files list.\n");
+
+        return 1;
+    }
+
+    // check if there are enough arguments
+    if (argc > 1) {
+        // check for debug mode
+        if (ANVIL__calculate__buffer_contents_equal(ANVIL__open__buffer_from_string((u8*)"--debug", ANVIL__bt__false, ANVIL__bt__false), ANVIL__open__buffer_from_string((u8*)argv[current_argument], ANVIL__bt__false, ANVIL__bt__false))) {
+            // enable debug mode
+            debug_mode = ANVIL__bt__true;
+
+            // skip to next input
+            current_argument++;
+        }
+
+        // load files
+        while (current_argument < (ANVIL__u64)argc) {
+            // get file
+            ANVIL__buffer file = ANVIL__move__file_to_buffer(ANVIL__open__buffer_from_string((u8*)argv[current_argument], ANVIL__bt__false, ANVIL__bt__true));
+
+            // check for blank file
+            if (ANVIL__check__empty_buffer(file)) {
+                // file could no be opened
+                printf("Error, file \"%s\" could not be opened.\n", ANVIL__open__buffer_from_string((u8*)argv[current_argument], ANVIL__bt__false, ANVIL__bt__true));
+
+                goto clean_up;
+            }
+
+            // add file
+            ANVIL__list__append__buffer(&files, file, &memory_error_occured);
+            if (memory_error_occured == ANVIL__bt__true) {
+                printf("Error, could not add buffer to inputs list.");
+
+                goto clean_up;
+            }
+
+            // next argument
+            current_argument++;
+        }
+
+        // if files were passed
+        if (COMP__check__current_within_range(COMP__calculate__current_from_list_filled_index(&files)) == ANVIL__bt__true) {
+            // run compiler
+            COMP__compile__files(files, debug_mode, &error);
+        // if no files
+        } else {
+            printf("Error, no file paths were passed.\n");
+        }
+
+        // clean up
+        clean_up:
+        if (error.occured == ANVIL__bt__true) {
+            COMP__close__error(error);
+        }
+        ANVIL__close__list(files);
+    // not enough args
+    } else {
+        printf("Error, no arguments were passed.\n");
+
+        return 1;
+    }
 
     // exit
     return 0;

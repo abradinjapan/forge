@@ -110,9 +110,38 @@ ANVIL__length ANVIL__calculate__buffer_length(ANVIL__buffer buffer) {
     return (ANVIL__length)((u8*)buffer.end - (u8*)buffer.start) + 1;
 }
 
-// check to see if buffers are equal
-ANVIL__bt ANVIL__calculate__are_buffers_exactly_equivalent(ANVIL__buffer a, ANVIL__buffer b) {
+// check to see if the pointers in the buffers are equal
+ANVIL__bt ANVIL__calculate__buffer_addresses_equal(ANVIL__buffer a, ANVIL__buffer b) {
     return (ANVIL__bt)((a.start == b.start) && (a.end == b.end));
+}
+
+// check to see if the contents in the buffers are identical
+ANVIL__bt ANVIL__calculate__buffer_contents_equal(ANVIL__buffer a, ANVIL__buffer b) {
+    // check if names are same length
+    if (ANVIL__calculate__buffer_length(a) != ANVIL__calculate__buffer_length(b)) {
+        // not same length so not identical
+        return ANVIL__bt__false;
+    }
+
+    // get pointers
+    ANVIL__address a_current = a.start;
+    ANVIL__address b_current = b.start;
+
+    // check each character
+    while (a_current <= a.end) {
+        // check character
+        if (*(ANVIL__character*)a_current != *(ANVIL__character*)b_current) {
+            // character not identical, string not identical
+            return ANVIL__bt__false;
+        }
+
+        // next characters
+        a_current += sizeof(ANVIL__character);
+        b_current += sizeof(ANVIL__character);
+    }
+
+    // no issues found, buffers are identical
+    return ANVIL__bt__true;
 }
 
 // calculate buffer contains range
@@ -604,7 +633,7 @@ ANVIL__list_filled_index ANVIL__find__allocation(ANVIL__allocations* allocations
     // check for valid allocation
     while (current.start <= current.end) {
         // check one allocation
-        if (ANVIL__calculate__are_buffers_exactly_equivalent(*(ANVIL__buffer*)current.start, allocation)) {
+        if (ANVIL__calculate__buffer_addresses_equal(*(ANVIL__buffer*)current.start, allocation)) {
             // allocation is valid
             *found = ANVIL__bt__true;
 

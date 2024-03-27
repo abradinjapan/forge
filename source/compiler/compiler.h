@@ -20,6 +20,7 @@ typedef ANVIL__address COMP__lexling_address;
 typedef COMP__lexling_address COMP__lexling_start;
 typedef COMP__lexling_address COMP__lexling_end;
 typedef ANVIL__u64 COMP__lexling_index;
+typedef ANVIL__u64 COMP__lexling_comment_depth;
 
 // accounting types
 typedef ANVIL__u64 COMP__header_input_count;
@@ -341,7 +342,7 @@ COMP__lexlings COMP__compile__lex(ANVIL__buffer user_code, COMP__file_index file
     current_line_number = 1;
 
     // lex program
-    while (current.start < user_code.end) {
+    while (COMP__check__current_within_range(current)) {
         // skip whitespace
         if (COMP__calculate__valid_character_range(current, 0, 32)) {
             // check for new line
@@ -355,6 +356,36 @@ COMP__lexlings COMP__compile__lex(ANVIL__buffer user_code, COMP__file_index file
 
             // try next character
             continue;
+        }
+
+        // skip comments
+        if (COMP__calculate__valid_character_range(current, '[', '[')) {
+            COMP__lexling_comment_depth depth = 1;
+
+            // skip past characters
+            while (COMP__check__current_within_range(current) && depth > 0) {
+                // check for opening comment
+                if (COMP__calculate__valid_character_range(current, '[', '[')) {
+                    // increase depth
+                    depth++;
+                }
+                // check for closing comment
+                if (COMP__calculate__valid_character_range(current, ']', ']')) {
+                    // decrease depth
+                    depth--;
+                }
+
+                // next character
+                current.start += sizeof(ANVIL__character);
+            }
+
+            // check for unfinished comment
+            if (depth > 0) {
+                // set error
+                *error = COMP__create__error(ANVIL__bt__true, ANVIL__open__buffer_from_string((u8*)"Lexing Error: Comment ended abruptly", ANVIL__bt__true, ANVIL__bt__false), file_index, current_line_number, COMP__calculate__character_index(user_code, current));
+
+                return output;
+            }
         }
 
         // check for lexlings
@@ -485,31 +516,7 @@ COMP__name COMP__create_null__name() {
 
 // check if two names are exactly the same (not including line information)
 ANVIL__bt COMP__check__name_data_is_identical(COMP__name a, COMP__name b) {
-    // check if names are same length
-    if (ANVIL__calculate__buffer_length(a.lexling.value) != ANVIL__calculate__buffer_length(b.lexling.value)) {
-        // not same length so not identical
-        return ANVIL__bt__false;
-    }
-
-    // get pointers
-    ANVIL__address a_current = a.lexling.value.start;
-    ANVIL__address b_current = b.lexling.value.start;
-
-    // check each character
-    while (a_current <= a.lexling.value.end) {
-        // check character
-        if (*(ANVIL__character*)a_current != *(ANVIL__character*)b_current) {
-            // character not identical, string not identical
-            return ANVIL__bt__false;
-        }
-
-        // next characters
-        a_current += sizeof(ANVIL__character);
-        b_current += sizeof(ANVIL__character);
-    }
-
-    // no issues found, buffers are identical
-    return ANVIL__bt__true;
+    return ANVIL__calculate__buffer_contents_equal(a.lexling.value, b.lexling.value);
 }
 
 // append name
