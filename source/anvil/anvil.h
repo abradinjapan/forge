@@ -31,6 +31,9 @@ typedef void* ANVIL__address;
 
 typedef ANVIL__u64 ANVIL__length;
 
+typedef ANVIL__u64 ANVIL__cell_count;
+typedef ANVIL__cell_count ANVIL__cell_index;
+
 typedef ANVIL__u64 ANVIL__cell_integer_value;
 
 typedef ANVIL__u64 ANVIL__instruction_count;
@@ -525,6 +528,11 @@ void ANVIL__list__erase__space(ANVIL__list* list, ANVIL__list_filled_index range
     }
 
     return;
+}
+
+// check if two lists are filled up to the same amount
+ANVIL__bt ANVIL__calculate__lists_have_same_fill_size(ANVIL__list* a, ANVIL__list* b) {
+    return (ANVIL__bt)((*a).filled_index == (*b).filled_index);
 }
 
 // take a list and make a standalone buffer
@@ -2066,6 +2074,39 @@ typedef enum ANVIL__srt {
     // count
     ANVIL__srt__COUNT = ANVIL__srt__END - ANVIL__srt__START,
 } ANVIL__srt;
+
+// stack instruction types
+typedef enum ANVIL__sit {
+    // start
+    ANVIL__sit__START = ANVIL__it__END,
+
+    // instructions
+    ANVIL__sit__cell_to_cell = ANVIL__sit__START,
+    ANVIL__sit__push_cell,
+    ANVIL__sit__pop_cell,
+    ANVIL__sit__calculate_dynamically__offset_address,
+    ANVIL__sit__calculate_statically__offset_address,
+    ANVIL__sit__jump__explicit,
+    ANVIL__sit__jump__static,
+    ANVIL__sit__create_return_address__directly_after_jump,
+    ANVIL__sit__call__explicit,
+    ANVIL__sit__call__static,
+    ANVIL__sit__start,
+    ANVIL__sit__preserve_workspace,
+    ANVIL__sit__restore_workspace,
+    ANVIL__sit__operate__flag,
+    ANVIL__sit__operate__jump__explicit,
+    ANVIL__sit__operate__jump__dynamic,
+    ANVIL__sit__operate__jump__static,
+    ANVIL__sit__setup__context,
+
+    // end
+    ANVIL__sit__END,
+
+    // counts
+    ANVIL__sit__COUNT = ANVIL__sit__END - ANVIL__sit__START,
+    ANVIL__sit__TOTAL_COUNT = ANVIL__sit__END - ANVIL__it__START,
+} ANVIL__sit;
 
 // stack instruction length types
 typedef enum ANVIL__silt {

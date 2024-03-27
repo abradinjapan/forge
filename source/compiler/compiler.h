@@ -27,6 +27,14 @@ typedef ANVIL__u64 COMP__header_output_count;
 typedef ANVIL__u64 COMP__variable_index;
 typedef ANVIL__u64 COMP__call_index;
 typedef ANVIL__u64 COMP__offset_index;
+typedef ANVIL__u64 COMP__instruction_index;
+
+// generation types
+typedef ANVIL__u64 COMP__abstraction_index;
+
+// defines
+#define COMP__define__null_offset_ID -1
+#define COMP__define__null_user_defined_call_ID -1
 
 // program stage type
 typedef enum COMP__pst {
@@ -179,9 +187,8 @@ ANVIL__bt COMP__check__current_within_range(ANVIL__buffer current) {
     return (current.start <= current.end);
 }
 
-// calculate a current buffer from a list
+// calculate a current buffer from a list // NOTE: buffer cannot be null or calculation fails!
 COMP__current COMP__calculate__current_from_list_filled_index(ANVIL__list* list) {
-    // return calculation
     return ANVIL__create__buffer((*list).buffer.start, (*list).buffer.start + (*list).filled_index - 1);
 }
 
@@ -204,17 +211,19 @@ typedef enum COMP__lt {
 typedef struct COMP__lexling {
     COMP__lexling_type type;
     ANVIL__buffer value;
+    COMP__file_index file_index;
     COMP__line_number line_number;
     COMP__character_index character_index;
 } COMP__lexling;
 
 // create custom lexling
-COMP__lexling COMP__create__lexling(COMP__lexling_type type, ANVIL__buffer value, COMP__line_number line_number, COMP__character_index character_index) {
+COMP__lexling COMP__create__lexling(COMP__lexling_type type, ANVIL__buffer value, COMP__file_index file_index, COMP__line_number line_number, COMP__character_index character_index) {
     COMP__lexling output;
 
     // setup output
     output.type = type;
     output.value = value;
+    output.file_index = file_index;
     output.line_number = line_number;
     output.character_index = character_index;
 
@@ -224,7 +233,7 @@ COMP__lexling COMP__create__lexling(COMP__lexling_type type, ANVIL__buffer value
 // create null lexling
 COMP__lexling COMP__create_null__lexling() {
     // return empty
-    return COMP__create__lexling(COMP__lt__invalid, ANVIL__create_null__buffer(), 0, 0);
+    return COMP__create__lexling(COMP__lt__invalid, ANVIL__create_null__buffer(), 0, 0, 0);
 }
 
 // lexlings
@@ -351,25 +360,25 @@ COMP__lexlings COMP__compile__lex(ANVIL__buffer user_code, COMP__file_index file
         // check for lexlings
         if (COMP__calculate__valid_character_range(current, '(', '(')) {
             // add lexling
-            COMP__append__lexling(&output, COMP__create__lexling(COMP__lt__left_parenthesis, ANVIL__create__buffer(current.start, current.start), current_line_number, COMP__calculate__character_index(user_code, current)), &memory_error_occured);
+            COMP__append__lexling(&output, COMP__create__lexling(COMP__lt__left_parenthesis, ANVIL__create__buffer(current.start, current.start), file_index, current_line_number, COMP__calculate__character_index(user_code, current)), &memory_error_occured);
 
             // next character
             current.start += sizeof(ANVIL__character);
         } else if (COMP__calculate__valid_character_range(current, ')', ')')) {
             // add lexling
-            COMP__append__lexling(&output, COMP__create__lexling(COMP__lt__right_parenthesis, ANVIL__create__buffer(current.start, current.start), current_line_number, COMP__calculate__character_index(user_code, current)), &memory_error_occured);
+            COMP__append__lexling(&output, COMP__create__lexling(COMP__lt__right_parenthesis, ANVIL__create__buffer(current.start, current.start), file_index, current_line_number, COMP__calculate__character_index(user_code, current)), &memory_error_occured);
 
             // next character
             current.start += sizeof(ANVIL__character);
         } else if (COMP__calculate__valid_character_range(current, '{', '{')) {
             // add lexling
-            COMP__append__lexling(&output, COMP__create__lexling(COMP__lt__left_curly_bracket, ANVIL__create__buffer(current.start, current.start), current_line_number, COMP__calculate__character_index(user_code, current)), &memory_error_occured);
+            COMP__append__lexling(&output, COMP__create__lexling(COMP__lt__left_curly_bracket, ANVIL__create__buffer(current.start, current.start), file_index, current_line_number, COMP__calculate__character_index(user_code, current)), &memory_error_occured);
 
             // next character
             current.start += sizeof(ANVIL__character);
         } else if (COMP__calculate__valid_character_range(current, '}', '}')) {
             // add lexling
-            COMP__append__lexling(&output, COMP__create__lexling(COMP__lt__right_curly_bracket, ANVIL__create__buffer(current.start, current.start), current_line_number, COMP__calculate__character_index(user_code, current)), &memory_error_occured);
+            COMP__append__lexling(&output, COMP__create__lexling(COMP__lt__right_curly_bracket, ANVIL__create__buffer(current.start, current.start), file_index, current_line_number, COMP__calculate__character_index(user_code, current)), &memory_error_occured);
 
             // next character
             current.start += sizeof(ANVIL__character);
@@ -386,16 +395,16 @@ COMP__lexlings COMP__compile__lex(ANVIL__buffer user_code, COMP__file_index file
             }
 
             // record lexling
-            COMP__append__lexling(&output, COMP__create__lexling(COMP__lt__name, ANVIL__create__buffer(temp_start, temp_end), current_line_number, COMP__calculate__character_index(user_code, ANVIL__create__buffer(temp_start, current.end))), &memory_error_occured);
+            COMP__append__lexling(&output, COMP__create__lexling(COMP__lt__name, ANVIL__create__buffer(temp_start, temp_end), file_index, current_line_number, COMP__calculate__character_index(user_code, ANVIL__create__buffer(temp_start, current.end))), &memory_error_occured);
         } else if (COMP__calculate__valid_character_range(current, '@', '@')) {
             // add lexling
-            COMP__append__lexling(&output, COMP__create__lexling(COMP__lt__at, ANVIL__create__buffer(current.start, current.start), current_line_number, COMP__calculate__character_index(user_code, current)), &memory_error_occured);
+            COMP__append__lexling(&output, COMP__create__lexling(COMP__lt__at, ANVIL__create__buffer(current.start, current.start), file_index, current_line_number, COMP__calculate__character_index(user_code, current)), &memory_error_occured);
 
             // next character
             current.start += sizeof(ANVIL__character);
         } else if (COMP__calculate__valid_character_range(current, '=', '=')) {
             // add lexling
-            COMP__append__lexling(&output, COMP__create__lexling(COMP__lt__equals, ANVIL__create__buffer(current.start, current.start), current_line_number, COMP__calculate__character_index(user_code, current)), &memory_error_occured);
+            COMP__append__lexling(&output, COMP__create__lexling(COMP__lt__equals, ANVIL__create__buffer(current.start, current.start), file_index, current_line_number, COMP__calculate__character_index(user_code, current)), &memory_error_occured);
 
             // next character
             current.start += sizeof(ANVIL__character);
@@ -441,7 +450,7 @@ void COMP__debug__print_lexlings(COMP__lexlings lexlings) {
         current.start += sizeof(COMP__lexling);
 
         // print lexling type
-        printf("\t%lu [ %lu, %lu ] [ line_index: %lu, character_index: %lu ] : ", (ANVIL__u64)temp.type, (ANVIL__u64)temp.value.start, (ANVIL__u64)temp.value.end, (ANVIL__u64)temp.line_number, (ANVIL__u64)temp.character_index);
+        printf("\t%lu [ %lu, %lu ] [ file_index: %lu, line_index: %lu, character_index: %lu ] : ", (ANVIL__u64)temp.type, (ANVIL__u64)temp.value.start, (ANVIL__u64)temp.value.end, temp.file_index, (ANVIL__u64)temp.line_number, (ANVIL__u64)temp.character_index);
         fflush(stdout);
 
         // print lexling string
@@ -474,7 +483,7 @@ COMP__name COMP__create_null__name() {
     return COMP__create__name(COMP__create_null__lexling());
 }
 
-// check if two names are exactly the same
+// check if two names are exactly the same (not including line information)
 ANVIL__bt COMP__check__name_data_is_identical(COMP__name a, COMP__name b) {
     // check if names are same length
     if (ANVIL__calculate__buffer_length(a.lexling.value) != ANVIL__calculate__buffer_length(b.lexling.value)) {
@@ -731,7 +740,7 @@ void COMP__advance__lexling_current(COMP__current* current, COMP__lexling_index 
 }
 
 // parse arguments
-ANVIL__list COMP__parse__arguments(COMP__current* current, COMP__file_index current_file_index, COMP__error* error) {
+ANVIL__list COMP__parse__arguments(COMP__current* current, COMP__error* error) {
     ANVIL__list output;
     ANVIL__bt memory_error_occured = ANVIL__bt__false;
 
@@ -753,7 +762,7 @@ ANVIL__list COMP__parse__arguments(COMP__current* current, COMP__file_index curr
     // not found, error
     } else {
         // set error
-        *error = COMP__create__error(ANVIL__bt__true, ANVIL__open__buffer_from_string((u8*)"Parse Error: Arguments is missing opening parethesis.", ANVIL__bt__true, ANVIL__bt__false), current_file_index, COMP__read__lexling_from_current(*current).line_number, COMP__read__lexling_from_current(*current).character_index);
+        *error = COMP__create__error(ANVIL__bt__true, ANVIL__open__buffer_from_string((u8*)"Parse Error: Arguments is missing opening parenthesis.", ANVIL__bt__true, ANVIL__bt__false), COMP__read__lexling_from_current(*current).file_index, COMP__read__lexling_from_current(*current).line_number, COMP__read__lexling_from_current(*current).character_index);
 
         return output;
     }
@@ -762,7 +771,6 @@ ANVIL__list COMP__parse__arguments(COMP__current* current, COMP__file_index curr
     while (COMP__check__current_within_range(*current) && COMP__read__lexling_from_current(*current).type == COMP__lt__name) {
         // get argument
         COMP__append__name(&output, COMP__create__name(COMP__read__lexling_from_current(*current)), &memory_error_occured);
-        //ANVIL__list__append__buffer(&output, COMP__read__lexling_from_current(*current).value, &memory_error_occured);
 
         // check for error
         if (memory_error_occured == ANVIL__bt__true) {
@@ -783,7 +791,7 @@ ANVIL__list COMP__parse__arguments(COMP__current* current, COMP__file_index curr
     // not found, error
     } else {
         // set error
-        *error = COMP__create__error(ANVIL__bt__true, ANVIL__open__buffer_from_string((u8*)"Parse Error: Arguments is missing closing parethesis.", ANVIL__bt__true, ANVIL__bt__false), current_file_index, COMP__read__lexling_from_current(*current).line_number, COMP__read__lexling_from_current(*current).character_index);
+        *error = COMP__create__error(ANVIL__bt__true, ANVIL__open__buffer_from_string((u8*)"Parse Error: Arguments is missing closing parenthesis.", ANVIL__bt__true, ANVIL__bt__false), COMP__read__lexling_from_current(*current).file_index, COMP__read__lexling_from_current(*current).line_number, COMP__read__lexling_from_current(*current).character_index);
 
         return output;
     }
@@ -792,7 +800,7 @@ ANVIL__list COMP__parse__arguments(COMP__current* current, COMP__file_index curr
 }
 
 // parse a statement
-ANVIL__list COMP__parse__scope(COMP__current* current, COMP__file_index current_file_index, COMP__error* error) {
+ANVIL__list COMP__parse__scope(COMP__current* current, COMP__error* error) {
     ANVIL__list output;
     COMP__parsling_statement temp;
     ANVIL__bt memory_error_occured = ANVIL__bt__false;
@@ -807,7 +815,7 @@ ANVIL__list COMP__parse__scope(COMP__current* current, COMP__file_index current_
     // scope opener not found, error
     } else {
         // set error
-        *error = COMP__create__error(ANVIL__bt__true, ANVIL__open__buffer_from_string((u8*)"Parse Error: Scope is missing left curly bracket.", ANVIL__bt__true, ANVIL__bt__false), current_file_index, COMP__read__lexling_from_current(*current).line_number, COMP__read__lexling_from_current(*current).character_index);
+        *error = COMP__create__error(ANVIL__bt__true, ANVIL__open__buffer_from_string((u8*)"Parse Error: Scope is missing left curly bracket.", ANVIL__bt__true, ANVIL__bt__false), COMP__read__lexling_from_current(*current).file_index, COMP__read__lexling_from_current(*current).line_number, COMP__read__lexling_from_current(*current).character_index);
         
         return output;
     }
@@ -832,7 +840,7 @@ ANVIL__list COMP__parse__scope(COMP__current* current, COMP__file_index current_
             // invalid syntax
             } else {
                 // set error
-                *error = COMP__create__error(ANVIL__bt__true, ANVIL__open__buffer_from_string((u8*)"Parse Error: Offset statement name is an invalid lexling.", ANVIL__bt__true, ANVIL__bt__false), current_file_index, COMP__read__lexling_from_current(*current).line_number, COMP__read__lexling_from_current(*current).character_index);
+                *error = COMP__create__error(ANVIL__bt__true, ANVIL__open__buffer_from_string((u8*)"Parse Error: Offset statement name is an invalid lexling.", ANVIL__bt__true, ANVIL__bt__false), COMP__read__lexling_from_current(*current).file_index, COMP__read__lexling_from_current(*current).line_number, COMP__read__lexling_from_current(*current).character_index);
 
                 return output;
             }
@@ -863,7 +871,7 @@ ANVIL__list COMP__parse__scope(COMP__current* current, COMP__file_index current_
             COMP__advance__lexling_current(current, 1);
 
             // get inputs
-            temp.inputs = COMP__parse__arguments(current, current_file_index, error);
+            temp.inputs = COMP__parse__arguments(current, error);
 
             // check for error
             if (COMP__check__error_occured(error) == ANVIL__bt__true) {
@@ -871,7 +879,7 @@ ANVIL__list COMP__parse__scope(COMP__current* current, COMP__file_index current_
             }
 
             // get outputs
-            temp.outputs = COMP__parse__arguments(current, current_file_index, error);
+            temp.outputs = COMP__parse__arguments(current, error);
 
             // append statement
             COMP__append__parsling_statement(&output, temp, &memory_error_occured);
@@ -891,7 +899,7 @@ ANVIL__list COMP__parse__scope(COMP__current* current, COMP__file_index current_
         // error
         } else {
             // set error
-            *error = COMP__create__error(ANVIL__bt__true, ANVIL__open__buffer_from_string((u8*)"Parse Error: Unrecognized statement type.", ANVIL__bt__true, ANVIL__bt__false), current_file_index, COMP__read__lexling_from_current(*current).line_number, COMP__read__lexling_from_current(*current).character_index);
+            *error = COMP__create__error(ANVIL__bt__true, ANVIL__open__buffer_from_string((u8*)"Parse Error: Unrecognized statement type.", ANVIL__bt__true, ANVIL__bt__false), COMP__read__lexling_from_current(*current).file_index, COMP__read__lexling_from_current(*current).line_number, COMP__read__lexling_from_current(*current).character_index);
 
             return output;
         }
@@ -904,7 +912,7 @@ ANVIL__list COMP__parse__scope(COMP__current* current, COMP__file_index current_
     // scope opener not found, error
     } else {
         // setup error
-        *error = COMP__create__error(ANVIL__bt__true, ANVIL__open__buffer_from_string((u8*)"Parse Error: Scope is missing right curly bracket.", ANVIL__bt__true, ANVIL__bt__false), current_file_index, COMP__read__lexling_from_current(*current).line_number, COMP__read__lexling_from_current(*current).character_index);
+        *error = COMP__create__error(ANVIL__bt__true, ANVIL__open__buffer_from_string((u8*)"Parse Error: Scope is missing right curly bracket.", ANVIL__bt__true, ANVIL__bt__false), COMP__read__lexling_from_current(*current).file_index, COMP__read__lexling_from_current(*current).line_number, COMP__read__lexling_from_current(*current).character_index);
         
         return output;
     }
@@ -913,7 +921,7 @@ ANVIL__list COMP__parse__scope(COMP__current* current, COMP__file_index current_
 }
 
 // parse an abstraction
-COMP__parsling_abstraction COMP__parse__abstraction(COMP__current* current, COMP__file_index current_file_index, COMP__error* error) {
+COMP__parsling_abstraction COMP__parse__abstraction(COMP__current* current, COMP__error* error) {
     COMP__parsling_abstraction output = COMP__create_null__parsling_abstraction();
 
     // check for name
@@ -926,14 +934,14 @@ COMP__parsling_abstraction COMP__parse__abstraction(COMP__current* current, COMP
     // error
     } else {
         // set error
-        *error = COMP__create__error(ANVIL__bt__true, ANVIL__open__buffer_from_string((u8*)"Parse Error: An abstraction definition has a name missing.", ANVIL__bt__true, ANVIL__bt__false), current_file_index, COMP__read__lexling_from_current(*current).line_number, COMP__read__lexling_from_current(*current).character_index);
+        *error = COMP__create__error(ANVIL__bt__true, ANVIL__open__buffer_from_string((u8*)"Parse Error: An abstraction definition has a name missing.", ANVIL__bt__true, ANVIL__bt__false), COMP__read__lexling_from_current(*current).file_index, COMP__read__lexling_from_current(*current).line_number, COMP__read__lexling_from_current(*current).character_index);
 
         // return blank
         return output;
     }
 
     // get inputs
-    output.inputs = COMP__parse__arguments(current, current_file_index, error);
+    output.inputs = COMP__parse__arguments(current, error);
 
     // check for error
     if (COMP__check__error_occured(error) == ANVIL__bt__true) {
@@ -942,7 +950,7 @@ COMP__parsling_abstraction COMP__parse__abstraction(COMP__current* current, COMP
     }
 
     // get outputs
-    output.outputs = COMP__parse__arguments(current, current_file_index, error);
+    output.outputs = COMP__parse__arguments(current, error);
 
     // check for error
     if (COMP__check__error_occured(error) == ANVIL__bt__true) {
@@ -957,20 +965,20 @@ COMP__parsling_abstraction COMP__parse__abstraction(COMP__current* current, COMP
     // error
     } else {
         // set error
-        *error = COMP__create__error(ANVIL__bt__true, ANVIL__open__buffer_from_string((u8*)"Parse Error: An abstraction definition has an equals sign missing.", ANVIL__bt__true, ANVIL__bt__false), current_file_index, COMP__read__lexling_from_current(*current).line_number, COMP__read__lexling_from_current(*current).character_index);
+        *error = COMP__create__error(ANVIL__bt__true, ANVIL__open__buffer_from_string((u8*)"Parse Error: An abstraction definition has an equals sign missing.", ANVIL__bt__true, ANVIL__bt__false), COMP__read__lexling_from_current(*current).file_index, COMP__read__lexling_from_current(*current).line_number, COMP__read__lexling_from_current(*current).character_index);
 
         // quit
         return output;
     }
 
     // parse statements
-    output.statements = COMP__parse__scope(current, current_file_index, error);
+    output.statements = COMP__parse__scope(current, error);
 
     return output;
 }
 
 // parse a file (program)
-COMP__parsling_program COMP__parse__program(COMP__lexlings lexlings, COMP__file_index current_file_index, COMP__error* error) {
+COMP__parsling_program COMP__parse__program(COMP__lexlings lexlings, COMP__error* error) {
     COMP__parsling_program output;
     COMP__parsling_abstraction temp;
     COMP__current current;
@@ -996,7 +1004,7 @@ COMP__parsling_program COMP__parse__program(COMP__lexlings lexlings, COMP__file_
     // parse abstractions
     while (COMP__check__current_within_range(current)) {
         // parse abstraction
-        temp = COMP__parse__abstraction(&current, current_file_index, error);
+        temp = COMP__parse__abstraction(&current, error);
 
         // append abstraction
         COMP__append__parsling_abstraction(&(output.abstractions), temp, &memory_error_occured);
@@ -1110,257 +1118,534 @@ void COMP__print__parsed_program(COMP__parsling_program program) {
     return;
 }
 
-/* Account */
-// one defined abstraction
-typedef struct COMP__accountling_header {
-    COMP__name name;
-    COMP__header_input_count input_count;
-    COMP__header_output_count output_count;
-} COMP__accountling_header;
+/* Accounting */
+/*
+    Accounting / semantics is all about being a middle man from parsing to code generation.
+        An abstract syntax tree will be used to create the program blueprint.
+            And that blueprint is read to build the code.
+    The accounter needs to distinguish instructions calls from abstraction calls.
+        And validate statement inputs and outputs.
+        And validate variable declarations.
+        And validate flags.
+*/
+// accountling variable declaration index
+typedef ANVIL__u64 COMP__accountling_variable_declaration_index;
 
-// create a custom accountling header
-COMP__accountling_header COMP__create__accountling_header(COMP__name name, COMP__header_input_count input_count, COMP__header_output_count output_count) {
-    COMP__accountling_header output;
+// accountling variable declaration type
+typedef enum COMP__avdt {
+    // types
+    COMP__avdt__not_declared,
+    COMP__avdt__input,
+    COMP__avdt__input_and_output,
+    COMP__avdt__output,
+    COMP__avdt__body,
 
-    // setup output
-    output.name = name;
-    output.input_count = input_count;
-    output.output_count = output_count;
-
-    return output;
-}
-
-// create a null header
-COMP__accountling_header COMP__create_null__accountling_header() {
-    // return empty
-    return COMP__create__accountling_header(COMP__create_null__name(), 0, 0);
-}
-
-// header table
-typedef struct COMP__accountling_header_table {
-    ANVIL__list headers;
-} COMP__accountling_header_table;
-
-// create custom header table
-COMP__accountling_header_table COMP__create__accountling_header_table(ANVIL__list headers) {
-    COMP__accountling_header_table output;
-
-    output.headers = headers;
-
-    return output;
-}
-
-COMP__accountling_header_table COMP__create_null__accountling_header_table() {
-    return COMP__create__accountling_header_table(ANVIL__create_null__list());
-}
-
-// append accountling header
-void COMP__append__accountling_header(ANVIL__list* list, COMP__accountling_header data, ANVIL__bt* memory_error_occured) {
-    // request space
-    ANVIL__list__request__space(list, sizeof(COMP__accountling_header), memory_error_occured);
-
-    // append data
-    (*(COMP__accountling_header*)ANVIL__calculate__list_current_address(list)) = data;
-
-    // increase fill
-    (*list).filled_index += sizeof(COMP__accountling_header);
-
-    return;
-}
-
-// check if headers are equal
-ANVIL__bt COMP__check__accountling_headers_are_equal(COMP__accountling_header a, COMP__accountling_header b) {
-    return (ANVIL__bt)(COMP__check__name_data_is_identical(a.name, b.name) && (a.input_count == b.input_count) && (a.output_count == b.output_count));
-}
-
-// check if a header already exists
-ANVIL__bt COMP__check__accounting_header_already_exists(COMP__accountling_header_table* header_table, COMP__accountling_header header) {
-    COMP__current current;
-
-    // setup current
-    current = COMP__calculate__current_from_list_filled_index(&((*header_table).headers));
-
-    // go over each header
-    while (COMP__check__current_within_range(current)) {
-        // get header
-        COMP__accountling_header temp_header = *(COMP__accountling_header*)current.start;
-
-        // check header
-        if (COMP__check__accountling_headers_are_equal(temp_header, header)) {
-            // header exists
-            return ANVIL__bt__true;
-        }
-
-        // next header
-        current.start += sizeof(COMP__accountling_header);
-    }
-
-    // not found
-    return ANVIL__bt__false;
-}
-
-// get the header table
-COMP__accountling_header_table COMP__account__get_header_table(ANVIL__list* parsling_programs, COMP__error* error) {
-    COMP__accountling_header_table output;
-    COMP__current current_file;
-    COMP__file_index current_file_index = 0;
-    ANVIL__bt memory_error_occured = ANVIL__bt__false;
-
-    // setup output
-    output.headers = ANVIL__open__list(sizeof(COMP__accountling_header) * 32, &memory_error_occured);
-
-    // setup current
-    current_file = COMP__calculate__current_from_list_filled_index(parsling_programs);
-
-    // get all headers from all programs
-    while (COMP__check__current_within_range(current_file)) {
-        // setup current abstraction
-        COMP__current current_abstraction = COMP__calculate__current_from_list_filled_index(&((*(COMP__parsling_program*)current_file.start).abstractions));
-
-        // get all headers from one file
-        while (COMP__check__current_within_range(current_abstraction)) {
-            // get current abstraction
-            COMP__parsling_abstraction abstraction = *(COMP__parsling_abstraction*)current_abstraction.start;
-
-            // get found header
-            COMP__accountling_header header = COMP__create__accountling_header(abstraction.name, abstraction.inputs.filled_index / sizeof(COMP__name), abstraction.outputs.filled_index / sizeof(COMP__name));
-
-            // check if header already exists
-            if (COMP__check__accounting_header_already_exists(&output, header)) {
-                // error, duplicate abstraction
-                *error = COMP__create__error(ANVIL__bt__true, ANVIL__open__buffer_from_string((u8*)"Accounting Error. Header already exists.", ANVIL__bt__true, ANVIL__bt__false), current_file_index, header.name.lexling.line_number, header.name.lexling.character_index);
-
-                // quit
-                return output;
-            }
-
-            // append header
-            COMP__append__accountling_header(&output.headers, header, &memory_error_occured);
-
-            // next abstraction
-            current_abstraction.start += sizeof(COMP__parsling_abstraction);
-        }
-
-        // next file
-        current_file.start += sizeof(COMP__parsling_program);
-        current_file_index++;
-    }
-
-    // unfinished
-    return output;
-}
-
-// print the header table
-void COMP__print__accountling_header_table(COMP__accountling_header_table header_table) {
-    COMP__current current = COMP__calculate__current_from_list_filled_index(&(header_table.headers));
-
-    // print initial message
-    printf("Header Table:\n");
-
-    // print each header
-    while (COMP__check__current_within_range(current)) {
-        // get header
-        COMP__accountling_header header = *(COMP__accountling_header*)current.start;
-
-        // print header
-        printf("\t");
-        ANVIL__print__buffer(header.name.lexling.value);
-        printf("(%lu)(%lu)\n", header.input_count, header.output_count);
-
-        // advance current
-        current.start += sizeof(COMP__accountling_header);
-    }
-
-    return;
-}
-
-// accountling variable type
-typedef enum COMP__avt {
-    COMP__avt__invalid,
-    COMP__avt__input,
-    COMP__avt__output,
-    COMP__avt__body,
-
-    // COUNT
-    COMP__avt__COUNT,
-} COMP__avt;
+    // count
+    COMP__avdt__COUNT,
+} COMP__avdt;
 
 // accountling variable
 typedef struct COMP__accountling_variable {
-    COMP__avt type;
-    COMP__variable_index variable_index;
+    COMP__name name;
+    COMP__avdt type;
+    COMP__accountling_variable_declaration_index declaration_index;
 } COMP__accountling_variable;
 
-// accountling statement type
-typedef enum COMP__ast {
-    COMP__ast__invalid,
-    COMP__ast__call,
-    COMP__ast__offset,
-
-    // COUNT
-    COMP__ast__COUNT,
-} COMP__ast;
-
-// accountling statement frame
-typedef struct COMP__accountling_statement {
-    COMP__ast type;
-    COMP__call_index call_index;
-    COMP__offset_index offset_index;
-} COMP__accountling_statement;
-
-// accountling abstraction type
-typedef enum COMP__aat {
-    COMP__aat__invalid,
-    COMP__aat__predefined,
-    COMP__aat__abstraction_call,
-
-    // COUNT
-    COMP__aat__COUNT,
-} COMP__aat;
+// accountling variable map
+typedef struct COMP__accountling_variable_map {
+    ANVIL__list variables;
+} COMP__accountling_variable_map;
 
 // accountling abstraction
 typedef struct COMP__accountling_abstraction {
-    COMP__aat type;
-    ANVIL__list variables;
-    ANVIL__list statement_map;
-    ANVIL__list calls;
-    ANVIL__list offsets;
+    COMP__accountling_variable_map variables;
 } COMP__accountling_abstraction;
 
-// accountling skeleton
-typedef struct COMP__accountling_skeleton {
-    COMP__accountling_header_table header_table;
-    ANVIL__list abstractions;
-} COMP__accountling_skeleton;
+// accountling program
+typedef struct COMP__accountling_program {
+    ANVIL__buffer abstractions;
+} COMP__accountling_program;
 
-// create custom skeleton
-COMP__accountling_skeleton COMP__create__accountling_skeleton(COMP__accountling_header_table header_table, ANVIL__list abstractions) {
-    COMP__accountling_skeleton output;
+// account variables
+COMP__accountling_variable_map COMP__account__variable_map(COMP__parsling_abstraction* abstraction, COMP__error* error) {
+    COMP__accountling_variable_map output;
+    ANVIL__bt memory_error_occured = ANVIL__bt__false;
 
-    // setup output
-    output.header_table = header_table;
-    output.abstractions = abstractions;
+    // setup list
+    output.variables = ANVIL__open__list(sizeof(COMP__accountling_variable) * 64, &memory_error_occured);
+    if (memory_error_occured == ANVIL__bt__true) {
+        // set error
+        *error = COMP__create__internal_memory_error();
+
+        return output;
+    }
+
+    // get variables
+    {
+        // get outputs
+        {
+            // setup current
+            COMP__current current = COMP__calculate__current_from_list_filled_index(&(*abstraction).outputs);
+            
+            // get all outputs
+            while (COMP__check__current_within_range(current)) {
+                // check if variable already defined
+                COMP__current check_current = COMP__calculate__current_from_list_filled_index(&output.variables);
+
+                // check for declaration
+                while (COMP__check__current_within_range(check_current)) {
+                    COMP__accountling_variable current_variable = *(COMP__accountling_variable*)check_current.start;
+
+                    // check name
+                    if (COMP__check__name_data_is_identical(current_variable.name, *(COMP__name*)current.start) == ANVIL__bt__true) {
+                        // already declared, error
+                        *error = COMP__create__error(ANVIL__bt__true, ANVIL__open__buffer_from_string((u8*)"Accounting Error: Output variable declared more than once.", ANVIL__bt__true, ANVIL__bt__false), current_variable.name.lexling.file_index, current_variable.name.lexling.line_number, current_variable.name.lexling.character_index);
+
+                        return output;
+                    }
+
+                    // next variable
+                    check_current.start += sizeof(COMP__accountling_variable);
+                }
+
+                // valid, next variable to declare
+                current.start += sizeof(COMP__name);
+            }
+        }
+    }
+}
+
+/* Generation */
+// generation offsets
+typedef struct COMP__generation_offsets {
+    ANVIL__offset function_start; // the first instruction in the function
+    ANVIL__offset function_return; // the first instruction passing output
+    ANVIL__offset function_data; // after the code of the function, the embedded data's place
+    ANVIL__buffer internal_offsets; // the function specific offsets
+} COMP__generation_offsets;
+
+// generation cell range
+typedef struct COMP__generation_cell_range {
+    ANVIL__cell_ID start;
+    ANVIL__cell_ID end;
+} COMP__generation_cell_range;
+
+// create a cell range
+COMP__generation_cell_range COMP__create__generation_cell_range(ANVIL__cell_ID start, ANVIL__cell_ID end) {
+    COMP__generation_cell_range output;
+
+    output.start = start;
+    output.end = end;
 
     return output;
 }
 
-// create null skeleton
-COMP__accountling_skeleton COMP__create_null__accountling_skeleton() {
-    return COMP__create__accountling_skeleton(COMP__create_null__accountling_header_table(), ANVIL__create_null__list());
+// calculate cell range length
+ANVIL__cell_count COMP__calculate__generation_cell_length(COMP__generation_cell_range range) {
+    return range.end - range.start + 1;
 }
 
-// account parslings
-COMP__accountling_skeleton COMP__account__parsling_programs(ANVIL__list* parsling_buffers, COMP__error* error) {
-    COMP__accountling_skeleton output;
+// calculate cell range from start and length
+COMP__generation_cell_range COMP__calculate__generation_cell_range(ANVIL__cell_ID start, ANVIL__cell_count length) {
+    return COMP__create__generation_cell_range(start, start + length - 1);
+}
 
-    // null init output
-    output = COMP__create_null__accountling_skeleton();
+// generation cells
+typedef struct COMP__generation_cells {
+    COMP__generation_cell_range workspace_total_range;
+    COMP__generation_cell_range workspace_input_range;
+    COMP__generation_cell_range workspace_output_range;
+    COMP__generation_cell_range workspace_body_range;
+    COMP__generation_cell_range function_input_range;
+    COMP__generation_cell_range function_output_range;
+    ANVIL__cell_count input_count;
+    ANVIL__cell_count output_count;
+    ANVIL__cell_count variable_count;
+    ANVIL__cell_count workspace_total_count;
+} COMP__generation_cells;
 
-    // get header table
-    output.header_table = COMP__account__get_header_table(parsling_buffers, error);
+// setup generation cells from io & variable counts
+COMP__generation_cells COMP__setup__generation_cells(ANVIL__cell_count input_count, ANVIL__cell_count output_count, ANVIL__cell_count variable_count) {
+    COMP__generation_cells output;
 
-    // DEBUG
-    COMP__print__accountling_header_table(output.header_table);
+    // setup counts
+    output.input_count = input_count;
+    output.output_count = output_count;
+    output.variable_count = variable_count;
+    output.workspace_total_count = input_count + output_count + variable_count;
+
+    // calculate ranges
+    output.function_input_range = COMP__calculate__generation_cell_range(ANVIL__srt__start__function_io, input_count - 1);
+    output.function_output_range = COMP__calculate__generation_cell_range(ANVIL__srt__start__function_io, output_count - 1);
+    output.workspace_input_range = COMP__calculate__generation_cell_range(ANVIL__srt__start__workspace, input_count - 1);
+    output.workspace_output_range = COMP__calculate__generation_cell_range(output.workspace_input_range.end + 1, output_count - 1);
+    output.workspace_body_range = COMP__calculate__generation_cell_range(output.workspace_output_range.end + 1, variable_count - 1);
+    output.workspace_total_range = COMP__create__generation_cell_range(output.workspace_input_range.start, output.workspace_body_range.end);
+
+    return output;
+}
+
+// generation argument
+typedef struct COMP__generation_argument {
+    ANVIL__cell_ID cell_ID;
+} COMP__generation_argument;
+
+// create generation argument
+COMP__generation_argument COMP__create__generation_argument(ANVIL__cell_ID cell_ID) {
+    COMP__generation_argument output;
+
+    output.cell_ID = cell_ID;
+
+    return output;
+}
+
+// create null generation argument
+COMP__generation_argument COMP__create_null__generation_argument() {
+    return COMP__create__generation_argument(ANVIL__unused_cell_ID);
+}
+
+// generation statement type
+typedef enum COMP__gst {
+    // invalid
+    COMP__gst__invalid,
+
+    // types
+    COMP__gst__instruction_call,
+    COMP__gst__abstraction_call,
+    COMP__gst__offset_declaration,
+
+    // COUNT
+    COMP__gst__COUNT,
+} COMP__gst;
+
+// generation statement
+typedef struct COMP__generation_statement {
+    COMP__gst type;
+
+    // instruction calls
+    COMP__instruction_index instruction_ID; // ANVIL__it / ANVIL__sit
+    ANVIL__cell write_register_value;
+    ANVIL__flag_ID do_flag;
+    ANVIL__operation_ID operation;
+    ANVIL__cell_ID input_0;
+    ANVIL__cell_ID input_1;
+    ANVIL__cell_ID input_2;
+    ANVIL__cell_ID input_3;
+    ANVIL__cell_ID output_0;
+    ANVIL__cell_ID output_1;
+    ANVIL__cell section_length;
+    ANVIL__flag_ID invert_flag;
+
+    // abstraction calls
+    COMP__call_index user_defined_call_ID;
+    ANVIL__list inputs;
+    ANVIL__list outputs;
+
+    // offset declarations
+    COMP__offset_index offset_ID;
+} COMP__generation_statement;
+
+// create instruction call statement
+COMP__generation_statement COMP__create__generation_statement__instruction_call(COMP__instruction_index instruction_ID, ANVIL__cell write_register_value, ANVIL__flag_ID do_flag, ANVIL__operation_ID operation, ANVIL__cell_ID input_0, ANVIL__cell_ID input_1, ANVIL__cell_ID input_2, ANVIL__cell_ID input_3, ANVIL__cell_ID output_0, ANVIL__cell_ID output_1, ANVIL__cell section_length, ANVIL__flag_ID invert_flag) {
+    COMP__generation_statement output;
+
+    output.type = COMP__gst__instruction_call;
+    output.instruction_ID = instruction_ID;
+    output.write_register_value = write_register_value;
+    output.do_flag = do_flag;
+    output.operation = operation;
+    output.input_0 = input_0;
+    output.input_1 = input_1;
+    output.input_2 = input_2;
+    output.input_3 = input_3;
+    output.output_0 = output_0;
+    output.output_1 = output_1;
+    output.section_length = section_length;
+    output.invert_flag = invert_flag;
+
+    return output;
+}
+
+// create null statement
+COMP__generation_statement COMP__create__generation_statement__invalid() {
+    COMP__generation_statement output;
+
+    output.type = COMP__gst__invalid;
+
+    return output;
+}
+
+// append generation statement
+void COMP__append__generation_argument(ANVIL__list* list, COMP__generation_argument data, ANVIL__bt* memory_error_occured) {
+    // request space
+    ANVIL__list__request__space(list, sizeof(COMP__generation_argument), memory_error_occured);
+
+    // append data
+    (*(COMP__generation_argument*)ANVIL__calculate__list_current_address(list)) = data;
+
+    // increase fill
+    (*list).filled_index += sizeof(COMP__generation_argument);
+
+    return;
+}
+
+// append generation statement
+void COMP__append__generation_statement(ANVIL__list* list, COMP__generation_statement data, ANVIL__bt* memory_error_occured) {
+    // request space
+    ANVIL__list__request__space(list, sizeof(COMP__generation_statement), memory_error_occured);
+
+    // append data
+    (*(COMP__generation_statement*)ANVIL__calculate__list_current_address(list)) = data;
+
+    // increase fill
+    (*list).filled_index += sizeof(COMP__generation_statement);
+
+    return;
+}
+
+// generation abstraction
+typedef struct COMP__generation_abstraction {
+    COMP__generation_cells cells;
+    COMP__generation_offsets offsets;
+    ANVIL__list statements;
+} COMP__generation_abstraction;
+
+// setup test abstraction
+COMP__generation_abstraction COMP__setup__test_abstraction() {
+    COMP__generation_abstraction output;
+    ANVIL__bt memory_error_occured = ANVIL__bt__false;
+
+    // setup
+    output.cells = COMP__setup__generation_cells(5, 3, 5);
+    output.statements = ANVIL__open__list(sizeof(COMP__generation_statement) * 32, &memory_error_occured);
+
+    // create statements
+    COMP__append__generation_statement(&output.statements, COMP__create__generation_statement__instruction_call(ANVIL__it__write_cell, (ANVIL__cell)543210, ANVIL__sft__always_run, ANVIL__ot__COUNT, ANVIL__unused_cell_ID, ANVIL__unused_cell_ID, ANVIL__unused_cell_ID, ANVIL__unused_cell_ID, ANVIL__srt__start__workspace, ANVIL__unused_cell_ID, ANVIL__define__null_address, ANVIL__sft__never_run), &memory_error_occured);
+    COMP__append__generation_statement(&output.statements, COMP__create__generation_statement__instruction_call(ANVIL__it__debug__print_cell_as_decimal, ANVIL__define__null_address, ANVIL__sft__always_run, ANVIL__ot__COUNT, ANVIL__srt__start__workspace, ANVIL__unused_cell_ID, ANVIL__unused_cell_ID, ANVIL__unused_cell_ID, ANVIL__unused_cell_ID, ANVIL__unused_cell_ID, ANVIL__define__null_address, ANVIL__sft__never_run), &memory_error_occured);
+    COMP__append__generation_statement(&output.statements, COMP__create__generation_statement__instruction_call(ANVIL__it__write_cell, (ANVIL__cell)'\n', ANVIL__sft__always_run, ANVIL__ot__COUNT, ANVIL__unused_cell_ID, ANVIL__unused_cell_ID, ANVIL__unused_cell_ID, ANVIL__unused_cell_ID, ANVIL__srt__start__workspace + 1, ANVIL__unused_cell_ID, ANVIL__define__null_address, ANVIL__sft__never_run), &memory_error_occured);
+    COMP__append__generation_statement(&output.statements, COMP__create__generation_statement__instruction_call(ANVIL__it__debug__putchar, ANVIL__define__null_address, ANVIL__sft__always_run, ANVIL__ot__COUNT, ANVIL__srt__start__workspace + 1, ANVIL__unused_cell_ID, ANVIL__unused_cell_ID, ANVIL__unused_cell_ID, ANVIL__unused_cell_ID, ANVIL__unused_cell_ID, ANVIL__define__null_address, ANVIL__sft__never_run), &memory_error_occured);
+
+    return output;
+}
+
+// close generation abstraction
+void COMP__close__generation_abstraction(COMP__generation_abstraction abstraction) {
+    // close statements
+    {
+        COMP__current current = COMP__calculate__current_from_list_filled_index(&abstraction.statements);
+
+        // for each statement
+        while (COMP__check__current_within_range(current)) {
+            // get statement
+            COMP__generation_statement statement = *(COMP__generation_statement*)current.start;
+
+            // if it is an abstraction call
+            if (statement.type == COMP__gst__abstraction_call) {
+                // clean up io
+                // TODO
+            }
+
+            // next statement
+            current.start += sizeof(COMP__generation_statement);
+        }
+
+        // close statements
+        ANVIL__close__list(abstraction.statements);
+    }
+
+    return;
+}
+
+// generation workspace
+typedef struct COMP__generation_workspace {
+    ANVIL__workspace anvil;
+    ANVIL__buffer abstractions;
+} COMP__generation_workspace;
+
+// open workspace
+COMP__generation_workspace COMP__open__generation_workspace(ANVIL__buffer* program_buffer, COMP__abstraction_index abstraction_count) {
+    COMP__generation_workspace output;
+
+    // setup anvil
+    output.anvil = ANVIL__setup__workspace(program_buffer);
+
+    // setup abstractions
+    output.abstractions = ANVIL__open__buffer(sizeof(COMP__generation_abstraction) * abstraction_count);
+
+    return output;
+}
+
+// close workspace
+void COMP__close__generation_workspace(COMP__generation_workspace workspace) {
+    COMP__current current = workspace.abstractions;
+
+    // close all abstractions
+    while (COMP__check__current_within_range(current)) {
+        // close abstraction
+        COMP__close__generation_abstraction(*(COMP__generation_abstraction*)current.start);
+
+        // next abstraction
+        current.start += sizeof(COMP__generation_abstraction);
+    }
+
+    // close abstractions buffer
+    ANVIL__close__buffer(workspace.abstractions);
+
+    return;
+}
+
+// generate abstraction function
+void COMP__generate__anvil_abstraction_body(ANVIL__workspace* workspace, COMP__generation_abstraction* abstraction, COMP__error* error) {
+    // setup offset
+    (*abstraction).offsets.function_start = ANVIL__get__offset(workspace);
+
+    // preserve workspace
+    ANVIL__code__preserve_workspace(workspace, ANVIL__sft__always_run, (*abstraction).cells.workspace_total_range.start, (*abstraction).cells.workspace_total_range.end);
+
+    // build inputs
+    for (ANVIL__cell_index input_index = 0; input_index < (*abstraction).cells.input_count; input_index++) {
+        // build input
+        ANVIL__code__cell_to_cell(workspace, ANVIL__sft__always_run, (*abstraction).cells.function_input_range.start + input_index, (*abstraction).cells.workspace_input_range.start + input_index);
+    }
+
+    // build body
+    {
+        // get current
+        COMP__current current = COMP__calculate__current_from_list_filled_index(&((*abstraction).statements));
+
+        // for each statement
+        while (COMP__check__current_within_range(current)) {
+            // get statement
+            COMP__generation_statement statement = *(COMP__generation_statement*)current.start;
+
+            // check type
+            if (statement.type == COMP__gst__instruction_call) {
+                if (statement.instruction_ID == ANVIL__it__stop) {
+                    ANVIL__code__stop(workspace);
+                } else if (statement.instruction_ID == ANVIL__it__write_cell) {
+                    ANVIL__code__write_cell(workspace, statement.write_register_value, statement.output_0);
+                } else if (statement.instruction_ID == ANVIL__it__operate) {
+                    ANVIL__code__operate(workspace, statement.do_flag, statement.operation, statement.input_0, statement.input_1, statement.input_2, statement.output_0);
+                } else if (statement.instruction_ID == ANVIL__it__request_memory) {
+                    ANVIL__code__request_memory(workspace, statement.input_0, statement.output_0, statement.output_1);
+                } else if (statement.instruction_ID == ANVIL__it__return_memory) {
+                    ANVIL__code__return_memory(workspace, statement.input_0, statement.input_1);
+                } else if (statement.instruction_ID == ANVIL__it__address_to_cell) {
+                    ANVIL__code__address_to_cell(workspace, statement.do_flag, statement.input_0, statement.input_1, statement.output_0);
+                } else if (statement.instruction_ID == ANVIL__it__cell_to_address) {
+                    ANVIL__code__cell_to_address(workspace, statement.do_flag, statement.input_0, statement.input_1, statement.output_0);
+                } else if (statement.instruction_ID == ANVIL__it__file_to_buffer) {
+                    ANVIL__code__file_to_buffer(workspace, statement.input_0, statement.input_1, statement.output_0, statement.output_1);
+                } else if (statement.instruction_ID == ANVIL__it__buffer_to_file) {
+                    ANVIL__code__buffer_to_file(workspace, statement.input_0, statement.input_1, statement.input_2, statement.input_3);
+                } else if (statement.instruction_ID == ANVIL__it__run) {
+                    ANVIL__code__run(workspace, statement.input_0, statement.input_1, statement.input_2);
+                } else if (statement.instruction_ID == ANVIL__it__debug__putchar) {
+                    ANVIL__code__debug__putchar(workspace, statement.input_0);
+                } else if (statement.instruction_ID == ANVIL__it__debug__print_cell_as_decimal) {
+                    ANVIL__code__debug__print_cell_as_decimal(workspace, statement.input_0);
+                } else if (statement.instruction_ID == ANVIL__it__debug__fgets) {
+                    ANVIL__code__debug__fgets(workspace, statement.output_0, statement.output_1);
+                } else if (statement.instruction_ID == ANVIL__sit__cell_to_cell) {
+                    ANVIL__code__cell_to_cell(workspace, statement.do_flag, statement.input_0, statement.output_0);
+                } else if (statement.instruction_ID == ANVIL__sit__push_cell) {
+                    ANVIL__code__push_cell(workspace, statement.do_flag, statement.input_0);
+                } else if (statement.instruction_ID == ANVIL__sit__pop_cell) {
+                    ANVIL__code__pop_cell(workspace, statement.do_flag, statement.output_0);
+                } else if (statement.instruction_ID == ANVIL__sit__calculate_dynamically__offset_address) {
+                    ANVIL__code__calculate_dynamically__offset_address(workspace, statement.do_flag, statement.input_0, statement.output_0);
+                } else if (statement.instruction_ID == ANVIL__sit__calculate_statically__offset_address) {
+                    // offset needs to be dereferenced! skipping for now
+                    // ANVIL__code__calculate_statically__offset_address(workspace, statement.do_flag, );
+                } else if (statement.instruction_ID == ANVIL__sit__jump__explicit) {
+                    ANVIL__code__jump__explicit(workspace, statement.do_flag, statement.input_0);
+                } else if (statement.instruction_ID == ANVIL__sit__jump__static) {
+                    //offset needs to be dereferenced! skipping for now
+                    //ANVIL__code__jump__static(workspace, statement.do_flag, );
+                } else if (statement.instruction_ID == ANVIL__sit__operate__flag) {
+                    ANVIL__code__operate__flag(workspace, statement.do_flag, statement.input_0, statement.input_1, statement.input_2, statement.invert_flag, statement.output_0);
+                } else if (statement.instruction_ID == ANVIL__sit__operate__jump__explicit) {
+                    ANVIL__code__operate__jump__explicit(workspace, statement.do_flag, statement.input_0, statement.input_1, statement.input_2, statement.invert_flag, statement.input_3);
+                } else if (statement.instruction_ID == ANVIL__sit__operate__jump__dynamic) {
+                    ANVIL__code__operate__jump__dynamic(workspace, statement.do_flag, statement.input_0, statement.input_1, statement.input_2, statement.invert_flag, statement.input_3);
+                } else if (statement.instruction_ID == ANVIL__sit__operate__jump__static) {
+                    // offset needs to be dereferenced! skipping for now
+                    //ANVIL__code__operate__jump__static(workspace, statement.do_flag, );
+                } else if (statement.instruction_ID == ANVIL__sit__setup__context) {
+                    ANVIL__code__setup__context(workspace, statement.input_0, statement.input_1, statement.output_0, statement.output_1);
+                } else {
+                    // set error
+                    *error = COMP__create__error(ANVIL__bt__true, ANVIL__open__buffer_from_string((u8*)"Internal Generation Error: Unsupported instruction type.", ANVIL__bt__true, ANVIL__bt__false), 0, 0, 0);
+
+                    return;
+                }
+            } else if (statement.type == COMP__gst__abstraction_call) {
+                // TODO
+            } else if (statement.type == COMP__gst__offset_declaration) {
+                // TODO
+            } else {
+                // set error
+                *error = COMP__create__error(ANVIL__bt__true, ANVIL__open__buffer_from_string((u8*)"Internal Generation Error: Unrecognized statement type.", ANVIL__bt__true, ANVIL__bt__false), 0, 0, 0);
+
+                return;
+            }
+
+            // next statement
+            current.start += sizeof(COMP__generation_statement);
+        }
+    }
+
+    // setup return offset
+    (*abstraction).offsets.function_return = ANVIL__get__offset(workspace);
+
+    // build outputs
+    for (ANVIL__cell_index output_index = 0; output_index < (*abstraction).cells.output_count; output_index++) {
+        // build input
+        ANVIL__code__cell_to_cell(workspace, ANVIL__sft__always_run, (*abstraction).cells.workspace_output_range.start + output_index, (*abstraction).cells.function_output_range.start + output_index);
+    }
+
+    // restore workspace
+    ANVIL__code__restore_workspace(workspace, ANVIL__sft__always_run, (*abstraction).cells.workspace_total_range.start, (*abstraction).cells.workspace_total_range.end);
+
+    // return to caller
+    ANVIL__code__jump__explicit(workspace, ANVIL__sft__always_run, ANVIL__srt__return_address);
+
+    // setup function data start
+    (*abstraction).offsets.function_data = ANVIL__get__offset(workspace);
+
+    // append buffers
+    // TODO
+
+    return;
+}
+
+// generate package
+void COMP__generate__anvil_package(ANVIL__workspace* workspace, ANVIL__stack_size stack_size, COMP__generation_abstraction* abstraction, COMP__error* error) {
+    // setup kickstarter
+    ANVIL__code__start(workspace, stack_size, (*abstraction).offsets.function_start);
+
+    // setup abstraction
+    COMP__generate__anvil_abstraction_body(workspace, abstraction, error);
+
+    return;
+}
+
+// generate program
+ANVIL__buffer COMP__generate_debug__anvil_program(COMP__generation_abstraction* abstraction, COMP__error* error) {
+    ANVIL__buffer output;
+    ANVIL__workspace workspace;
+    
+    // create workspace
+    workspace = ANVIL__setup__workspace(&output);
+
+    // create program
+    for (ANVIL__pt pass = ANVIL__pt__get_offsets; pass < ANVIL__pt__COUNT; pass++) {
+        // setup pass
+        ANVIL__setup__pass(&workspace, pass);
+
+        // build program
+        COMP__generate__anvil_package(&workspace, 1024, abstraction, error);
+    }
 
     return output;
 }
@@ -1371,7 +1656,6 @@ typedef struct COMP__compilation_unit {
     ANVIL__list user_codes;
     ANVIL__list lexling_buffers;
     ANVIL__list parsling_buffers;
-    COMP__accountling_skeleton accountling_skeleton;
 } COMP__compilation_unit;
 
 // close a compilation unit
@@ -1510,7 +1794,7 @@ void COMP__compile__files(ANVIL__list user_codes, ANVIL__bt print_debug, COMP__e
         }
 
         // parse file
-        COMP__parsling_program parslings = COMP__parse__program(lexlings, current_file_index, error);
+        COMP__parsling_program parslings = COMP__parse__program(lexlings, error);
 
         // append program
         COMP__append__parsling_program(&compilation_unit.parsling_buffers, parslings, &memory_error_occured);
@@ -1537,7 +1821,7 @@ void COMP__compile__files(ANVIL__list user_codes, ANVIL__bt print_debug, COMP__e
     }
 
     // account
-    compilation_unit.accountling_skeleton = COMP__account__parsling_programs(&compilation_unit.parsling_buffers, error);
+    // TODO
 
     // quit label
     quit:

@@ -127,7 +127,7 @@ void MAIN__test__built_in_compiler() {
         // accounting tests
         (ANVIL__u8*)"main()() = {\n\ttest()()\n}\ntest()() = {\n\n}",
         (ANVIL__u8*)"foo(a)(b) = {\n\tbar(a)(b b)\n}\nbar(a)(b c) = {\n\n}",
-        (ANVIL__u8*)"boo(a)(b) = {\n\tbar(a)(b b)\n}\nbar(a)(b c) = {\n\n}",
+        (ANVIL__u8*)"boo(a)(b) = {\n\tbar(a)(b b)\n}\ntar(a)(b c) = {\n\t@hello_world\n}",
     };
 
     // first test
@@ -237,6 +237,50 @@ void MAIN__test__built_in_compiler() {
     return;
 }
 
+// test code generator
+void MAIN__test__code_generator() {
+    ANVIL__context context;
+    ANVIL__buffer program;
+    ANVIL__allocations allocations;
+    ANVIL__bt allocations_memory_failure = ANVIL__bt__false;
+    COMP__generation_abstraction test_abstraction;
+    COMP__error error = COMP__create_null__error();
+
+    // setup abstraction
+    test_abstraction = COMP__setup__test_abstraction();
+
+    // build program
+    program = COMP__generate_debug__anvil_program(&test_abstraction, &error);
+
+    // setup context
+    context = ANVIL__setup__context(program);
+
+    // check if not built
+    if (program.start == 0) {
+        // inform user of failure
+        printf("Program not built in function: %s", __func__);
+
+        return;
+    }
+
+    allocations = ANVIL__open__allocations(&allocations_memory_failure);
+
+    // add program as an allocation
+    ANVIL__remember__allocation(&allocations, program, &allocations_memory_failure);
+
+    // if allocations were opened
+    if (allocations_memory_failure == ANVIL__bt__false) {
+        // run program
+        ANVIL__run__context(&allocations, &context, ANVIL__define__run_forever);
+    }
+
+    // clean up
+    ANVIL__close__allocations(&allocations);
+    ANVIL__close__buffer(program);
+
+    return;
+}
+
 // entry point
 int main() {
     // notify testing start
@@ -245,6 +289,7 @@ int main() {
     // perform tests
     MAIN__test__scratch();
     MAIN__test__built_in_compiler();
+    MAIN__test__code_generator();
 
     // exit
     return 0;
