@@ -337,6 +337,23 @@ int main(int argc, char** argv) {
         if (COMP__check__current_within_range(COMP__calculate__current_from_list_filled_index(&files)) == ANVIL__bt__true) {
             // run compiler
             COMP__compile__files(files, debug_mode, &error);
+
+            // if error
+            if (COMP__check__error_occured(&error)) {
+                // get message
+                ANVIL__buffer json = COMP__serialize__error_json(error, &memory_error_occured);
+                if (memory_error_occured) {
+                    printf("Failed to serialize json error, oops.\n");
+
+                    goto clean_up;
+                }
+
+                // print error
+                ANVIL__print__buffer(json);
+
+                // deallocate error message
+                ANVIL__close__buffer(json);
+            }
         // if no files
         } else {
             printf("Error, no file paths were passed.\n");
@@ -346,6 +363,11 @@ int main(int argc, char** argv) {
         clean_up:
         if (error.occured == ANVIL__bt__true) {
             COMP__close__error(error);
+        }
+        COMP__current current_file = COMP__calculate__current_from_list_filled_index(&files);
+        while (COMP__check__current_within_range(current_file)) {
+            ANVIL__close__buffer(*(ANVIL__buffer*)current_file.start);
+            current_file.start += sizeof(ANVIL__buffer);
         }
         ANVIL__close__list(files);
     // not enough args

@@ -343,49 +343,62 @@ COMP__lexlings COMP__compile__lex(ANVIL__buffer user_code, COMP__file_index file
 
     // lex program
     while (COMP__check__current_within_range(current)) {
-        // skip whitespace
-        if (COMP__calculate__valid_character_range(current, 0, 32)) {
-            // check for new line
-            if (COMP__calculate__valid_character_range(current, '\n', '\n') || COMP__calculate__valid_character_range(current, '\r', '\r')) {
-                // next line
-                current_line_number++;
-            }
-
-            // next character
-            current.start += sizeof(ANVIL__character);
-
-            // try next character
-            continue;
-        }
-
-        // skip comments
-        if (COMP__calculate__valid_character_range(current, '[', '[')) {
-            COMP__lexling_comment_depth depth = 1;
-
-            // skip past characters
-            while (COMP__check__current_within_range(current) && depth > 0) {
-                // check for opening comment
-                if (COMP__calculate__valid_character_range(current, '[', '[')) {
-                    // increase depth
-                    depth++;
-                }
-                // check for closing comment
-                if (COMP__calculate__valid_character_range(current, ']', ']')) {
-                    // decrease depth
-                    depth--;
+        // skip comments and whitespace
+        while (COMP__check__current_within_range(current) && (COMP__calculate__valid_character_range(current, 0, 32) || COMP__calculate__valid_character_range(current, '[', '['))) {
+            // skip whitespace
+            while (COMP__calculate__valid_character_range(current, 0, 32)) {
+                // check for new line
+                if (COMP__calculate__valid_character_range(current, '\n', '\n') || COMP__calculate__valid_character_range(current, '\r', '\r')) {
+                    // next line
+                    current_line_number++;
                 }
 
                 // next character
                 current.start += sizeof(ANVIL__character);
             }
 
-            // check for unfinished comment
-            if (depth > 0) {
-                // set error
-                *error = COMP__create__error(ANVIL__bt__true, ANVIL__open__buffer_from_string((u8*)"Lexing Error: Comment ended abruptly", ANVIL__bt__true, ANVIL__bt__false), file_index, current_line_number, COMP__calculate__character_index(user_code, current));
+            // skip comments
+            if (COMP__calculate__valid_character_range(current, '[', '[')) {
+                COMP__lexling_comment_depth depth = 1;
 
-                return output;
+                // next character
+                current.start += sizeof(ANVIL__character);
+
+                // skip past characters
+                while (COMP__check__current_within_range(current) && depth > 0) {
+                    // check for new line
+                    if (COMP__calculate__valid_character_range(current, '\n', '\n') || COMP__calculate__valid_character_range(current, '\r', '\r')) {
+                        // next line
+                        current_line_number++;
+                    }
+                    // check for opening comment
+                    if (COMP__calculate__valid_character_range(current, '[', '[')) {
+                        // increase depth
+                        depth++;
+                    }
+                    // check for closing comment
+                    if (COMP__calculate__valid_character_range(current, ']', ']')) {
+                        // decrease depth
+                        depth--;
+                    }
+
+                    // next character
+                    current.start += sizeof(ANVIL__character);
+                }
+
+                // check for unfinished comment
+                if (depth > 0) {
+                    // set error
+                    *error = COMP__create__error(ANVIL__bt__true, ANVIL__open__buffer_from_string((u8*)"Lexing Error: Comment ended abruptly.", ANVIL__bt__true, ANVIL__bt__false), file_index, current_line_number, COMP__calculate__character_index(user_code, current));
+
+                    return output;
+                }
             }
+        }
+
+        // check for out of range
+        if (COMP__check__current_within_range(current) == ANVIL__bt__false) {
+            return output;
         }
 
         // check for lexlings
@@ -419,7 +432,7 @@ COMP__lexlings COMP__compile__lex(ANVIL__buffer user_code, COMP__file_index file
             temp_end = temp_start - 1;
 
             // get lexling size
-            while (current.start < user_code.end && COMP__calculate__valid_name_character(current)) {
+            while (COMP__check__current_within_range(current) && COMP__calculate__valid_name_character(current)) {
                 // next character
                 current.start += sizeof(ANVIL__character);
                 temp_end += sizeof(ANVIL__character);
