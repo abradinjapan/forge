@@ -20,7 +20,7 @@ typedef ANVIL__address COMP__lexling_address;
 typedef COMP__lexling_address COMP__lexling_start;
 typedef COMP__lexling_address COMP__lexling_end;
 typedef ANVIL__u64 COMP__lexling_index;
-typedef ANVIL__u64 COMP__lexling_comment_depth;
+typedef ANVIL__u64 COMP__lexling_depth; // used for comments and strings
 
 // accounting types
 typedef ANVIL__u64 COMP__header_input_count;
@@ -203,6 +203,7 @@ typedef enum COMP__lt {
     COMP__lt__right_curly_bracket,
     COMP__lt__name,
     COMP__lt__at,
+    COMP__lt__hashtag,
     COMP__lt__equals,
     COMP__lt__string_literal,
     COMP__lt__COUNT,
@@ -346,7 +347,7 @@ COMP__lexlings COMP__compile__lex(ANVIL__buffer user_code, COMP__file_index file
         // skip comments and whitespace
         while (COMP__check__current_within_range(current) && (COMP__calculate__valid_character_range(current, 0, 32) || COMP__calculate__valid_character_range(current, '[', '['))) {
             // skip whitespace
-            while (COMP__calculate__valid_character_range(current, 0, 32)) {
+            while (COMP__check__current_within_range(current) && COMP__calculate__valid_character_range(current, 0, 32)) {
                 // check for new line
                 if (COMP__calculate__valid_character_range(current, '\n', '\n') || COMP__calculate__valid_character_range(current, '\r', '\r')) {
                     // next line
@@ -358,8 +359,8 @@ COMP__lexlings COMP__compile__lex(ANVIL__buffer user_code, COMP__file_index file
             }
 
             // skip comments
-            if (COMP__calculate__valid_character_range(current, '[', '[')) {
-                COMP__lexling_comment_depth depth = 1;
+            if (COMP__check__current_within_range(current) && COMP__calculate__valid_character_range(current, '[', '[')) {
+                COMP__lexling_depth depth = 1;
 
                 // next character
                 current.start += sizeof(ANVIL__character);
@@ -389,7 +390,7 @@ COMP__lexlings COMP__compile__lex(ANVIL__buffer user_code, COMP__file_index file
                 // check for unfinished comment
                 if (depth > 0) {
                     // set error
-                    *error = COMP__create__error(ANVIL__bt__true, ANVIL__open__buffer_from_string((u8*)"Lexing Error: Comment ended abruptly.", ANVIL__bt__true, ANVIL__bt__false), file_index, current_line_number, COMP__calculate__character_index(user_code, current));
+                    *error = COMP__create__error(ANVIL__bt__true, ANVIL__open__buffer_from_string((u8*)"Lexing Error: Comment ended with end of file instead of proper closing.", ANVIL__bt__true, ANVIL__bt__false), file_index, current_line_number, COMP__calculate__character_index(user_code, current));
 
                     return output;
                 }
@@ -446,9 +447,46 @@ COMP__lexlings COMP__compile__lex(ANVIL__buffer user_code, COMP__file_index file
 
             // next character
             current.start += sizeof(ANVIL__character);
+        } else if (COMP__calculate__valid_character_range(current, '#', '#')) {
+            // add lexling
+            COMP__append__lexling(&output, COMP__create__lexling(COMP__lt__hashtag, ANVIL__create__buffer(current.start, current.start), file_index, current_line_number, COMP__calculate__character_index(user_code, current)), &memory_error_occured);
+
+            // next character
+            current.start += sizeof(ANVIL__character);
         } else if (COMP__calculate__valid_character_range(current, '=', '=')) {
             // add lexling
             COMP__append__lexling(&output, COMP__create__lexling(COMP__lt__equals, ANVIL__create__buffer(current.start, current.start), file_index, current_line_number, COMP__calculate__character_index(user_code, current)), &memory_error_occured);
+
+            // next character
+            current.start += sizeof(ANVIL__character);
+        } else if (COMP__calculate__valid_character_range(current, '"', '"')) {
+            ANVIL__buffer data;
+
+            // get string start
+            data.start = current.start;
+
+            // advance current
+            current.start += sizeof(ANVIL__character);
+
+            // search for string end
+            while (COMP__check__current_within_range(current) && COMP__calculate__valid_character_range(current, '\"', '\"') == ANVIL__bt__false) {
+                // next character
+                current.start += sizeof(ANVIL__character);
+            }
+
+            // check for end of file
+            if (COMP__check__current_within_range(current) == ANVIL__bt__false) {
+                // string ended abruptly
+                *error = COMP__create__error(ANVIL__bt__true, ANVIL__open__buffer_from_string((u8*)"Lexical Error: String ended at the end of a file and not with a (\").", ANVIL__bt__true, ANVIL__bt__false), file_index, current_line_number, COMP__calculate__character_index(user_code, current));
+
+                return output;
+            }
+
+            // finish string data
+            data.end = current.start;
+
+            // append lexling
+            COMP__append__lexling(&output, COMP__create__lexling(COMP__lt__string_literal, data, file_index, current_line_number, COMP__calculate__character_index(user_code, current)), &memory_error_occured);
 
             // next character
             current.start += sizeof(ANVIL__character);
@@ -547,6 +585,19 @@ void COMP__append__name(ANVIL__list* list, COMP__name data, ANVIL__bt* memory_er
 }
 
 /* Parser */
+// parsing argument type
+typedef enum COMP__pat {
+    COMP__pat__invalid,
+    COMP__pat__variable,
+    COMP__pat__offset,
+    COMP__pat__flag,
+    COMP__pat__literal__boolean,
+    COMP__pat__literal__binary,
+    COMP__pat__literal__integer,
+    COMP__pat__literal__hexedecimal,
+    COMP__pat__literal__string,
+} COMP__pat;
+
 // statement type
 typedef enum COMP__st {
     COMP__st__abstraction_call,
@@ -713,11 +764,17 @@ void COMP__close__parsling_statements(ANVIL__list list) {
 // close abstraction
 void COMP__close__parsling_abstraction(COMP__parsling_abstraction abstraction) {
     // close io
-    ANVIL__close__list(abstraction.inputs);
-    ANVIL__close__list(abstraction.outputs);
+    if (ANVIL__check__empty_list(abstraction.inputs) == ANVIL__bt__false) {
+        ANVIL__close__list(abstraction.inputs);
+    }
+    if (ANVIL__check__empty_list(abstraction.outputs) == ANVIL__bt__false) {
+        ANVIL__close__list(abstraction.outputs);
+    }
     
     // close statements
-    COMP__close__parsling_statements(abstraction.statements);
+    if (ANVIL__check__empty_list(abstraction.statements) == ANVIL__bt__false) {
+        COMP__close__parsling_statements(abstraction.statements);
+    }
 
     return;
 }
@@ -755,6 +812,13 @@ COMP__name COMP__create__name_from_lexling_current(COMP__current lexling_current
 void COMP__advance__lexling_current(COMP__current* current, COMP__lexling_index lexling_count) {
     // advance the pointer
     (*current).start += sizeof(COMP__lexling) * lexling_count;
+
+    return;
+}
+
+// revert lexling current by N number of lexlings
+void COMP__revert__lexling_current(COMP__current* current, COMP__lexling_index lexling_count) {
+    (*current).start -= sizeof(COMP__lexling) * lexling_count;
 
     return;
 }
@@ -1073,47 +1137,56 @@ void COMP__print__parsed_abstraction(COMP__parsling_abstraction abstraction) {
 
     // print header
     printf("Abstraction: ");
-    ANVIL__print__buffer(abstraction.name.lexling.value);
+    if (ANVIL__check__empty_buffer(abstraction.name.lexling.value) == ANVIL__bt__false) {
+        ANVIL__print__buffer(abstraction.name.lexling.value);
+    }
 
     // print inputs
-    COMP__print__arguments(&(abstraction.inputs));
+    if (ANVIL__check__empty_list(abstraction.inputs) == ANVIL__bt__false) {
+        COMP__print__arguments(&(abstraction.inputs));
+    }
 
     // print outputs
-    COMP__print__arguments(&(abstraction.outputs));
+    if (ANVIL__check__empty_list(abstraction.outputs) == ANVIL__bt__false) {
+        COMP__print__arguments(&(abstraction.outputs));
+    }
 
     // print new line for statements
     printf("\n");
 
-    // print each statement
-    while (COMP__check__current_within_range(current_statement)) {
-        // get statement
-        temp_statement = *((COMP__parsling_statement*)current_statement.start);
+    // print statements
+    if (ANVIL__check__empty_list(abstraction.statements) == ANVIL__bt__false) {
+        // print each statement
+        while (COMP__check__current_within_range(current_statement)) {
+            // get statement
+            temp_statement = *((COMP__parsling_statement*)current_statement.start);
 
-        // print styling
-        printf("\t");
+            // print styling
+            printf("\t");
 
-        // print statement
-        if (temp_statement.type == COMP__st__offset) {
-            // print offset information
-            printf("@");
-            ANVIL__print__buffer(temp_statement.name.lexling.value);
-            printf("\n");
-        } else if (temp_statement.type == COMP__st__abstraction_call) {
             // print statement
-            ANVIL__print__buffer(temp_statement.name.lexling.value);
+            if (temp_statement.type == COMP__st__offset) {
+                // print offset information
+                printf("@");
+                ANVIL__print__buffer(temp_statement.name.lexling.value);
+                printf("\n");
+            } else if (temp_statement.type == COMP__st__abstraction_call) {
+                // print statement
+                ANVIL__print__buffer(temp_statement.name.lexling.value);
 
-            // print inputs
-            COMP__print__arguments(&temp_statement.inputs);
+                // print inputs
+                COMP__print__arguments(&temp_statement.inputs);
 
-            // print outputs
-            COMP__print__arguments(&temp_statement.outputs);
+                // print outputs
+                COMP__print__arguments(&temp_statement.outputs);
 
-            // print new line
-            printf("\n");
+                // print new line
+                printf("\n");
+            }
+
+            // advance current
+            current_statement.start += sizeof(COMP__parsling_statement);
         }
-
-        // advance current
-        current_statement.start += sizeof(COMP__parsling_statement);
     }
 
     return;

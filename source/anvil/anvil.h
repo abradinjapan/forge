@@ -584,6 +584,11 @@ ANVIL__buffer ANVIL__list__create_buffer_from_list(ANVIL__list* list, ANVIL__bt*
     return output;
 }
 
+// check if a list is uninitialized
+ANVIL__bt ANVIL__check__empty_list(ANVIL__list list) {
+    return ANVIL__check__empty_buffer(list.buffer);
+}
+
 /* Machine Specifications */
 // instruction parts
 typedef ANVIL__address ANVIL__cell;
