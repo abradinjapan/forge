@@ -144,6 +144,16 @@ ANVIL__bt ANVIL__calculate__buffer_contents_equal(ANVIL__buffer a, ANVIL__buffer
     return ANVIL__bt__true;
 }
 
+ANVIL__bt ANVIL__calculate__buffer_starts_with_buffer(ANVIL__buffer searching_in, ANVIL__buffer searching_for) {
+    // ensure search is larger than the buffer
+    if (ANVIL__calculate__buffer_length(searching_in) < ANVIL__calculate__buffer_length(searching_for)) {
+        // not bigger or equal, thus impossible to contain
+        return ANVIL__bt__false;
+    }
+
+    return ANVIL__calculate__buffer_contents_equal(searching_for, ANVIL__create__buffer(searching_in.start, searching_in.start + ANVIL__calculate__buffer_length(searching_for) - 1));
+}
+
 // calculate buffer contains range
 ANVIL__bt ANVIL__calculate__buffer_range_in_buffer_range_inclusive(ANVIL__buffer outside, ANVIL__buffer inside) {
     // return calculation

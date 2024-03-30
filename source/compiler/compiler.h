@@ -36,6 +36,7 @@ typedef ANVIL__u64 COMP__abstraction_index;
 // defines
 #define COMP__define__null_offset_ID -1
 #define COMP__define__null_user_defined_call_ID -1
+#define COMP__define__u64_max_base_10_conversion_character_limit 20
 
 // program stage type
 typedef enum COMP__pst {
@@ -50,6 +51,27 @@ typedef enum COMP__pst {
     // count
     COMP__pst__COUNT,
 } COMP__pst;
+
+/* Essentials */
+ANVIL__u64 COMP__calculate__exponent(ANVIL__u64 base, ANVIL__u64 exponent) {
+    ANVIL__u64 output = 1;
+
+    // if zero
+    if (exponent == 0) {
+        return output;
+    }
+
+    // calculate number
+    while (exponent > 0) {
+        // multiply
+        output *= base;
+
+        // next exponent
+        exponent--;
+    }
+
+    return output;
+}
 
 /* Translation */
 // calculate the amount of digits in a decimal number
@@ -191,6 +213,11 @@ ANVIL__bt COMP__check__current_within_range(ANVIL__buffer current) {
 // calculate a current buffer from a list // NOTE: buffer cannot be null or calculation fails!
 COMP__current COMP__calculate__current_from_list_filled_index(ANVIL__list* list) {
     return ANVIL__create__buffer((*list).buffer.start, (*list).buffer.start + (*list).filled_index - 1);
+}
+
+// check for a character at a current
+ANVIL__bt COMP__check__character_range_at_current(ANVIL__buffer current, ANVIL__character range_start, ANVIL__character range_end) {
+    return ((*(ANVIL__character*)current.start) >= range_start) && ((*(ANVIL__character*)current.start) <= range_end);
 }
 
 /* Lexer */
@@ -628,6 +655,157 @@ COMP__parsling_argument COMP__create__parsling_argument(COMP__pat type, COMP__na
     return output;
 }
 
+// translate string to boolean
+ANVIL__bt COMP__translate__string_to_boolean(ANVIL__buffer string, ANVIL__cell_integer_value* value) {
+    // check possible values
+    if (ANVIL__calculate__buffer_contents_equal(string, ANVIL__open__buffer_from_string((u8*)"frost.boolean.false", ANVIL__bt__false, ANVIL__bt__false)) == ANVIL__bt__true) {
+        *value = (ANVIL__cell_integer_value)(ANVIL__bt__false);
+
+        return ANVIL__bt__true;
+    }
+    if (ANVIL__calculate__buffer_contents_equal(string, ANVIL__open__buffer_from_string((u8*)"frost.boolean.true", ANVIL__bt__false, ANVIL__bt__false)) == ANVIL__bt__true) {
+        *value = (ANVIL__cell_integer_value)(ANVIL__bt__true);
+
+        return ANVIL__bt__true;
+    }
+
+    return ANVIL__bt__false;
+}
+
+// translate string to binary
+ANVIL__bt COMP__translate__string_to_binary(ANVIL__buffer string, ANVIL__cell_integer_value* value) {
+    ANVIL__buffer prefix = ANVIL__open__buffer_from_string((u8*)"frost.binary.", ANVIL__bt__false, ANVIL__bt__false);
+    ANVIL__buffer current;
+    ANVIL__u64 character_count_limit = sizeof(ANVIL__u64) * ANVIL__define__bits_in_byte;
+    ANVIL__u64 character_count = 0;
+
+    // check for prefix
+    if (ANVIL__calculate__buffer_starts_with_buffer(string, prefix) == ANVIL__bt__false) {
+        // not a binary literal
+        *value = ANVIL__define__null_address;
+
+        return ANVIL__bt__false;
+    }
+
+    // setup current
+    current = ANVIL__create__buffer(string.start + ANVIL__calculate__buffer_length(prefix), string.end);
+
+    // pre check for all valid characters
+    while (COMP__check__current_within_range(current)) {
+        // check character
+        if ((COMP__check__character_range_at_current(current, '0', '1') || COMP__check__character_range_at_current(current, '_', '_')) == ANVIL__bt__false) {
+            // not a binary literal
+            *value = ANVIL__define__null_address;
+
+            return ANVIL__bt__false;
+        }
+
+        // count binary character
+        if (COMP__check__character_range_at_current(current, '0', '1') == ANVIL__bt__true) {
+            character_count++;
+        }
+
+        // advance current
+        current.start += sizeof(ANVIL__character);
+    }
+
+    // check for sane character limit
+    if (character_count > character_count_limit) {
+        // binary literal to large, conversion failed
+        *value = ANVIL__define__null_address;
+
+        return ANVIL__bt__false;
+    }
+
+    // reset current
+    current = ANVIL__create__buffer(string.start + ANVIL__calculate__buffer_length(prefix), string.end);
+
+    // convert binary string to binary number
+    while (COMP__check__current_within_range(current)) {
+        if (COMP__check__character_range_at_current(current, '_', '_') == ANVIL__bt__false) {
+            // next value
+            *value <<= 1;
+
+            // append value
+            *value += ((*(ANVIL__character*)current.start) - '0');
+        }
+
+        // next character
+        current.start += sizeof(ANVIL__character);
+    }
+
+    return ANVIL__bt__true;
+}
+
+// translate string to integer
+ANVIL__bt COMP__translate__string_to_integer(ANVIL__buffer string, ANVIL__cell_integer_value* value) {
+    ANVIL__buffer prefix = ANVIL__open__buffer_from_string((u8*)"frost.integer.", ANVIL__bt__false, ANVIL__bt__false);
+    ANVIL__buffer suffix;
+    ANVIL__u64 digit = 0;
+
+    // check for prefix
+    if (ANVIL__calculate__buffer_starts_with_buffer(string, prefix) == ANVIL__bt__false) {
+        // not an integer literal
+        *value = ANVIL__define__null_address;
+
+        return ANVIL__bt__false;
+    }
+
+    // create suffix
+    suffix = ANVIL__create__buffer(string.start + ANVIL__calculate__buffer_length(prefix), string.end);
+
+    // translate number
+    // if number is negative
+    if (*(ANVIL__character*)suffix.start == (ANVIL__character)'n') {
+        // for each character
+        for (COMP__character_index i = ANVIL__calculate__buffer_length(suffix); i > 1; i--) {
+            // check for valid character
+            if (((((ANVIL__character*)suffix.start)[i - 1] >= '0' && ((ANVIL__character*)suffix.start)[i - 1] <= '9') || ((ANVIL__character*)suffix.start)[i - 1] == '_') == ANVIL__bt__false) {
+                // invalid character
+                *value = ANVIL__define__null_address;
+
+                return ANVIL__bt__false;
+            }
+
+            // if calculable character
+            if (((ANVIL__character*)suffix.start)[i - 1] != '_') {
+                // add value
+                *value += COMP__calculate__exponent(10, digit) * (((ANVIL__character*)suffix.start)[i - 1] - '0');
+
+                // next digit power
+                digit++;
+            }
+        }
+
+        // turn number negative using twos compliment
+        *value = ~(*value);
+        *value = (*value) + 1;
+    // if number is positive
+    } else {
+        // for each character
+        for (COMP__character_index i = ANVIL__calculate__buffer_length(suffix); i > 0; i--) {
+            // check for valid character
+            if (((((ANVIL__character*)suffix.start)[i - 1] >= '0' && ((ANVIL__character*)suffix.start)[i - 1] <= '9') || ((ANVIL__character*)suffix.start)[i - 1] == '_') == ANVIL__bt__false) {
+                // invalid character
+                *value = ANVIL__define__null_address;
+
+                return ANVIL__bt__false;
+            }
+
+            // if calculable character
+            if (((ANVIL__character*)suffix.start)[i - 1] != '_') {
+                // add value
+                *value += COMP__calculate__exponent(10, digit) * (((ANVIL__character*)suffix.start)[i - 1] - '0');
+
+                // next digit power
+                digit++;
+            }
+        }
+    }
+
+    return ANVIL__bt__true;
+}
+
 // setup null argument
 COMP__parsling_argument COMP__create_null__parsling_argument() {
     return COMP__create__parsling_argument(COMP__pat__invalid, COMP__create_null__name(), 0);
@@ -876,6 +1054,7 @@ void COMP__revert__lexling_current(COMP__current* current, COMP__lexling_index l
 ANVIL__list COMP__parse__arguments(COMP__current* current, COMP__error* error) {
     ANVIL__list output;
     ANVIL__bt memory_error_occured = ANVIL__bt__false;
+    ANVIL__cell_integer_value value = 0;
 
     // open names list
     output = ANVIL__open__list(sizeof(COMP__name) * 8, &memory_error_occured);
@@ -902,15 +1081,68 @@ ANVIL__list COMP__parse__arguments(COMP__current* current, COMP__error* error) {
 
     // get arguments
     while (COMP__check__current_within_range(*current) && COMP__read__lexling_from_current(*current).type != COMP__lt__right_parenthesis) {
-        /*// check type
+        COMP__parsling_argument argument = COMP__create_null__parsling_argument();
+
+        // check type
+        // is variable / literal
         if (COMP__read__lexling_from_current(*current).type == COMP__lt__name) {
-            // determine variable or integer type
-            
+            // determine value / is variable
+            if (COMP__translate__string_to_boolean(COMP__read__lexling_from_current(*current).value, &value)) {
+                argument = COMP__create__parsling_argument(COMP__pat__literal__boolean, COMP__create__name_from_lexling_current(*current), value);
+            } else if (COMP__translate__string_to_binary(COMP__read__lexling_from_current(*current).value, &value)) {
+                argument = COMP__create__parsling_argument(COMP__pat__literal__binary, COMP__create__name_from_lexling_current(*current), value);
+            } else if (COMP__translate__string_to_integer(COMP__read__lexling_from_current(*current).value, &value)) {
+                argument = COMP__create__parsling_argument(COMP__pat__literal__integer, COMP__create__name_from_lexling_current(*current), value);
+            } else {
+                // must be a variable
+                argument = COMP__create__parsling_argument(COMP__pat__variable, COMP__create__name_from_lexling_current(*current), 0);
+            }
+        // offset
+        } else if (COMP__read__lexling_from_current(*current).type == COMP__lt__at) {
+            // advance current past at
+            COMP__advance__lexling_current(current, 1);
+
+            // if correct type
+            if (COMP__read__lexling_from_current(*current).type == COMP__lt__name) {
+                // get name
+                argument = COMP__create__parsling_argument(COMP__pat__offset, COMP__create__name_from_lexling_current(*current), 0);
+            // error
+            } else {
+                *error = COMP__create__error(ANVIL__bt__true, ANVIL__open__buffer_from_string((u8*)"Parse Error: Offset is missing name.", ANVIL__bt__true, ANVIL__bt__false), COMP__read__lexling_from_current(*current).file_index, COMP__read__lexling_from_current(*current).line_number, COMP__read__lexling_from_current(*current).character_index);
+
+                return output;
+            }
+        // flag
+        } else if (COMP__read__lexling_from_current(*current).type == COMP__lt__hashtag) {
+            // advance current past hashtag
+            COMP__advance__lexling_current(current, 1);
+
+            // if correct type
+            if (COMP__read__lexling_from_current(*current).type == COMP__lt__name) {
+                // get name
+                argument = COMP__create__parsling_argument(COMP__pat__flag, COMP__create__name_from_lexling_current(*current), 0);
+            // error
+            } else {
+                *error = COMP__create__error(ANVIL__bt__true, ANVIL__open__buffer_from_string((u8*)"Parse Error: Flag is missing name.", ANVIL__bt__true, ANVIL__bt__false), COMP__read__lexling_from_current(*current).file_index, COMP__read__lexling_from_current(*current).line_number, COMP__read__lexling_from_current(*current).character_index);
+
+                return output;
+            }
+        // string literal
+        } else if (COMP__read__lexling_from_current(*current).type == COMP__lt__string_literal) {
+            // get argument
+            argument = COMP__create__parsling_argument(COMP__pat__literal__string, COMP__create__name_from_lexling_current(*current), 0);
+        // error
+        } else {
+            *error = COMP__create__error(ANVIL__bt__true, ANVIL__open__buffer_from_string((u8*)"Parse Error: Unrecognized argument type.", ANVIL__bt__true, ANVIL__bt__false), COMP__read__lexling_from_current(*current).file_index, COMP__read__lexling_from_current(*current).line_number, COMP__read__lexling_from_current(*current).character_index);
+
+            return output;
         }
 
-        // get argument
-        COMP__append__parsling_argument(&output, , &memory_error_occured);*/
-        COMP__append__name(&output, COMP__create__name_from_lexling_current(*current), &memory_error_occured);
+        // append argument
+        COMP__append__parsling_argument(&output, argument, &memory_error_occured);
+        
+        // old appending
+        // COMP__append__name(&output, COMP__create__name_from_lexling_current(*current), &memory_error_occured);
 
         // check for error
         if (memory_error_occured == ANVIL__bt__true) {
@@ -1172,6 +1404,38 @@ COMP__parsling_program COMP__parse__program(COMP__lexlings lexlings, COMP__error
     return output;
 }
 
+// print argument
+void COMP__print__argument(COMP__parsling_argument argument) {
+    if (argument.type == COMP__pat__variable) {
+        printf("[variable]");
+        ANVIL__print__buffer(argument.text.lexling.value);
+    } else if (argument.type == COMP__pat__offset) {
+        printf("@");
+        ANVIL__print__buffer(argument.text.lexling.value);
+    } else if (argument.type == COMP__pat__flag) {
+        printf("#");
+        ANVIL__print__buffer(argument.text.lexling.value);
+    } else if (argument.type == COMP__pat__literal__string) {
+        ANVIL__print__buffer(argument.text.lexling.value);
+    } else if (argument.type == COMP__pat__literal__boolean) {
+        printf("[boolean]");
+        ANVIL__print__buffer(argument.text.lexling.value);
+        printf("[%lu]", argument.value);
+    } else if (argument.type == COMP__pat__literal__binary) {
+        printf("[binary]");
+        ANVIL__print__buffer(argument.text.lexling.value);
+        printf("[%lu]", argument.value);
+    } else if (argument.type == COMP__pat__literal__integer) {
+        printf("integer]");
+        ANVIL__print__buffer(argument.text.lexling.value);
+        printf("[%lu, %li]", argument.value, argument.value);
+    } else {
+        printf("[invalid]");
+    }
+
+    return;
+}
+
 // print arguments
 void COMP__print__arguments(ANVIL__list* arguments) {
     COMP__current current = COMP__calculate__current_from_list_filled_index(arguments);
@@ -1187,11 +1451,11 @@ void COMP__print__arguments(ANVIL__list* arguments) {
             printf(" ");
         }
 
-        // print name
-        ANVIL__print__buffer((*(COMP__name*)current.start).lexling.value);
+        // print argument
+        COMP__print__argument(*(COMP__parsling_argument*)current.start);
 
         // next buffer
-        current.start += sizeof(COMP__name);
+        current.start += sizeof(COMP__parsling_argument);
     }
 
     // print closer
