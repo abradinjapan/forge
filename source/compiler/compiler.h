@@ -632,7 +632,7 @@ typedef enum COMP__pat {
     COMP__pat__literal__boolean,
     COMP__pat__literal__binary,
     COMP__pat__literal__integer,
-    COMP__pat__literal__hexedecimal,
+    COMP__pat__literal__hexadecimal,
     COMP__pat__literal__string,
 } COMP__pat;
 
@@ -801,6 +801,82 @@ ANVIL__bt COMP__translate__string_to_integer(ANVIL__buffer string, ANVIL__cell_i
                 digit++;
             }
         }
+    }
+
+    return ANVIL__bt__true;
+}
+
+// translate character to hexadecimal
+ANVIL__cell_integer_value COMP__translate__character_to_hexadecimal(ANVIL__character character, ANVIL__bt* invalid_character) {
+    // set character as valid
+    *invalid_character = ANVIL__bt__false;
+
+    // translate character
+    if (character >= '0' && character <= '9') {
+        return character - '0';
+    } else if (character >= 'a' && character <= 'f') {
+        return character - 'a' + 10;
+    } else if (character >= 'A' && character <= 'F') {
+        return character - 'A' + 10;
+    } else {
+        // invalid character
+        *invalid_character = ANVIL__bt__true;
+    }
+
+    return ANVIL__define__null_address;
+}
+
+// translate string to hexedecimal
+ANVIL__bt COMP__translate__string_to_hexedecimal(ANVIL__buffer string, ANVIL__cell_integer_value* value) {
+    ANVIL__buffer prefix = ANVIL__open__buffer_from_string((u8*)"frost.hexadecimal.", ANVIL__bt__false, ANVIL__bt__false);
+    ANVIL__buffer suffix;
+    ANVIL__buffer current;
+    ANVIL__bt invalid_character;
+    ANVIL__cell_integer_value hex_digit;
+
+    // check for prefix
+    if (ANVIL__calculate__buffer_starts_with_buffer(string, prefix) == ANVIL__bt__false) {
+        // not a hexadecimal literal
+        *value = ANVIL__define__null_address;
+
+        return ANVIL__bt__false;
+    }
+
+    // create suffix
+    suffix = ANVIL__create__buffer(string.start + ANVIL__calculate__buffer_length(prefix), string.end);
+
+    // create current
+    current = suffix;
+
+    // setup value
+    *value = ANVIL__define__null_address;
+
+    // translate number
+    while (COMP__check__current_within_range(current)) {
+        // check separator
+        if (*(ANVIL__character*)current.start == '_') {
+            // skip
+            current.start += sizeof(ANVIL__character);
+
+            continue;
+        }
+        
+        // check digit
+        hex_digit = COMP__translate__character_to_hexadecimal(*(ANVIL__character*)current.start, &invalid_character);
+        if (invalid_character == ANVIL__bt__true) {
+            // invalid digit, invalid hex string
+            *value = ANVIL__define__null_address;
+
+            return ANVIL__bt__false;
+        }
+
+        // append digit
+        *value = (*value) << 4;
+        *value = (*value) & (~15);
+        *value = (*value) + hex_digit;
+
+        // next character
+        current.start += sizeof(ANVIL__character);
     }
 
     return ANVIL__bt__true;
@@ -1093,6 +1169,8 @@ ANVIL__list COMP__parse__arguments(COMP__current* current, COMP__error* error) {
                 argument = COMP__create__parsling_argument(COMP__pat__literal__binary, COMP__create__name_from_lexling_current(*current), value);
             } else if (COMP__translate__string_to_integer(COMP__read__lexling_from_current(*current).value, &value)) {
                 argument = COMP__create__parsling_argument(COMP__pat__literal__integer, COMP__create__name_from_lexling_current(*current), value);
+            } else if (COMP__translate__string_to_hexedecimal(COMP__read__lexling_from_current(*current).value, &value)) {
+                argument = COMP__create__parsling_argument(COMP__pat__literal__hexadecimal, COMP__create__name_from_lexling_current(*current), value);
             } else {
                 // must be a variable
                 argument = COMP__create__parsling_argument(COMP__pat__variable, COMP__create__name_from_lexling_current(*current), 0);
@@ -1426,9 +1504,13 @@ void COMP__print__argument(COMP__parsling_argument argument) {
         ANVIL__print__buffer(argument.text.lexling.value);
         printf("[%lu]", argument.value);
     } else if (argument.type == COMP__pat__literal__integer) {
-        printf("integer]");
+        printf("[integer]");
         ANVIL__print__buffer(argument.text.lexling.value);
         printf("[%lu, %li]", argument.value, argument.value);
+    } else if (argument.type == COMP__pat__literal__hexadecimal) {
+        printf("[hexadecimal]");
+        ANVIL__print__buffer(argument.text.lexling.value);
+        printf("[%lu]", argument.value);
     } else {
         printf("[invalid]");
     }
