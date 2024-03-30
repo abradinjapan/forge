@@ -400,7 +400,7 @@ COMP__lexlings COMP__compile__lex(ANVIL__buffer user_code, COMP__file_index file
 
         // check for out of range
         if (COMP__check__current_within_range(current) == ANVIL__bt__false) {
-            return output;
+            goto quit;
         }
 
         // check for lexlings
@@ -509,6 +509,19 @@ COMP__lexlings COMP__compile__lex(ANVIL__buffer user_code, COMP__file_index file
             return output;
         }
     }
+
+    // quit
+    quit:
+
+    // append eof lexling
+    COMP__append__lexling(&output, COMP__create__lexling(COMP__lt__end_of_file, ANVIL__open__buffer_from_string((u8*)"[EOF]", ANVIL__bt__false, ANVIL__bt__false), file_index, current_line_number, COMP__calculate__character_index(user_code, current)), &memory_error_occured);
+    if (memory_error_occured == ANVIL__bt__true) {
+        // set error
+        *error = COMP__create__internal_memory_error();
+    }
+
+    // DEBUG
+    printf("Added EOF?\n");
 
     return output;
 }
@@ -892,14 +905,15 @@ ANVIL__list COMP__parse__arguments(COMP__current* current, COMP__error* error) {
 
     // get arguments
     while (COMP__check__current_within_range(*current) && COMP__read__lexling_from_current(*current).type != COMP__lt__right_parenthesis) {
-        // check type
+        /*// check type
         if (COMP__read__lexling_from_current(*current).type == COMP__lt__name) {
             // determine variable or integer type
             
         }
 
         // get argument
-        COMP__append__parsling_argument(&output, , &memory_error_occured);
+        COMP__append__parsling_argument(&output, , &memory_error_occured);*/
+        COMP__append__name(&output, COMP__create__name_from_lexling_current(*current), &memory_error_occured);
 
         // check for error
         if (memory_error_occured == ANVIL__bt__true) {
