@@ -520,9 +520,6 @@ COMP__lexlings COMP__compile__lex(ANVIL__buffer user_code, COMP__file_index file
         *error = COMP__create__internal_memory_error();
     }
 
-    // DEBUG
-    printf("Added EOF?\n");
-
     return output;
 }
 
@@ -1067,6 +1064,11 @@ ANVIL__list COMP__parse__scope(COMP__current* current, COMP__error* error) {
 COMP__parsling_abstraction COMP__parse__abstraction(COMP__current* current, COMP__error* error) {
     COMP__parsling_abstraction output = COMP__create_null__parsling_abstraction();
 
+    // check for eof
+    if (COMP__check__current_within_range(*current) && COMP__read__lexling_from_current(*current).type == COMP__lt__end_of_file) {
+        return output;
+    }
+
     // check for name
     if (COMP__check__current_within_range(*current) && COMP__read__lexling_from_current(*current).type == COMP__lt__name) {
         // get name
@@ -1141,11 +1143,17 @@ COMP__parsling_program COMP__parse__program(COMP__lexlings lexlings, COMP__error
         // set error
         *error = COMP__create__internal_memory_error();
 
-        return output;
+        goto quit;
     }
 
     // parse abstractions
     while (COMP__check__current_within_range(current)) {
+        // if end of file
+        if (COMP__read__lexling_from_current(current).type == COMP__lt__end_of_file) {
+            // finished parsing
+            goto quit;
+        }
+        
         // parse abstraction
         temp = COMP__parse__abstraction(&current, error);
 
@@ -1154,9 +1162,12 @@ COMP__parsling_program COMP__parse__program(COMP__lexlings lexlings, COMP__error
 
         // check for error
         if (COMP__check__error_occured(error) == ANVIL__bt__true) {
-            return output;
+            goto quit;
         }
     }
+
+    // quit
+    quit:
 
     return output;
 }
