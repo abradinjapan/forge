@@ -1218,9 +1218,6 @@ ANVIL__list COMP__parse__arguments(COMP__current* current, COMP__error* error) {
 
         // append argument
         COMP__append__parsling_argument(&output, argument, &memory_error_occured);
-        
-        // old appending
-        // COMP__append__name(&output, COMP__create__name_from_lexling_current(*current), &memory_error_occured);
 
         // check for error
         if (memory_error_occured == ANVIL__bt__true) {
