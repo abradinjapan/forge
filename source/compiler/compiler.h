@@ -393,7 +393,7 @@ COMP__lexlings COMP__compile__lex(ANVIL__buffer user_code, COMP__file_index file
                     // set error
                     *error = COMP__create__error(ANVIL__bt__true, ANVIL__open__buffer_from_string((u8*)"Lexing Error: Comment ended with end of file instead of proper closing.", ANVIL__bt__true, ANVIL__bt__false), file_index, current_line_number, COMP__calculate__character_index(user_code, current));
 
-                    return output;
+                    goto quit;
                 }
             }
         }
@@ -480,7 +480,7 @@ COMP__lexlings COMP__compile__lex(ANVIL__buffer user_code, COMP__file_index file
                 // string ended abruptly
                 *error = COMP__create__error(ANVIL__bt__true, ANVIL__open__buffer_from_string((u8*)"Lexical Error: String ended at the end of a file and not with a (\").", ANVIL__bt__true, ANVIL__bt__false), file_index, current_line_number, COMP__calculate__character_index(user_code, current));
 
-                return output;
+                goto quit;
             }
 
             // finish string data
@@ -497,7 +497,7 @@ COMP__lexlings COMP__compile__lex(ANVIL__buffer user_code, COMP__file_index file
             *error = COMP__create__error(ANVIL__bt__true, ANVIL__open__buffer_from_string((u8*)"Lexical Error: Invalid character.", ANVIL__bt__true, ANVIL__bt__false), file_index, current_line_number, COMP__calculate__character_index(user_code, current));
 
             // quit
-            return output;
+            goto quit;
         }
 
         // check for error
@@ -506,7 +506,7 @@ COMP__lexlings COMP__compile__lex(ANVIL__buffer user_code, COMP__file_index file
             *error = COMP__create__internal_memory_error();
 
             // return lexlings as they are
-            return output;
+            goto quit;
         }
     }
 
