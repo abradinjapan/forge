@@ -206,6 +206,7 @@ typedef enum COMP__lt {
     COMP__lt__hashtag,
     COMP__lt__equals,
     COMP__lt__string_literal,
+    COMP__lt__end_of_file,
     COMP__lt__COUNT,
 } COMP__lt;
 
@@ -598,6 +599,30 @@ typedef enum COMP__pat {
     COMP__pat__literal__string,
 } COMP__pat;
 
+// parsling argument
+typedef struct COMP__parsling_argument {
+    COMP__pat type;
+    COMP__name text;
+    ANVIL__cell_integer_value value;
+} COMP__parsling_argument;
+
+// create a custom argument
+COMP__parsling_argument COMP__create__parsling_argument(COMP__pat type, COMP__name text, ANVIL__cell_integer_value value) {
+    COMP__parsling_argument output;
+
+    // setup output
+    output.type = type;
+    output.text = text;
+    output.value = value;
+
+    return output;
+}
+
+// setup null argument
+COMP__parsling_argument COMP__create_null__parsling_argument() {
+    return COMP__create__parsling_argument(COMP__pat__invalid, COMP__create_null__name(), 0);
+}
+
 // statement type
 typedef enum COMP__st {
     COMP__st__abstraction_call,
@@ -689,6 +714,20 @@ COMP__parsling_program COMP__create__parsling_program(ANVIL__list abstractions) 
 COMP__parsling_program COMP__create_null__parsling_program() {
     // return empty
     return COMP__create__parsling_program(ANVIL__create_null__list());
+}
+
+// append parsling argument
+void COMP__append__parsling_argument(ANVIL__list* list, COMP__parsling_argument data, ANVIL__bt* memory_error_occured) {
+    // request space
+    ANVIL__list__request__space(list, sizeof(COMP__parsling_argument), memory_error_occured);
+
+    // append data
+    (*(COMP__parsling_argument*)ANVIL__calculate__list_current_address(list)) = data;
+
+    // increase fill
+    (*list).filled_index += sizeof(COMP__parsling_argument);
+
+    return;
 }
 
 // append parsling statement
@@ -852,9 +891,15 @@ ANVIL__list COMP__parse__arguments(COMP__current* current, COMP__error* error) {
     }
 
     // get arguments
-    while (COMP__check__current_within_range(*current) && COMP__read__lexling_from_current(*current).type == COMP__lt__name) {
+    while (COMP__check__current_within_range(*current) && COMP__read__lexling_from_current(*current).type != COMP__lt__right_parenthesis) {
+        // check type
+        if (COMP__read__lexling_from_current(*current).type == COMP__lt__name) {
+            // determine variable or integer type
+            
+        }
+
         // get argument
-        COMP__append__name(&output, COMP__create__name(COMP__read__lexling_from_current(*current)), &memory_error_occured);
+        COMP__append__parsling_argument(&output, , &memory_error_occured);
 
         // check for error
         if (memory_error_occured == ANVIL__bt__true) {
