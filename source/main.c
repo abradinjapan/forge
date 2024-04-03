@@ -316,7 +316,7 @@ int main(int argc, char** argv) {
             // check for blank file
             if (ANVIL__check__empty_buffer(file)) {
                 // file could no be opened
-                printf("Error, file \"%s\" could not be opened.\n", ANVIL__open__buffer_from_string((u8*)argv[current_argument], ANVIL__bt__false, ANVIL__bt__true));
+                printf("Error, file \"%s\" could not be opened.\n", (char*)ANVIL__open__buffer_from_string((u8*)argv[current_argument], ANVIL__bt__false, ANVIL__bt__true).start);
 
                 goto clean_up;
             }
