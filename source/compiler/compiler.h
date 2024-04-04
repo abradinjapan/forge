@@ -908,7 +908,7 @@ typedef struct COMP__parsling_statement {
     COMP__st type;
 
     // name
-    COMP__name name;
+    COMP__parsling_argument name;
 
     // abstraction call data
     ANVIL__list inputs; // COMP__parsling_argument
@@ -920,7 +920,7 @@ typedef struct COMP__parsling_statement {
 } COMP__parsling_statement;
 
 // create a custom statement
-COMP__parsling_statement COMP__create__parsling_statement(COMP__st type, COMP__name name, ANVIL__list inputs, ANVIL__list outputs, COMP__input_count input_count, COMP__output_count output_count) {
+COMP__parsling_statement COMP__create__parsling_statement(COMP__st type, COMP__parsling_argument name, ANVIL__list inputs, ANVIL__list outputs, COMP__input_count input_count, COMP__output_count output_count) {
     COMP__parsling_statement output;
 
     // setup output
@@ -937,7 +937,7 @@ COMP__parsling_statement COMP__create__parsling_statement(COMP__st type, COMP__n
 // create a null statement
 COMP__parsling_statement COMP__create_null__parsling_statement() {
     // return empty
-    return COMP__create__parsling_statement(COMP__st__invalid, COMP__create_null__name(), ANVIL__create_null__list(), ANVIL__create_null__list(), 0, 0);
+    return COMP__create__parsling_statement(COMP__st__invalid, COMP__create_null__parsling_argument(), ANVIL__create_null__list(), ANVIL__create_null__list(), 0, 0);
 }
 
 // one abstraction
@@ -1273,7 +1273,7 @@ COMP__parsling_statement COMP__parse__statement(COMP__current* current, ANVIL__b
         // check for offset name
         if (COMP__check__current_within_range(*current) && COMP__read__lexling_from_current(*current).type == COMP__lt__name) {
             // set name
-            output.name = COMP__create__name_from_lexling_current(*current);
+            output.name = COMP__create__parsling_argument(COMP__pat__offset, COMP__create__name_from_lexling_current(*current), 0);
 
             // advance current
             COMP__advance__lexling_current(current, 1);
@@ -1294,7 +1294,7 @@ COMP__parsling_statement COMP__parse__statement(COMP__current* current, ANVIL__b
     // is an abstraction call
     } else if (COMP__check__current_within_range(*current) && COMP__read__lexling_from_current(*current).type == COMP__lt__name) {
         // get name
-        output.name = COMP__create__name_from_lexling_current(*current);
+        output.name = COMP__create__parsling_argument(COMP__pat__offset, COMP__create__name_from_lexling_current(*current), 0);
 
         // advance current
         COMP__advance__lexling_current(current, 1);
@@ -1535,10 +1535,10 @@ void COMP__print__parsed_statement(COMP__parsling_statement statement) {
     if (statement.type == COMP__st__offset) {
         // print offset information
         printf("@");
-        ANVIL__print__buffer(statement.name.lexling.value);
+        ANVIL__print__buffer(statement.name.text.lexling.value);
     } else if (statement.type == COMP__st__abstraction_call || statement.type == COMP__st__abstraction_header) {
         // print statement
-        ANVIL__print__buffer(statement.name.lexling.value);
+        ANVIL__print__buffer(statement.name.text.lexling.value);
 
         // print inputs
         COMP__print__arguments(&statement.inputs);
@@ -1654,6 +1654,46 @@ typedef struct COMP__accountling_abstraction {
     ANVIL__list flags; // COMP__parsling_argument
 } COMP__accountling_abstraction;
 
+// create custom accountling abstraction
+COMP__accountling_abstraction COMP__create__accountling_abstraction(ANVIL__list variables, ANVIL__list offsets, ANVIL__list flags) {
+    COMP__accountling_abstraction output;
+
+    output.variables = variables;
+    output.offsets = offsets;
+    output.flags = flags;
+
+    return output;
+}
+
+// create null accountling abstraction
+COMP__accountling_abstraction COMP__create_null__accountling_abstraction() {
+    return COMP__create__accountling_abstraction(ANVIL__create_null__list(), ANVIL__create_null__list(), ANVIL__create_null__list());
+}
+
+// append accountling abstraction
+void COMP__append__accountling_abstraction(ANVIL__list* list, COMP__accountling_abstraction data, ANVIL__bt* memory_error_occured) {
+    // request space
+    ANVIL__list__request__space(list, sizeof(COMP__accountling_abstraction), memory_error_occured);
+
+    // append data
+    (*(COMP__accountling_abstraction*)ANVIL__calculate__list_current_address(list)) = data;
+
+    // increase fill
+    (*list).filled_index += sizeof(COMP__accountling_abstraction);
+
+    return;
+}
+
+// close accountling abstraction
+void COMP__close__accountling_abstraction(COMP__accountling_abstraction abstraction) {
+    // close lists
+    ANVIL__close__list(abstraction.variables);
+    ANVIL__close__list(abstraction.offsets);
+    ANVIL__close__list(abstraction.flags);
+
+    return;
+}
+
 // accountling blueprint type
 typedef enum COMP__abt {
     // start
@@ -1742,12 +1782,12 @@ ANVIL__bt COMP__check__accountling_header_exists(ANVIL__list call_blueprint, COM
         COMP__accountling_abstraction_header header = *(COMP__accountling_abstraction_header*)current_header.start;
 
         // check if abstraction matches
-        if(COMP__check__name_data_is_identical(header.header.name, searching_for.name)) {
+        if(COMP__check__name_data_is_identical(header.header.name.text, searching_for.name.text)) {
             // DEBUG
             printf("\t\tNames were identical: ");
-            ANVIL__print__buffer(header.header.name.lexling.value);
+            ANVIL__print__buffer(header.header.name.text.lexling.value);
             printf(" == ");
-            ANVIL__print__buffer(searching_for.name.lexling.value);
+            ANVIL__print__buffer(searching_for.name.text.lexling.value);
             printf("\n");
 
             // check if io is same size
@@ -1806,7 +1846,7 @@ ANVIL__bt COMP__check__accountling_header_exists(ANVIL__list call_blueprint, COM
 
             // DEBUG
             printf("\t\t\tMatch Found: ");
-            ANVIL__print__buffer(searching_for.name.lexling.value);
+            ANVIL__print__buffer(searching_for.name.text.lexling.value);
             printf("\n");
 
             // match!
@@ -1814,9 +1854,9 @@ ANVIL__bt COMP__check__accountling_header_exists(ANVIL__list call_blueprint, COM
         // DEBUG
         } else {
             printf("\t\tNames were not identical: ");
-            ANVIL__print__buffer(searching_for.name.lexling.value);
+            ANVIL__print__buffer(searching_for.name.text.lexling.value);
             printf(" != ");
-            ANVIL__print__buffer(header.header.name.lexling.value);
+            ANVIL__print__buffer(header.header.name.text.lexling.value);
             printf("\n");
         }
 
@@ -1894,7 +1934,7 @@ ANVIL__list COMP__generate__call_blueprint(ANVIL__list parsling_programs, COMP__
         current_blueprintling.start += sizeof(COMP__blueprintling);
 
         // set name
-        header.header.name = COMP__create__name(COMP__create__lexling(COMP__lt__name, ANVIL__open__buffer_from_string((ANVIL__u8*)names[*(COMP__blueprintling*)current_blueprintling.start], ANVIL__bt__false, ANVIL__bt__false), -1, -1, -1));
+        header.header.name = COMP__create__parsling_argument(COMP__pat__variable, COMP__create__name(COMP__create__lexling(COMP__lt__name, ANVIL__open__buffer_from_string((ANVIL__u8*)names[*(COMP__blueprintling*)current_blueprintling.start], ANVIL__bt__false, ANVIL__bt__false), -1, -1, -1)), 0);
         current_blueprintling.start += sizeof(COMP__blueprintling);
 
         // get input count
@@ -1955,7 +1995,7 @@ ANVIL__list COMP__generate__call_blueprint(ANVIL__list parsling_programs, COMP__
             // check to see if header already exists
             if (COMP__check__accountling_header_exists(output, header.header) == ANVIL__bt__true) {
                 // setup error
-                *error = COMP__create__error(ANVIL__bt__true, ANVIL__open__buffer_from_string((u8*)"Accounting Error: An abstraction is already defined.", ANVIL__bt__true, ANVIL__bt__false), header.header.name.lexling.file_index, header.header.name.lexling.line_number, header.header.name.lexling.character_index);
+                *error = COMP__create__error(ANVIL__bt__true, ANVIL__open__buffer_from_string((u8*)"Accounting Error: An abstraction is already defined.", ANVIL__bt__true, ANVIL__bt__false), header.header.name.text.lexling.file_index, header.header.name.text.lexling.line_number, header.header.name.text.lexling.character_index);
             }
 
             // check for error
@@ -2007,7 +2047,7 @@ void COMP__account__verify_all_calls(ANVIL__list parsling_programs, ANVIL__list 
                     // verify header exists
                     if (COMP__check__accountling_header_exists(call_blueprint, searching_for) == ANVIL__bt__false) {
                         // does not exist
-                        *error = COMP__create__error(ANVIL__bt__true, ANVIL__open__buffer_from_string((u8*)"Accounting Error: A statement calls a non-existent abstraction / instruction.", ANVIL__bt__true, ANVIL__bt__false), searching_for.name.lexling.file_index, searching_for.name.lexling.line_number, searching_for.name.lexling.character_index);
+                        *error = COMP__create__error(ANVIL__bt__true, ANVIL__open__buffer_from_string((u8*)"Accounting Error: A statement calls a non-existent abstraction / instruction.", ANVIL__bt__true, ANVIL__bt__false), searching_for.name.text.lexling.file_index, searching_for.name.text.lexling.line_number, searching_for.name.text.lexling.character_index);
 
                         return;
                     }
@@ -2029,9 +2069,124 @@ void COMP__account__verify_all_calls(ANVIL__list parsling_programs, ANVIL__list 
     return;
 }
 
+// accountling program
+typedef struct COMP__accountling_program {
+    ANVIL__list call_blueprint; // COMP__accountling_abstraction_header
+    ANVIL__list abstractions; // COMP__accountling_abstraction
+} COMP__accountling_program;
+
+// create custom accountling program
+COMP__accountling_program COMP__create__accountling_program(ANVIL__list call_blueprint, ANVIL__list abstractions) {
+    COMP__accountling_program output;
+
+    output.call_blueprint = call_blueprint;
+    output.abstractions = abstractions;
+
+    return output;
+}
+
+// create null accountling program
+COMP__accountling_program COMP__create_null__accountling_program() {
+    return COMP__create__accountling_program(ANVIL__create_null__list(), ANVIL__create_null__list());
+}
+
+// close accountling program
+void COMP__close__accountling_program(COMP__accountling_program program) {
+    // close predefined blueprints
+    // get current
+    COMP__current current_header = COMP__calculate__current_from_list_filled_index(&program.call_blueprint);
+
+    // close all predefined blueprints
+    while (COMP__check__current_within_range(current_header)) {
+        // get header
+        COMP__accountling_abstraction_header header = *(COMP__accountling_abstraction_header*)current_header.start;
+
+        // if a predefined header
+        if (header.call_ID < COMP__act__user_defined) {
+            // close header
+            COMP__close__accountling_abstraction_header(header);
+        }
+
+        // next header
+        current_header.start += sizeof(COMP__accountling_abstraction_header);
+    }
+
+    // close blueprint list
+    ANVIL__close__list(program.call_blueprint);
+
+    // close abstractions
+    // get current
+    COMP__current current_abstraction = COMP__calculate__current_from_list_filled_index(&program.abstractions);
+
+    // close each abstraction
+    while (COMP__check__current_within_range(current_abstraction)) {
+        COMP__close__accountling_abstraction(*(COMP__accountling_abstraction*)current_abstraction.start);
+
+        // next abstraction
+        current_abstraction.start += sizeof(COMP__accountling_abstraction);
+    }
+
+    // close abstraction list
+    ANVIL__close__list(program.abstractions);
+
+    return;
+}
+
 // account an abstraction
 COMP__accountling_abstraction COMP__account__abstraction(COMP__parsling_abstraction parsling_abstraction, COMP__error* error) {
-    printf("\tAccounting abstraction!\n");
+    COMP__accountling_abstraction output = COMP__create_null__accountling_abstraction();
+    ANVIL__bt memory_error_occured = ANVIL__bt__false;
+
+    // get variables
+    {
+        // open list
+        output.variables = ANVIL__open__list(sizeof(COMP__parsling_argument) * 16, &memory_error_occured);
+        if (memory_error_occured == ANVIL__bt__true) {
+            *error = COMP__create__internal_memory_error();
+
+            return output;
+        }
+
+        // setup current
+
+
+        // search for variables
+    }
+
+    // get offsets
+    {
+        // open list
+        output.offsets = ANVIL__open__list(sizeof(COMP__parsling_argument) * 16, &memory_error_occured);
+        if (memory_error_occured == ANVIL__bt__true) {
+            *error = COMP__create__internal_memory_error();
+
+            return output;
+        }
+
+        // setup current
+        COMP__current current_statement = COMP__calculate__current_from_list_filled_index(&parsling_abstraction.statements);
+
+        // each statement
+        while (COMP__check__current_within_range(current_statement)) {
+            COMP__parsling_statement statement = *(COMP__parsling_statement*)current_statement.start;
+
+            // if a statement offset
+            if (statement.type == COMP__st__offset) {
+                // append offset declaration
+                COMP__append__parsling_argument(&output.offsets, statement.name, &memory_error_occured);
+                if (memory_error_occured == ANVIL__bt__true) {
+                    *error = COMP__create__internal_memory_error();
+
+                    return output;
+                }
+            }
+
+            // next statement
+            current_statement.start += sizeof(COMP__parsling_statement);
+        }
+    }
+
+    return output;
 }
 
 // close blueprint
@@ -2094,12 +2249,15 @@ void COMP__print__call_blueprint(ANVIL__list blueprint) {
 }
 
 // account program
-void COMP__account__program(ANVIL__list parsling_programs, COMP__error* error) {
+COMP__accountling_program COMP__account__program(ANVIL__list parsling_programs, COMP__error* error) {
+    COMP__accountling_program output = COMP__create_null__accountling_program();
+    ANVIL__bt memory_error_occured = ANVIL__bt__false;
+
     // create headers
-    ANVIL__list call_blueprint = COMP__generate__call_blueprint(parsling_programs, error);
+    output.call_blueprint = COMP__generate__call_blueprint(parsling_programs, error);
 
     // print headers
-    COMP__print__call_blueprint(call_blueprint);
+    COMP__print__call_blueprint(output.call_blueprint);
 
     // check for error
     if (COMP__check__error_occured(error)) {
@@ -2107,8 +2265,16 @@ void COMP__account__program(ANVIL__list parsling_programs, COMP__error* error) {
     }
 
     // verify statments in all user defined abstractions
-    COMP__account__verify_all_calls(parsling_programs, call_blueprint, error);
+    COMP__account__verify_all_calls(parsling_programs, output.call_blueprint, error);
     if (COMP__check__error_occured(error)) {
+        goto clean_up;
+    }
+
+    // allocate accountling abstraction list
+    output.abstractions = ANVIL__open__list(sizeof(COMP__accountling_program) * 16, &memory_error_occured);
+    if (memory_error_occured == ANVIL__bt__true) {
+        *error = COMP__create__internal_memory_error();
+
         goto clean_up;
     }
 
@@ -2116,20 +2282,28 @@ void COMP__account__program(ANVIL__list parsling_programs, COMP__error* error) {
     COMP__current current_parsling_program = COMP__calculate__current_from_list_filled_index(&parsling_programs);
 
     // get program
-    COMP__parsling_program program = *(COMP__parsling_program*)current_parsling_program.start;
+    COMP__parsling_program parsling_program = *(COMP__parsling_program*)current_parsling_program.start;
 
     // account all programs
     while (COMP__check__current_within_range(current_parsling_program)) {
         // setup current
-        COMP__current current_parsling_abstraction = COMP__calculate__current_from_list_filled_index(&program.abstractions);
+        COMP__current current_parsling_abstraction = COMP__calculate__current_from_list_filled_index(&parsling_program.abstractions);
 
         // account all abstractions in program
         while (COMP__check__current_within_range(current_parsling_abstraction)) {
             // get parsling abstraction
             COMP__parsling_abstraction parsling_abstraction = *(COMP__parsling_abstraction*)current_parsling_abstraction.start;
 
-            // account one abstraction
+            // account the parsling abstraction
             COMP__accountling_abstraction accountling_abstraction = COMP__account__abstraction(parsling_abstraction, error);
+
+            // append abstraction
+            COMP__append__accountling_abstraction(&output.abstractions, accountling_abstraction, &memory_error_occured);
+            if (memory_error_occured == ANVIL__bt__true) {
+                *error = COMP__create__internal_memory_error();
+
+                goto clean_up;
+            }
 
             // check error
             if (COMP__check__error_occured(error) == ANVIL__bt__true) {
@@ -2144,11 +2318,10 @@ void COMP__account__program(ANVIL__list parsling_programs, COMP__error* error) {
         current_parsling_program.start += sizeof(COMP__parsling_program);
     }
 
-    // clean up
+    // clean up & return
     clean_up:
-    COMP__close__accountling_call_blueprint(call_blueprint);
 
-    return;
+    return output;
 }
 
 /* Generation */
@@ -2592,6 +2765,7 @@ typedef struct COMP__compilation_unit {
     ANVIL__list user_codes;
     ANVIL__list lexling_buffers;
     ANVIL__list parsling_buffers;
+    COMP__accountling_program accountlings;
 } COMP__compilation_unit;
 
 // close a compilation unit
@@ -2634,6 +2808,9 @@ void COMP__close__compilation_unit(COMP__compilation_unit unit) {
         // close parslings buffer
         ANVIL__close__list(unit.parsling_buffers);
     }
+
+    // close accountling data
+    COMP__close__accountling_program(unit.accountlings);
 
     return;
 }
@@ -2754,7 +2931,7 @@ void COMP__compile__files(ANVIL__list user_codes, ANVIL__bt print_debug, COMP__e
     }
 
     // account
-    COMP__account__program(compilation_unit.parsling_buffers, error);
+    compilation_unit.accountlings = COMP__account__program(compilation_unit.parsling_buffers, error);
 
     // quit label
     quit:
