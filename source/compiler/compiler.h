@@ -1649,7 +1649,9 @@ void COMP__close__accountling_abstraction_header(COMP__accountling_abstraction_h
 
 // accountling abstraction
 typedef struct COMP__accountling_abstraction {
-    ANVIL__list variables;
+    ANVIL__list variables; // COMP__parsling_argument
+    ANVIL__list offsets; // COMP__parsling_argument
+    ANVIL__list flags; // COMP__parsling_argument
 } COMP__accountling_abstraction;
 
 // accountling blueprint type
@@ -1726,6 +1728,105 @@ COMP__accountling_abstraction_header COMP__account__get_abstraction_header(COMP_
     }
 
     return output;
+}
+
+// check if an accountling already exists
+ANVIL__bt COMP__check__accountling_header_exists(ANVIL__list call_blueprint, COMP__parsling_statement searching_for) {
+    // search the blueprint for the correct header
+    // setup current
+    COMP__current current_header = COMP__calculate__current_from_list_filled_index(&call_blueprint);
+
+    // search for match
+    while (COMP__check__current_within_range(current_header)) {
+        // get current header
+        COMP__accountling_abstraction_header header = *(COMP__accountling_abstraction_header*)current_header.start;
+
+        // check if abstraction matches
+        if(COMP__check__name_data_is_identical(header.header.name, searching_for.name)) {
+            // DEBUG
+            printf("\t\tNames were identical: ");
+            ANVIL__print__buffer(header.header.name.lexling.value);
+            printf(" == ");
+            ANVIL__print__buffer(searching_for.name.lexling.value);
+            printf("\n");
+
+            // check if io is same size
+            if ((ANVIL__calculate__lists_have_same_fill_size(&searching_for.inputs, &header.header.inputs) && ANVIL__calculate__lists_have_same_fill_size(&searching_for.outputs, &header.header.outputs)) == ANVIL__bt__false) {
+                // DEBUG
+                printf("\t\t\tIO lengths do not match. [ %lu, %lu ][ %lu, %lu ]\n", searching_for.inputs.filled_index, searching_for.outputs.filled_index, header.header.inputs.filled_index, header.header.outputs.filled_index);
+
+                goto next_header;
+            }
+
+            // setup currents for input
+            COMP__current current_statement_io = COMP__calculate__current_from_list_filled_index(&searching_for.inputs);
+            COMP__current current_header_io = COMP__calculate__current_from_list_filled_index(&header.header.inputs);
+
+            // if inputs are not empty
+            if (ANVIL__check__empty_buffer(current_statement_io) == ANVIL__bt__false) {
+                // check inputs
+                while (COMP__check__current_within_range(current_statement_io) && COMP__check__current_within_range(current_header_io)) {
+                    // check types
+                    if ((*(COMP__parsling_argument*)current_statement_io.start).type != (*(COMP__parsling_argument*)current_header_io.start).type) {
+                        // DEBUG
+                        printf("\t\tInputs did not match.\n");
+
+                        // not a match
+                        goto next_header;
+                    }
+
+                    // next input
+                    current_statement_io.start += sizeof(COMP__parsling_argument);
+                    current_header_io.start += sizeof(COMP__parsling_argument);
+                }
+            }
+
+            // re-setup currents
+            current_statement_io = COMP__calculate__current_from_list_filled_index(&searching_for.outputs);
+            current_header_io = COMP__calculate__current_from_list_filled_index(&header.header.outputs);
+
+            // if outputs are not empty
+            if (ANVIL__check__empty_buffer(current_statement_io) == ANVIL__bt__false) {
+                // check outputs
+                while (COMP__check__current_within_range(current_statement_io) && COMP__check__current_within_range(current_header_io)) {
+                    // check types
+                    if ((*(COMP__parsling_argument*)current_statement_io.start).type != (*(COMP__parsling_argument*)current_header_io.start).type) {
+                        // DEBUG
+                        printf("\t\tOutputs did not match.\n");
+
+                        // not a match
+                        goto next_header;
+                    }
+
+                    // next input
+                    current_statement_io.start += sizeof(COMP__parsling_argument);
+                    current_header_io.start += sizeof(COMP__parsling_argument);
+                }
+            }
+
+            // DEBUG
+            printf("\t\t\tMatch Found: ");
+            ANVIL__print__buffer(searching_for.name.lexling.value);
+            printf("\n");
+
+            // match!
+            return ANVIL__bt__true;
+        // DEBUG
+        } else {
+            printf("\t\tNames were not identical: ");
+            ANVIL__print__buffer(searching_for.name.lexling.value);
+            printf(" != ");
+            ANVIL__print__buffer(header.header.name.lexling.value);
+            printf("\n");
+        }
+
+        // next header
+        next_header:
+        current_header.start += sizeof(COMP__accountling_abstraction_header);
+    }
+
+    // match not found
+    return ANVIL__bt__false;
 }
 
 // create call blueprint
@@ -1851,6 +1952,12 @@ ANVIL__list COMP__generate__call_blueprint(ANVIL__list parsling_programs, COMP__
             // get abstraction header
             COMP__accountling_abstraction_header header = COMP__account__get_abstraction_header(*(COMP__parsling_abstraction*)current_abstraction.start, error);
 
+            // check to see if header already exists
+            if (COMP__check__accountling_header_exists(output, header.header) == ANVIL__bt__true) {
+                // setup error
+                *error = COMP__create__error(ANVIL__bt__true, ANVIL__open__buffer_from_string((u8*)"Accounting Error: An abstraction is already defined.", ANVIL__bt__true, ANVIL__bt__false), header.header.name.lexling.file_index, header.header.name.lexling.line_number, header.header.name.lexling.character_index);
+            }
+
             // check for error
             if (COMP__check__error_occured(error)) {
                 return output;
@@ -1873,109 +1980,6 @@ ANVIL__list COMP__generate__call_blueprint(ANVIL__list parsling_programs, COMP__
     }
 
     return output;
-}
-
-ANVIL__bt COMP__check__accountling_header_exists(ANVIL__list call_blueprint, COMP__parsling_statement searching_for) {
-    // search the blueprint for the correct header
-    // setup current
-    COMP__current current_header = COMP__calculate__current_from_list_filled_index(&call_blueprint);
-
-    // search for match
-    while (COMP__check__current_within_range(current_header)) {
-        // get current header
-        COMP__accountling_abstraction_header header = *(COMP__accountling_abstraction_header*)current_header.start;
-
-        // check statement type and names
-        if (searching_for.type == COMP__st__abstraction_call) {
-            if(COMP__check__name_data_is_identical(header.header.name, searching_for.name)) {
-                // DEBUG
-                printf("\t\tNames were identical: ");
-                ANVIL__print__buffer(header.header.name.lexling.value);
-                printf(" == ");
-                ANVIL__print__buffer(searching_for.name.lexling.value);
-                printf("\n");
-
-                // check if io is same size
-                if ((ANVIL__calculate__lists_have_same_fill_size(&searching_for.inputs, &header.header.inputs) && ANVIL__calculate__lists_have_same_fill_size(&searching_for.outputs, &header.header.outputs)) == ANVIL__bt__false) {
-                    // DEBUG
-                    printf("\t\t\tIO lengths do not match. [ %lu, %lu ][ %lu, %lu ]\n", searching_for.inputs.filled_index, searching_for.outputs.filled_index, header.header.inputs.filled_index, header.header.outputs.filled_index);
-
-                    goto next_header;
-                }
-
-                // setup currents for input
-                COMP__current current_statement_io = COMP__calculate__current_from_list_filled_index(&searching_for.inputs);
-                COMP__current current_header_io = COMP__calculate__current_from_list_filled_index(&header.header.inputs);
-
-                // if inputs are not empty
-                if (ANVIL__check__empty_buffer(current_statement_io) == ANVIL__bt__false) {
-                    // check inputs
-                    while (COMP__check__current_within_range(current_statement_io) && COMP__check__current_within_range(current_header_io)) {
-                        // check types
-                        if ((*(COMP__parsling_argument*)current_statement_io.start).type != (*(COMP__parsling_argument*)current_header_io.start).type) {
-                            // DEBUG
-                            printf("\t\tInputs did not match.\n");
-
-                            // not a match
-                            goto next_header;
-                        }
-
-                        // next input
-                        current_statement_io.start += sizeof(COMP__parsling_argument);
-                        current_header_io.start += sizeof(COMP__parsling_argument);
-                    }
-                }
-
-                // re-setup currents
-                current_statement_io = COMP__calculate__current_from_list_filled_index(&searching_for.outputs);
-                current_header_io = COMP__calculate__current_from_list_filled_index(&header.header.outputs);
-
-                // if outputs are not empty
-                if (ANVIL__check__empty_buffer(current_statement_io) == ANVIL__bt__false) {
-                    // check outputs
-                    while (COMP__check__current_within_range(current_statement_io) && COMP__check__current_within_range(current_header_io)) {
-                        // check types
-                        if ((*(COMP__parsling_argument*)current_statement_io.start).type != (*(COMP__parsling_argument*)current_header_io.start).type) {
-                            // DEBUG
-                            printf("\t\tOutputs did not match.\n");
-
-                            // not a match
-                            goto next_header;
-                        }
-
-                        // next input
-                        current_statement_io.start += sizeof(COMP__parsling_argument);
-                        current_header_io.start += sizeof(COMP__parsling_argument);
-                    }
-                }
-
-                // DEBUG
-                printf("\t\t\tMatch Found: ");
-                ANVIL__print__buffer(searching_for.name.lexling.value);
-                printf("\n");
-
-                // match!
-                return ANVIL__bt__true;
-            // DEBUG
-            } else {
-                printf("\t\tNames were not identical: ");
-                ANVIL__print__buffer(searching_for.name.lexling.value);
-                printf(" != ");
-                ANVIL__print__buffer(header.header.name.lexling.value);
-                printf("\n");
-            }
-        // DEBUG
-        } else {
-            printf("\t\tStatement was not a call.\n");
-        }
-
-        // next header
-        next_header:
-        current_header.start += sizeof(COMP__accountling_abstraction_header);
-    }
-
-    // match not found
-    return ANVIL__bt__false;
 }
 
 // verify all statements across all files
@@ -2023,6 +2027,11 @@ void COMP__account__verify_all_calls(ANVIL__list parsling_programs, ANVIL__list 
 
     // no errors, valid
     return;
+}
+
+// account an abstraction
+COMP__accountling_abstraction COMP__account__abstraction(COMP__parsling_abstraction parsling_abstraction, COMP__error* error) {
+    printf("\tAccounting abstraction!\n");
 }
 
 // close blueprint
@@ -2092,14 +2101,16 @@ void COMP__account__program(ANVIL__list parsling_programs, COMP__error* error) {
     // print headers
     COMP__print__call_blueprint(call_blueprint);
 
+    // check for error
+    if (COMP__check__error_occured(error)) {
+        goto clean_up;
+    }
+
     // verify statments in all user defined abstractions
     COMP__account__verify_all_calls(parsling_programs, call_blueprint, error);
     if (COMP__check__error_occured(error)) {
         goto clean_up;
     }
-
-    // DEBUG
-    goto clean_up;
 
     // setup current
     COMP__current current_parsling_program = COMP__calculate__current_from_list_filled_index(&parsling_programs);
@@ -2118,7 +2129,7 @@ void COMP__account__program(ANVIL__list parsling_programs, COMP__error* error) {
             COMP__parsling_abstraction parsling_abstraction = *(COMP__parsling_abstraction*)current_parsling_abstraction.start;
 
             // account one abstraction
-            //COMP__accountling_abstraction accountling_abstraction = COMP__account__abstraction();
+            COMP__accountling_abstraction accountling_abstraction = COMP__account__abstraction(parsling_abstraction, error);
 
             // check error
             if (COMP__check__error_occured(error) == ANVIL__bt__true) {
@@ -2141,7 +2152,7 @@ void COMP__account__program(ANVIL__list parsling_programs, COMP__error* error) {
 }
 
 /* Generation */
-// generation offsets
+/*// generation offsets
 typedef struct COMP__generation_offsets {
     ANVIL__offset function_start; // the first instruction in the function
     ANVIL__offset function_return; // the first instruction passing output
@@ -2573,7 +2584,7 @@ ANVIL__buffer COMP__generate_debug__anvil_program(COMP__generation_abstraction* 
     }
 
     return output;
-}
+}*/
 
 /* Compile */
 // one compiled object across multiple stages

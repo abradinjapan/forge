@@ -237,7 +237,7 @@ void MAIN__test__built_in_compiler() {
     return;
 }*/
 
-// test code generator
+/*// test code generator
 void MAIN__test__code_generator() {
     ANVIL__context context;
     ANVIL__buffer program;
@@ -279,7 +279,7 @@ void MAIN__test__code_generator() {
     ANVIL__close__buffer(program);
 
     return;
-}
+}*/
 
 // entry point
 int main(int argc, char** argv) {
