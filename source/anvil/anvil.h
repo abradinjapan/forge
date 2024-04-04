@@ -2117,6 +2117,7 @@ typedef enum ANVIL__srt {
 
     // count
     ANVIL__srt__COUNT = ANVIL__srt__END - ANVIL__srt__START,
+    ANVIL__srt__workspace__COUNT = ANVIL__srt__start__function_io - ANVIL__srt__start__workspace,
 } ANVIL__srt;
 
 // stack instruction types
