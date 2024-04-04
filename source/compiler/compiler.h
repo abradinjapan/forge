@@ -894,6 +894,7 @@ COMP__parsling_argument COMP__create_null__parsling_argument() {
 
 // statement type
 typedef enum COMP__st {
+    COMP__st__invalid,
     COMP__st__abstraction_call,
     COMP__st__abstraction_header,
     COMP__st__offset,
@@ -936,7 +937,7 @@ COMP__parsling_statement COMP__create__parsling_statement(COMP__st type, COMP__n
 // create a null statement
 COMP__parsling_statement COMP__create_null__parsling_statement() {
     // return empty
-    return COMP__create__parsling_statement(COMP__st__COUNT, COMP__create_null__name(), ANVIL__create_null__list(), ANVIL__create_null__list(), 0, 0);
+    return COMP__create__parsling_statement(COMP__st__invalid, COMP__create_null__name(), ANVIL__create_null__list(), ANVIL__create_null__list(), 0, 0);
 }
 
 // one abstraction
@@ -1125,7 +1126,7 @@ void COMP__revert__lexling_current(COMP__current* current, COMP__lexling_index l
 }
 
 // parse arguments
-ANVIL__list COMP__parse__arguments(COMP__current* current, COMP__io_count* count, COMP__error* error) {
+ANVIL__list COMP__parse__arguments(COMP__current* current, COMP__io_count* count, ANVIL__bt variable_only, COMP__error* error) {
     ANVIL__list output;
     ANVIL__bt memory_error_occured = ANVIL__bt__false;
     ANVIL__cell_integer_value value = 0;
@@ -1217,6 +1218,14 @@ ANVIL__list COMP__parse__arguments(COMP__current* current, COMP__io_count* count
             return output;
         }
 
+        // check argument for variable only
+        if (variable_only == ANVIL__bt__true && argument.type != COMP__pat__variable) {
+            // set error
+            *error = COMP__create__error(ANVIL__bt__true, ANVIL__open__buffer_from_string((u8*)"Parse Error: A non-variable argument was detected in a variable only statement / header.", ANVIL__bt__true, ANVIL__bt__false), COMP__read__lexling_from_current(*current).file_index, COMP__read__lexling_from_current(*current).line_number, COMP__read__lexling_from_current(*current).character_index);
+
+            return output;
+        }
+
         // append argument
         COMP__append__parsling_argument(&output, argument, &memory_error_occured);
         
@@ -1251,16 +1260,13 @@ ANVIL__list COMP__parse__arguments(COMP__current* current, COMP__io_count* count
 }
 
 // parse one statement
-COMP__parsling_statement COMP__parse__statement(COMP__current* current, COMP__error* error) {
+COMP__parsling_statement COMP__parse__statement(COMP__current* current, ANVIL__bt variable_only, COMP__error* error) {
     COMP__parsling_statement output = COMP__create_null__parsling_statement();
     COMP__input_count input_count;
     COMP__output_count output_count;
 
     // check for offset
     if (COMP__check__current_within_range(*current) && COMP__read__lexling_from_current(*current).type == COMP__lt__at) {
-        // setup temp
-        output.type = COMP__st__offset;
-
         // advance current
         COMP__advance__lexling_current(current, 1);
 
@@ -1282,11 +1288,11 @@ COMP__parsling_statement COMP__parse__statement(COMP__current* current, COMP__er
         // null initialize unused data
         output.inputs = ANVIL__create_null__list();
         output.outputs = ANVIL__create_null__list();
+
+        // setup temp
+        output.type = COMP__st__offset;
     // is an abstraction call
     } else if (COMP__check__current_within_range(*current) && COMP__read__lexling_from_current(*current).type == COMP__lt__name) {
-        // set type
-        output.type = COMP__st__abstraction_call;
-
         // get name
         output.name = COMP__create__name_from_lexling_current(*current);
 
@@ -1294,7 +1300,7 @@ COMP__parsling_statement COMP__parse__statement(COMP__current* current, COMP__er
         COMP__advance__lexling_current(current, 1);
 
         // get inputs
-        output.inputs = COMP__parse__arguments(current, &input_count, error);
+        output.inputs = COMP__parse__arguments(current, &input_count, variable_only, error);
         output.input_count = input_count;
 
         // check for error
@@ -1303,12 +1309,19 @@ COMP__parsling_statement COMP__parse__statement(COMP__current* current, COMP__er
         }
 
         // get outputs
-        output.outputs = COMP__parse__arguments(current, &output_count, error);
+        output.outputs = COMP__parse__arguments(current, &output_count, variable_only, error);
         output.output_count = output_count;
 
         // check for error
         if (COMP__check__error_occured(error) == ANVIL__bt__true) {
             return output;
+        }
+
+        // set type
+        if (variable_only == ANVIL__bt__true) {
+            output.type = COMP__st__abstraction_header;
+        } else {
+            output.type = COMP__st__abstraction_call;
         }
     // error
     } else {
@@ -1332,7 +1345,12 @@ COMP__parsling_abstraction COMP__parse__abstraction(COMP__current* current, COMP
     }
 
     // parse header
-    output.header = COMP__parse__statement(current, error);
+    output.header = COMP__parse__statement(current, ANVIL__bt__true, error);
+    
+    // check for error
+    if (COMP__check__error_occured(error)) {
+        return output;
+    }
 
     // check for equals sign
     if (COMP__check__current_within_range(*current) && COMP__read__lexling_from_current(*current).type == COMP__lt__equals) {
@@ -1366,7 +1384,7 @@ COMP__parsling_abstraction COMP__parse__abstraction(COMP__current* current, COMP
     // get statements
     while (COMP__check__current_within_range(*current) && COMP__read__lexling_from_current(*current).type != COMP__lt__right_curly_bracket) {
         // parse statement
-        COMP__parsling_statement statement = COMP__parse__statement(current, error);
+        COMP__parsling_statement statement = COMP__parse__statement(current, ANVIL__bt__false, error);
 
         // add statement
         COMP__append__parsling_statement(&output.statements, statement, &memory_error_occured);
@@ -1518,7 +1536,7 @@ void COMP__print__parsed_statement(COMP__parsling_statement statement) {
         // print offset information
         printf("@");
         ANVIL__print__buffer(statement.name.lexling.value);
-    } else if (statement.type == COMP__st__abstraction_call) {
+    } else if (statement.type == COMP__st__abstraction_call || statement.type == COMP__st__abstraction_header) {
         // print statement
         ANVIL__print__buffer(statement.name.lexling.value);
 
@@ -1538,7 +1556,9 @@ void COMP__print__parsed_abstraction(COMP__parsling_abstraction abstraction) {
 
     // print header
     printf("Abstraction: ");
-    COMP__print__parsed_statement(abstraction.header);
+    if (abstraction.header.type != COMP__st__invalid) {
+        COMP__print__parsed_statement(abstraction.header);
+    }
 
     // new line for statements
     printf("\n");
@@ -1588,7 +1608,7 @@ void COMP__print__parsed_program(COMP__parsling_program program) {
     First, get all possible calls and get all data from each function that cannot be verified in statement order.
     Second, Go though each abstraction and verify / translate each statement in top down order one by one.
 */
-/*// accountling variable declaration index
+// accountling variable declaration index
 typedef ANVIL__u64 COMP__accountling_variable_declaration_index;
 
 // blueprintling
@@ -1615,19 +1635,14 @@ typedef enum COMP__act {
 
 // accountling header
 typedef struct COMP__accountling_abstraction_header {
-    COMP__name name;
-    COMP__act call;
-    COMP__input_count input_count;
-    COMP__output_count output_count;
-    ANVIL__list inputs; // COMP__parsling_argument
-    ANVIL__list outputs; // COMP__parsling_argument
+    COMP__parsling_statement header;
+    COMP__act call_ID;
 } COMP__accountling_abstraction_header;
 
 // close accountling abstraction header
 void COMP__close__accountling_abstraction_header(COMP__accountling_abstraction_header header) {
-    // close io
-    ANVIL__close__list(header.inputs);
-    ANVIL__close__list(header.outputs);
+    // close header
+    COMP__close__parsling_statement(header.header);
 
     return;
 }
@@ -1681,21 +1696,13 @@ void COMP__append__accountling_abstraction_header(ANVIL__list* list, COMP__accou
 COMP__accountling_abstraction_header COMP__account__get_abstraction_header(COMP__parsling_abstraction abstraction, COMP__error* error) {
     COMP__accountling_abstraction_header output;
 
-    output.name = abstraction.name;
-    output.call = COMP__act__user_defined;
-
-    // setup io
-    output.inputs = abstraction.inputs;
-    output.outputs = abstraction.outputs;
-
-    // calculate counts
-    output.input_count = output.inputs.filled_index / sizeof(COMP__parsling_argument);
-    output.output_count = output.outputs.filled_index / sizeof(COMP__parsling_argument);
+    output.header = abstraction.header;
+    output.call_ID = COMP__act__user_defined;
 
     // validate inputs
-    for (ANVIL__length i = 0; i < output.input_count; i++) {
+    for (ANVIL__length i = 0; i < output.header.input_count; i++) {
         // get argument
-        COMP__parsling_argument argument = ((COMP__parsling_argument*)output.inputs.buffer.start)[i];
+        COMP__parsling_argument argument = ((COMP__parsling_argument*)output.header.inputs.buffer.start)[i];
 
         // check argument validity
         if (argument.type != COMP__pat__variable) {
@@ -1706,9 +1713,9 @@ COMP__accountling_abstraction_header COMP__account__get_abstraction_header(COMP_
     }
 
     // validate outputs
-    for (ANVIL__length i = 0; i < output.output_count; i++) {
+    for (ANVIL__length i = 0; i < output.header.output_count; i++) {
         // get argument
-        COMP__parsling_argument argument = ((COMP__parsling_argument*)output.outputs.buffer.start)[i];
+        COMP__parsling_argument argument = ((COMP__parsling_argument*)output.header.outputs.buffer.start)[i];
 
         // check argument validity
         if (argument.type != COMP__pat__variable) {
@@ -1777,42 +1784,45 @@ ANVIL__list COMP__generate__call_blueprint(ANVIL__list parsling_programs, COMP__
 
         // open new header
         COMP__accountling_abstraction_header header;
+        
+        // set statement type
+        header.header.type = COMP__st__abstraction_header;
 
         // set call type
-        header.call = (COMP__act)(*(COMP__blueprintling*)current_blueprintling.start);
+        header.call_ID = (COMP__act)(*(COMP__blueprintling*)current_blueprintling.start);
         current_blueprintling.start += sizeof(COMP__blueprintling);
 
         // set name
-        header.name = COMP__create__name(COMP__create__lexling(COMP__lt__name, ANVIL__open__buffer_from_string((ANVIL__u8*)names[*(COMP__blueprintling*)current_blueprintling.start], ANVIL__bt__false, ANVIL__bt__false), -1, -1, -1));
+        header.header.name = COMP__create__name(COMP__create__lexling(COMP__lt__name, ANVIL__open__buffer_from_string((ANVIL__u8*)names[*(COMP__blueprintling*)current_blueprintling.start], ANVIL__bt__false, ANVIL__bt__false), -1, -1, -1));
         current_blueprintling.start += sizeof(COMP__blueprintling);
 
         // get input count
-        header.input_count = (*(COMP__blueprintling*)current_blueprintling.start);
+        header.header.input_count = (*(COMP__blueprintling*)current_blueprintling.start);
         current_blueprintling.start += sizeof(COMP__blueprintling);
 
         // open inputs
-        header.inputs = ANVIL__open__list(sizeof(COMP__parsling_argument) * 8, &memory_error_occured);
+        header.header.inputs = ANVIL__open__list(sizeof(COMP__parsling_argument) * 8, &memory_error_occured);
 
         // get inputs
-        for (COMP__blueprintling i = 0; i < header.input_count; i++) {
+        for (COMP__blueprintling i = 0; i < header.header.input_count; i++) {
             // add argument
-            COMP__append__parsling_argument(&header.inputs, COMP__create__parsling_argument((COMP__pat)(*(COMP__blueprintling*)current_blueprintling.start), COMP__create_null__name(), 0), &memory_error_occured);
+            COMP__append__parsling_argument(&header.header.inputs, COMP__create__parsling_argument((COMP__pat)(*(COMP__blueprintling*)current_blueprintling.start), COMP__create__name(COMP__create__lexling(COMP__lt__name, ANVIL__open__buffer_from_string((u8*)"(internal)", ANVIL__bt__false, ANVIL__bt__false), -1, -1, -1)), 0), &memory_error_occured);
 
             // next blueprintling
             current_blueprintling.start += sizeof(COMP__blueprintling);
         }
 
         // get output count
-        header.output_count = (*(COMP__blueprintling*)current_blueprintling.start);
+        header.header.output_count = (*(COMP__blueprintling*)current_blueprintling.start);
         current_blueprintling.start += sizeof(COMP__blueprintling);
 
         // open outputs
-        header.outputs = ANVIL__open__list(sizeof(COMP__parsling_argument) * 8, &memory_error_occured);
+        header.header.outputs = ANVIL__open__list(sizeof(COMP__parsling_argument) * 8, &memory_error_occured);
 
         // get outputs
-        for (COMP__blueprintling i = 0; i < header.output_count; i++) {
+        for (COMP__blueprintling i = 0; i < header.header.output_count; i++) {
             // add argument
-            COMP__append__parsling_argument(&header.outputs, COMP__create__parsling_argument((COMP__pat)(*(COMP__blueprintling*)current_blueprintling.start), COMP__create_null__name(), 0), &memory_error_occured);
+            COMP__append__parsling_argument(&header.header.outputs, COMP__create__parsling_argument((COMP__pat)(*(COMP__blueprintling*)current_blueprintling.start), COMP__create__name(COMP__create__lexling(COMP__lt__name, ANVIL__open__buffer_from_string((u8*)"(internal)", ANVIL__bt__false, ANVIL__bt__false), -1, -1, -1)), 0), &memory_error_occured);
 
             // next blueprintling
             current_blueprintling.start += sizeof(COMP__blueprintling);
@@ -1877,25 +1887,25 @@ ANVIL__bt COMP__check__accountling_header_exists(ANVIL__list call_blueprint, COM
 
         // check statement type and names
         if (searching_for.type == COMP__st__abstraction_call) {
-            if(COMP__check__name_data_is_identical(header.name, searching_for.name)) {
+            if(COMP__check__name_data_is_identical(header.header.name, searching_for.name)) {
                 // DEBUG
                 printf("\t\tNames were identical: ");
-                ANVIL__print__buffer(header.name.lexling.value);
+                ANVIL__print__buffer(header.header.name.lexling.value);
                 printf(" == ");
                 ANVIL__print__buffer(searching_for.name.lexling.value);
                 printf("\n");
 
                 // check if io is same size
-                if ((ANVIL__calculate__lists_have_same_fill_size(&searching_for.inputs, &header.inputs) && ANVIL__calculate__lists_have_same_fill_size(&searching_for.outputs, &header.outputs)) == ANVIL__bt__false) {
+                if ((ANVIL__calculate__lists_have_same_fill_size(&searching_for.inputs, &header.header.inputs) && ANVIL__calculate__lists_have_same_fill_size(&searching_for.outputs, &header.header.outputs)) == ANVIL__bt__false) {
                     // DEBUG
-                    printf("\t\t\tIO lengths do not match. [ %lu, %lu ][ %lu, %lu ]\n", searching_for.inputs.filled_index, searching_for.outputs.filled_index, header.inputs.filled_index, header.outputs.filled_index);
+                    printf("\t\t\tIO lengths do not match. [ %lu, %lu ][ %lu, %lu ]\n", searching_for.inputs.filled_index, searching_for.outputs.filled_index, header.header.inputs.filled_index, header.header.outputs.filled_index);
 
                     goto next_header;
                 }
 
                 // setup currents for input
                 COMP__current current_statement_io = COMP__calculate__current_from_list_filled_index(&searching_for.inputs);
-                COMP__current current_header_io = COMP__calculate__current_from_list_filled_index(&header.inputs);
+                COMP__current current_header_io = COMP__calculate__current_from_list_filled_index(&header.header.inputs);
 
                 // if inputs are not empty
                 if (ANVIL__check__empty_buffer(current_statement_io) == ANVIL__bt__false) {
@@ -1918,7 +1928,7 @@ ANVIL__bt COMP__check__accountling_header_exists(ANVIL__list call_blueprint, COM
 
                 // re-setup currents
                 current_statement_io = COMP__calculate__current_from_list_filled_index(&searching_for.outputs);
-                current_header_io = COMP__calculate__current_from_list_filled_index(&header.outputs);
+                current_header_io = COMP__calculate__current_from_list_filled_index(&header.header.outputs);
 
                 // if outputs are not empty
                 if (ANVIL__check__empty_buffer(current_statement_io) == ANVIL__bt__false) {
@@ -1951,7 +1961,7 @@ ANVIL__bt COMP__check__accountling_header_exists(ANVIL__list call_blueprint, COM
                 printf("\t\tNames were not identical: ");
                 ANVIL__print__buffer(searching_for.name.lexling.value);
                 printf(" != ");
-                ANVIL__print__buffer(header.name.lexling.value);
+                ANVIL__print__buffer(header.header.name.lexling.value);
                 printf("\n");
             }
         // DEBUG
@@ -2025,7 +2035,7 @@ void COMP__close__accountling_call_blueprint(ANVIL__list call_blueprint) {
         COMP__accountling_abstraction_header header = *(COMP__accountling_abstraction_header*)current.start;
 
         // if header is compiler defined
-        if (header.call < COMP__act__user_defined) {
+        if (header.call_ID < COMP__act__user_defined) {
             // header must have it's arguments closed
             COMP__close__accountling_abstraction_header(header);
         }
@@ -2041,82 +2051,14 @@ void COMP__close__accountling_call_blueprint(ANVIL__list call_blueprint) {
 }
 
 // print call header
-void COMP__print__call_header(COMP__accountling_abstraction_header header) {
-    // print tabs
-    printf("\t");
+void COMP__print__accounted_call_header(COMP__accountling_abstraction_header header) {
+    // print ID
+    printf("\tID [%lu] ", (ANVIL__u64)header.call_ID);
 
-    // print name
-    ANVIL__print__buffer(header.name.lexling.value);
+    // print statement
+    COMP__print__parsed_statement(header.header);
 
-    // print input types
-    printf("(");
-    for (COMP__input_count i = 0; i < header.input_count; i++) {
-        // print separator
-        if (i != 0) {
-            printf(" ");
-        }
-
-        // get type
-        COMP__pat type = ((COMP__pat*)header.inputs.buffer.start)[i];
-
-        // print type
-        if (type == COMP__pat__variable) {
-            printf("[variable]");
-        } else if (type == COMP__pat__offset) {
-            printf("[offset]");
-        } else if (type == COMP__pat__flag) {
-            printf("[flag]");
-        } else if (type == COMP__pat__literal__binary) {
-            printf("[binary_literal]");
-        } else if (type == COMP__pat__literal__boolean) {
-            printf("[boolean_literal]");
-        } else if (type == COMP__pat__literal__integer) {
-            printf("[integer_literal]");
-        } else if (type == COMP__pat__literal__hexadecimal) {
-            printf("[hexadecimal_literal]");
-        } else if (type == COMP__pat__literal__string) {
-            printf("[string_literal]");
-        } else {
-            printf("[invalid]");
-        }
-    }
-    printf(")");
-
-    // print output types
-    printf("(");
-    for (COMP__output_count i = 0; i < header.output_count; i++) {
-        // print separator
-        if (i != 0) {
-            printf(" ");
-        }
-
-        // get type
-        COMP__pat type = ((COMP__pat*)header.outputs.buffer.start)[i];
-
-        // print type
-        if (type == COMP__pat__variable) {
-            printf("[variable]");
-        } else if (type == COMP__pat__offset) {
-            printf("[offset]");
-        } else if (type == COMP__pat__flag) {
-            printf("[flag]");
-        } else if (type == COMP__pat__literal__binary) {
-            printf("[binary_literal]");
-        } else if (type == COMP__pat__literal__boolean) {
-            printf("[boolean_literal]");
-        } else if (type == COMP__pat__literal__integer) {
-            printf("[integer_literal]");
-        } else if (type == COMP__pat__literal__hexadecimal) {
-            printf("[hexadecimal_literal]");
-        } else if (type == COMP__pat__literal__string) {
-            printf("[string_literal]");
-        } else {
-            printf("[invalid]");
-        }
-    }
-    printf(")");
-
-    // print next line
+    // new line
     printf("\n");
 
     return;
@@ -2133,7 +2075,7 @@ void COMP__print__call_blueprint(ANVIL__list blueprint) {
     // print all headers
     while (COMP__check__current_within_range(current)) {
         // print individual header
-        COMP__print__call_header(*(COMP__accountling_abstraction_header*)current.start);
+        COMP__print__accounted_call_header(*(COMP__accountling_abstraction_header*)current.start);
 
         // next header
         current.start += sizeof(COMP__accountling_abstraction_header);
@@ -2149,6 +2091,12 @@ void COMP__account__program(ANVIL__list parsling_programs, COMP__error* error) {
 
     // print headers
     COMP__print__call_blueprint(call_blueprint);
+
+    // verify statments in all user defined abstractions
+    COMP__account__verify_all_calls(parsling_programs, call_blueprint, error);
+    if (COMP__check__error_occured(error)) {
+        goto clean_up;
+    }
 
     // DEBUG
     goto clean_up;
@@ -2185,18 +2133,12 @@ void COMP__account__program(ANVIL__list parsling_programs, COMP__error* error) {
         current_parsling_program.start += sizeof(COMP__parsling_program);
     }
 
-    // verify statments in all user defined abstractions
-    //COMP__account__verify_all_calls(parsling_programs, call_blueprint, error);
-    //if (COMP__check__error_occured(error)) {
-    //    goto clean_up;
-    //}
-
     // clean up
     clean_up:
     COMP__close__accountling_call_blueprint(call_blueprint);
 
     return;
-}*/
+}
 
 /* Generation */
 // generation offsets
@@ -2639,7 +2581,6 @@ typedef struct COMP__compilation_unit {
     ANVIL__list user_codes;
     ANVIL__list lexling_buffers;
     ANVIL__list parsling_buffers;
-    //COMP__accountling_program accountlings;
 } COMP__compilation_unit;
 
 // close a compilation unit
@@ -2682,9 +2623,6 @@ void COMP__close__compilation_unit(COMP__compilation_unit unit) {
         // close parslings buffer
         ANVIL__close__list(unit.parsling_buffers);
     }
-
-    // close accountlings
-    //COMP__close__accountling_program(unit.accountlings);
 
     return;
 }
@@ -2805,20 +2743,7 @@ void COMP__compile__files(ANVIL__list user_codes, ANVIL__bt print_debug, COMP__e
     }
 
     // account
-    /*compilation_unit.accountlings = COMP__account__program(compilation_unit.parsling_buffers, error);
-
-    // print accounted program
-    if (print_debug) {
-        COMP__print__accounted_program(compilation_unit.accountlings);
-    }
-
-    // check for errors
-    if (COMP__check__error_occured(error)) {
-        goto quit;
-    }*/
-
-    // account
-    //COMP__account__program(compilation_unit.parsling_buffers, error);
+    COMP__account__program(compilation_unit.parsling_buffers, error);
 
     // quit label
     quit:
