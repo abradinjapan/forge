@@ -575,7 +575,7 @@ ANVIL__bt ANVIL__calculate__lists_have_same_fill_size(ANVIL__list* a, ANVIL__lis
 }
 
 // take a list and make a standalone buffer
-ANVIL__buffer ANVIL__list__create_buffer_from_list(ANVIL__list* list, ANVIL__bt* memory_error_occured) {
+ANVIL__buffer ANVIL__list__open_buffer_from_list(ANVIL__list* list, ANVIL__bt* memory_error_occured) {
     ANVIL__buffer output;
 
     // allocate output

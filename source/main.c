@@ -283,15 +283,17 @@ void MAIN__test__code_generator() {
 
 // entry point
 int main(int argc, char** argv) {
-    ANVIL__bt memory_error_occured = ANVIL__bt__false;
     ANVIL__list files;
     ANVIL__bt debug_mode = ANVIL__bt__false;
     ANVIL__u64 current_argument = 1;
     COMP__error error;
 
+    // init error
+    error = COMP__create_null__error();
+
     // open files list
-    files = ANVIL__open__list(sizeof(ANVIL__buffer) * 32, &memory_error_occured);
-    if (memory_error_occured == ANVIL__bt__true) {
+    files = COMP__open__list(sizeof(ANVIL__buffer) * 32, &error);
+    if (COMP__check__error_occured(&error)) {
         printf("Error, could not open files list.\n");
 
         return 1;
@@ -322,8 +324,8 @@ int main(int argc, char** argv) {
             }
 
             // add file
-            ANVIL__list__append__buffer(&files, file, &memory_error_occured);
-            if (memory_error_occured == ANVIL__bt__true) {
+            COMP__append__buffer(&files, file, &error);
+            if (COMP__check__error_occured(&error) == ANVIL__bt__true) {
                 printf("Error, could not add buffer to inputs list.");
 
                 goto clean_up;
@@ -340,9 +342,12 @@ int main(int argc, char** argv) {
 
             // if error
             if (COMP__check__error_occured(&error)) {
+                // setup json error
+                ANVIL__bt json_error_occured = ANVIL__bt__false;
+
                 // get message
-                ANVIL__buffer json = COMP__serialize__error_json(error, &memory_error_occured);
-                if (memory_error_occured) {
+                ANVIL__buffer json = COMP__serialize__error_json(error, &json_error_occured);
+                if (json_error_occured) {
                     printf("Failed to serialize json error, oops.\n");
 
                     goto clean_up;
