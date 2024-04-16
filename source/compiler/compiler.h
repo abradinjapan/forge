@@ -519,7 +519,7 @@ COMP__lexlings COMP__compile__lex(ANVIL__buffer user_code, COMP__file_index file
             }
 
             // record lexling
-            COMP__append__lexling(&output, COMP__create__lexling(COMP__lt__name, ANVIL__create__buffer(temp_start, temp_end), COMP__create__character_location(file_index, current_line_number, COMP__calculate__character_index(user_code, current))), error);
+            COMP__append__lexling(&output, COMP__create__lexling(COMP__lt__name, ANVIL__create__buffer(temp_start, temp_end), COMP__create__character_location(file_index, current_line_number, COMP__calculate__character_index(user_code, ANVIL__create__buffer(temp_start, temp_end)))), error);
         } else if (COMP__calculate__valid_character_range(current, '@', '@')) {
             // add lexling
             COMP__append__lexling(&output, COMP__create__lexling(COMP__lt__at, ANVIL__create__buffer(current.start, current.start), COMP__create__character_location(file_index, current_line_number, COMP__calculate__character_index(user_code, current))), error);
@@ -1710,8 +1710,11 @@ typedef enum COMP__act {
 
     // acts
     COMP__act__set__boolean = COMP__act__START,
+    COMP__act__set__binary,
     COMP__act__set__integer,
+    COMP__act__set__hexadecimal,
     COMP__act__debug_print_integer,
+    COMP__act__debug_print_character,
 
     // end
     COMP__act__END,
@@ -1903,6 +1906,7 @@ typedef enum COMP__bnit {
     // names
     COMP__bnit__set,
     COMP__bnit__debug_print_integer,
+    COMP__bnit__debug_print_character,
 
     // stats
     COMP__bnit__COUNT,
@@ -2041,6 +2045,7 @@ ANVIL__list COMP__generate__call_blueprint(ANVIL__list parsling_programs, COMP__
     const char* names[] = {
         "frost.set",
         "frost.debug.print.integer",
+        "frost.debug.print.character",
     };
     const COMP__blueprintling blueprint[] = {
         COMP__abt__define_call,
@@ -2051,6 +2056,13 @@ ANVIL__list COMP__generate__call_blueprint(ANVIL__list parsling_programs, COMP__
             1,
             COMP__pat__variable,
         COMP__abt__define_call,
+            COMP__act__set__binary,
+            COMP__bnit__set,
+            1,
+            COMP__pat__literal__binary,
+            1,
+            COMP__pat__variable,
+        COMP__abt__define_call,
             COMP__act__set__integer,
             COMP__bnit__set,
             1,
@@ -2058,8 +2070,21 @@ ANVIL__list COMP__generate__call_blueprint(ANVIL__list parsling_programs, COMP__
             1,
             COMP__pat__variable,
         COMP__abt__define_call,
+            COMP__act__set__hexadecimal,
+            COMP__bnit__set,
+            1,
+            COMP__pat__literal__hexadecimal,
+            1,
+            COMP__pat__variable,
+        COMP__abt__define_call,
             COMP__act__debug_print_integer,
             COMP__bnit__debug_print_integer,
+            1,
+            COMP__pat__variable,
+            0,
+        COMP__abt__define_call,
+            COMP__act__debug_print_character,
+            COMP__bnit__debug_print_character,
             1,
             COMP__pat__variable,
             0,
