@@ -1515,7 +1515,7 @@ COMP__parsling_program COMP__parse__program(COMP__lexlings lexlings, COMP__error
 }
 
 // print argument
-void COMP__print__argument(COMP__parsling_argument argument) {
+void COMP__print__parsling_argument(COMP__parsling_argument argument) {
     if (argument.type == COMP__pat__variable) {
         printf("[variable]");
         ANVIL__print__buffer(argument.text.lexling.value);
@@ -1563,7 +1563,7 @@ void COMP__print__argument(COMP__parsling_argument argument) {
 }
 
 // print arguments
-void COMP__print__arguments(ANVIL__list* arguments) {
+void COMP__print__parsling_arguments(ANVIL__list* arguments) {
     COMP__current current = COMP__calculate__current_from_list_filled_index(arguments);
 
     // print opener
@@ -1578,7 +1578,7 @@ void COMP__print__arguments(ANVIL__list* arguments) {
         }
 
         // print argument
-        COMP__print__argument(*(COMP__parsling_argument*)current.start);
+        COMP__print__parsling_argument(*(COMP__parsling_argument*)current.start);
 
         // next buffer
         current.start += sizeof(COMP__parsling_argument);
@@ -1602,10 +1602,10 @@ void COMP__print__parsed_statement(COMP__parsling_statement statement) {
         ANVIL__print__buffer(statement.name.text.lexling.value);
 
         // print inputs
-        COMP__print__arguments(&statement.inputs);
+        COMP__print__parsling_arguments(&statement.inputs);
 
         // print outputs
-        COMP__print__arguments(&statement.outputs);
+        COMP__print__parsling_arguments(&statement.outputs);
     }
 
     return;
@@ -1713,7 +1713,8 @@ typedef enum COMP__act {
     COMP__act__set__binary,
     COMP__act__set__integer,
     COMP__act__set__hexadecimal,
-    COMP__act__debug_print_integer,
+    COMP__act__debug_print_integer_signed,
+    COMP__act__debug_print_integer_unsigned,
     COMP__act__debug_print_character,
 
     // end
@@ -1871,6 +1872,30 @@ void COMP__append__accountling_abstraction(ANVIL__list* list, COMP__accountling_
     return;
 }
 
+// close statements
+void COMP__close__accountling_statements(ANVIL__list statements) {
+    // setup current
+    COMP__current current_statement = COMP__calculate__current_from_list_filled_index(&statements);
+
+    // for each statement
+    while (COMP__check__current_within_range(current_statement)) {
+        // get statement
+        COMP__accountling_statement statement = *(COMP__accountling_statement*)current_statement.start;
+
+        // close statement subdata
+        ANVIL__close__list(statement.inputs);
+        ANVIL__close__list(statement.outputs);
+
+        // next statement
+        current_statement.start += sizeof(COMP__accountling_statement);
+    }
+
+    // close lists
+    ANVIL__close__list(statements);
+
+    return;
+}
+
 // close accountling abstraction
 void COMP__close__accountling_abstraction(COMP__accountling_abstraction abstraction) {
     // close lists
@@ -1880,7 +1905,9 @@ void COMP__close__accountling_abstraction(COMP__accountling_abstraction abstract
     ANVIL__close__list(abstraction.variables);
     ANVIL__close__list(abstraction.offsets);
     ANVIL__close__list(abstraction.flags);
-    ANVIL__close__list(abstraction.statements);
+
+    // close statements
+    COMP__close__accountling_statements(abstraction.statements);
 
     return;
 }
@@ -1905,7 +1932,8 @@ typedef enum COMP__abt {
 typedef enum COMP__bnit {
     // names
     COMP__bnit__set,
-    COMP__bnit__debug_print_integer,
+    COMP__bnit__debug_print_integer_signed,
+    COMP__bnit__debug_print_integer_unsigned,
     COMP__bnit__debug_print_character,
 
     // stats
@@ -2044,7 +2072,8 @@ COMP__header_index COMP__find__accountling_header_index(ANVIL__list call_bluepri
 ANVIL__list COMP__generate__call_blueprint(ANVIL__list parsling_programs, COMP__error* error) {
     const char* names[] = {
         "frost.set",
-        "frost.debug.print.integer",
+        "frost.debug.print.integer.signed",
+        "frost.debug.print.integer.unsigned",
         "frost.debug.print.character",
     };
     const COMP__blueprintling blueprint[] = {
@@ -2077,8 +2106,14 @@ ANVIL__list COMP__generate__call_blueprint(ANVIL__list parsling_programs, COMP__
             1,
             COMP__pat__variable,
         COMP__abt__define_call,
-            COMP__act__debug_print_integer,
-            COMP__bnit__debug_print_integer,
+            COMP__act__debug_print_integer_signed,
+            COMP__bnit__debug_print_integer_signed,
+            1,
+            COMP__pat__variable,
+            0,
+        COMP__abt__define_call,
+            COMP__act__debug_print_integer_unsigned,
+            COMP__bnit__debug_print_integer_unsigned,
             1,
             COMP__pat__variable,
             0,
@@ -2799,13 +2834,39 @@ void COMP__print__accountling_variable_list(ANVIL__list* variables) {
     while (COMP__check__current_within_range(current_variable)) {
         // print variable
         printf("\t\t\t\t");
-        COMP__print__argument(*(COMP__parsling_argument*)current_variable.start);
+        COMP__print__parsling_argument(*(COMP__parsling_argument*)current_variable.start);
         printf("\n");
 
         // next variable
         current_variable.start += sizeof(COMP__parsling_argument);
     }
     
+    return;
+}
+
+// print accountling argument list
+void COMP__print__accountling_arguments(ANVIL__list arguments) {
+    // print opener
+    printf("(");
+
+    // setup current
+    COMP__current current_argument = COMP__calculate__current_from_list_filled_index(&arguments);
+
+    // for each argument
+    while (COMP__check__current_within_range(current_argument)) {
+        // get argument
+        COMP__accountling_argument argument = *(COMP__accountling_argument*)current_argument.start;
+
+        // print argument
+        printf("[%lu:%lu]", argument.type, argument.index);
+
+        // next argument
+        current_argument.start += sizeof(COMP__accountling_argument);
+    }
+
+    // print closer
+    printf(")");
+
     return;
 }
 
@@ -2830,8 +2891,15 @@ void COMP__print__accountling_program(COMP__accountling_program program) {
 
         // print abstraction
         {
-            // print header
-            printf("\t\t");
+            // get call index
+            COMP__call_index call_index = COMP__find__accountling_header_index(program.call_blueprint, abstraction.header);
+            if (call_index >= COMP__calculate__call_blueprint_entry_count(program.call_blueprint)) {
+                // call header not found, exit loop
+                return;
+            }
+
+            // print header with call index
+            printf("\t\t(%lu)", call_index);
             COMP__print__parsed_statement(abstraction.header);
             printf("\n");
 
@@ -2861,6 +2929,35 @@ void COMP__print__accountling_program(COMP__accountling_program program) {
                 // print variables
                 printf("\t\t\tVariables:\n");
                 COMP__print__accountling_variable_list(&abstraction.variables);
+            }
+
+            // if there are statements
+            if (abstraction.statements.filled_index > 0) {
+                // print statements
+                // print header
+                printf("\t\t\tStatements\n");
+
+                // setup current
+                COMP__current current_statement = COMP__calculate__current_from_list_filled_index(&abstraction.statements);
+                
+                // for each statement
+                while (COMP__check__current_within_range(current_statement)) {
+                    // get statement
+                    COMP__accountling_statement statement = *(COMP__accountling_statement*)current_statement.start;
+                    
+                    // print statement call index
+                    printf("\t\t\t\t%lu = ", statement.header.call_index);
+
+                    // print io
+                    COMP__print__accountling_arguments(statement.inputs);
+                    COMP__print__accountling_arguments(statement.outputs);
+
+                    // print new line
+                    printf("\n");
+
+                    // next statement
+                    current_statement.start += sizeof(COMP__accountling_statement);
+                }
             }
         }
 
