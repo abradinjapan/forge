@@ -6,6 +6,9 @@
 #include "../anvil/anvil.h"
 
 /* Define */
+// basics
+typedef ANVIL__u64 COMP__tab_count;
+
 // aliases
 typedef ANVIL__buffer COMP__current;
 
@@ -45,6 +48,24 @@ typedef ANVIL__u64 COMP__abstraction_index;
 #define COMP__define__null_call_ID -1
 #define COMP__define__u64_max_base_10_conversion_character_limit 20
 #define COMP__define__invalid_abstraction_call_ID -1
+
+char* COMP__global__cell_name__error_code = "frost.error_code";
+char* COMP__global__argument_type_name_strings[] = {
+    "invalid",
+    "variable",
+    "input_variable",
+    "output_variable",
+    "double_variable",
+    "body_variable",
+    "predefined_variable",
+    "offset",
+    "flag",
+    "boolean",
+    "binary",
+    "integer",
+    "hexadecimal",
+    "string",
+};
 
 // program stage type
 typedef enum COMP__pst {
@@ -102,6 +123,20 @@ COMP__character_location COMP__create__character_location(COMP__file_index file_
 // create null character location
 COMP__character_location COMP__create_null__character_location() {
     return COMP__create__character_location(-1, -1, -1);
+}
+
+// print tabs
+void COMP__print__tabs(COMP__tab_count tab_count) {
+    // print tabs
+    while (tab_count > 0) {
+        // print tab
+        printf("\t");
+
+        // next tab
+        tab_count--;
+    }
+
+    return;
 }
 
 /* Translation */
@@ -670,6 +705,7 @@ typedef enum COMP__pat {
     COMP__pat__variable__output,
     COMP__pat__variable__double,
     COMP__pat__variable__body,
+    COMP__pat__variable__predefined,
     COMP__pat__offset,
     COMP__pat__flag,
     COMP__pat__literal__boolean,
@@ -677,6 +713,9 @@ typedef enum COMP__pat {
     COMP__pat__literal__integer,
     COMP__pat__literal__hexadecimal,
     COMP__pat__literal__string,
+
+    // count
+    COMP__pat__COUNT,
 } COMP__pat;
 
 // parsling argument
@@ -1514,49 +1553,26 @@ COMP__parsling_program COMP__parse__program(COMP__lexlings lexlings, COMP__error
     return output;
 }
 
+ANVIL__buffer COMP__convert__parsed_argument_type_to_string_buffer(COMP__pat argument_type) {
+    return ANVIL__open__buffer_from_string((u8*)(COMP__global__argument_type_name_strings[argument_type]), ANVIL__bt__false, ANVIL__bt__false);
+}
+
 // print argument
 void COMP__print__parsling_argument(COMP__parsling_argument argument) {
-    if (argument.type == COMP__pat__variable) {
-        printf("[variable]");
+    // print type
+    printf("[");
+    ANVIL__print__buffer(COMP__convert__parsed_argument_type_to_string_buffer(argument.type));
+    printf("]");
+
+    // print data
+    if (argument.type == COMP__pat__variable || COMP__pat__variable__input || COMP__pat__variable__output || COMP__pat__variable__double || COMP__pat__variable__body || COMP__pat__variable__predefined || COMP__pat__offset || COMP__pat__flag || COMP__pat__literal__string) {
         ANVIL__print__buffer(argument.text.lexling.value);
-    } else if (argument.type == COMP__pat__variable__input) {
-        printf("[input_variable]");
-        ANVIL__print__buffer(argument.text.lexling.value);
-    } else if (argument.type == COMP__pat__variable__output) {
-        printf("[output_variable]");
-        ANVIL__print__buffer(argument.text.lexling.value);
-    } else if (argument.type == COMP__pat__variable__double) {
-        printf("[double_variable]");
-        ANVIL__print__buffer(argument.text.lexling.value);
-    } else if (argument.type == COMP__pat__variable__body) {
-        printf("[body_variable]");
-        ANVIL__print__buffer(argument.text.lexling.value);
-    } else if (argument.type == COMP__pat__offset) {
-        printf("@");
-        ANVIL__print__buffer(argument.text.lexling.value);
-    } else if (argument.type == COMP__pat__flag) {
-        printf("#");
-        ANVIL__print__buffer(argument.text.lexling.value);
-    } else if (argument.type == COMP__pat__literal__string) {
-        ANVIL__print__buffer(argument.text.lexling.value);
-    } else if (argument.type == COMP__pat__literal__boolean) {
-        printf("[boolean]");
-        ANVIL__print__buffer(argument.text.lexling.value);
-        printf("[%lu]", argument.value);
-    } else if (argument.type == COMP__pat__literal__binary) {
-        printf("[binary]");
+    } else if (argument.type == COMP__pat__literal__boolean || COMP__pat__literal__binary || COMP__pat__literal__hexadecimal) {
         ANVIL__print__buffer(argument.text.lexling.value);
         printf("[%lu]", argument.value);
     } else if (argument.type == COMP__pat__literal__integer) {
-        printf("[integer]");
         ANVIL__print__buffer(argument.text.lexling.value);
         printf("[%lu, %li]", argument.value, argument.value);
-    } else if (argument.type == COMP__pat__literal__hexadecimal) {
-        printf("[hexadecimal]");
-        ANVIL__print__buffer(argument.text.lexling.value);
-        printf("[%lu]", argument.value);
-    } else {
-        printf("[invalid]");
     }
 
     return;
@@ -1730,6 +1746,25 @@ typedef enum COMP__act {
     COMP__act__COUNT = COMP__act__END - COMP__act__START,
 } COMP__act;
 
+// accountling variable type (all predefined variables)
+typedef enum COMP__avt {
+    // start
+    COMP__avt__START = 0,
+
+    // avts
+    COMP__avt__invalid = COMP__avt__START,
+    COMP__avt__error_code,
+
+    // end
+    COMP__avt__END,
+
+    // user defined
+    COMP__avt__user_defined = COMP__avt__END,
+
+    // count
+    COMP__avt__COUNT = COMP__avt__END - COMP__avt__START,
+} COMP__avt;
+
 // accountling header
 typedef struct COMP__accountling_abstraction_header {
     COMP__parsling_statement header;
@@ -1814,6 +1849,7 @@ void COMP__close__accountling_statement(COMP__accountling_statement statement) {
 // accountling abstraction
 typedef struct COMP__accountling_abstraction {
     COMP__parsling_statement header;
+    ANVIL__list* predefined_variables; // COMP__parsling_argument
     ANVIL__list inputs; // COMP__parsling_argument
     ANVIL__list outputs; // COMP__parsling_argument
     ANVIL__list doubles; // COMP__parsling_argument (doubles are variables that are both inputs and outputs)
@@ -1824,10 +1860,11 @@ typedef struct COMP__accountling_abstraction {
 } COMP__accountling_abstraction;
 
 // create custom accountling abstraction
-COMP__accountling_abstraction COMP__create__accountling_abstraction(COMP__parsling_statement header, ANVIL__list inputs, ANVIL__list outputs, ANVIL__list doubles, ANVIL__list variables, ANVIL__list offsets, ANVIL__list flags, ANVIL__list statements) {
+COMP__accountling_abstraction COMP__create__accountling_abstraction(COMP__parsling_statement header, ANVIL__list* predefined_variables, ANVIL__list inputs, ANVIL__list outputs, ANVIL__list doubles, ANVIL__list variables, ANVIL__list offsets, ANVIL__list flags, ANVIL__list statements) {
     COMP__accountling_abstraction output;
 
     output.header = header;
+    output.predefined_variables = predefined_variables;
     output.inputs = inputs;
     output.outputs = outputs;
     output.doubles = doubles;
@@ -1841,7 +1878,7 @@ COMP__accountling_abstraction COMP__create__accountling_abstraction(COMP__parsli
 
 // create null accountling abstraction
 COMP__accountling_abstraction COMP__create_null__accountling_abstraction() {
-    return COMP__create__accountling_abstraction(COMP__create_null__parsling_statement(), ANVIL__create_null__list(), ANVIL__create_null__list(), ANVIL__create_null__list(), ANVIL__create_null__list(), ANVIL__create_null__list(), ANVIL__create_null__list(), ANVIL__create_null__list());
+    return COMP__create__accountling_abstraction(COMP__create_null__parsling_statement(), ANVIL__define__null_address, ANVIL__create_null__list(), ANVIL__create_null__list(), ANVIL__create_null__list(), ANVIL__create_null__list(), ANVIL__create_null__list(), ANVIL__create_null__list(), ANVIL__create_null__list());
 }
 
 // append accountling statement
@@ -1874,6 +1911,12 @@ void COMP__append__accountling_abstraction(ANVIL__list* list, COMP__accountling_
 
 // close statements
 void COMP__close__accountling_statements(ANVIL__list statements) {
+    // check for empty statements
+    if (ANVIL__check__empty_list(statements)) {
+        // no need to free anything
+        return;
+    }
+
     // setup current
     COMP__current current_statement = COMP__calculate__current_from_list_filled_index(&statements);
 
@@ -1899,12 +1942,24 @@ void COMP__close__accountling_statements(ANVIL__list statements) {
 // close accountling abstraction
 void COMP__close__accountling_abstraction(COMP__accountling_abstraction abstraction) {
     // close lists
-    ANVIL__close__list(abstraction.inputs);
-    ANVIL__close__list(abstraction.outputs);
-    ANVIL__close__list(abstraction.doubles);
-    ANVIL__close__list(abstraction.variables);
-    ANVIL__close__list(abstraction.offsets);
-    ANVIL__close__list(abstraction.flags);
+    if (ANVIL__check__empty_list(abstraction.inputs) == ANVIL__bt__false) {
+        ANVIL__close__list(abstraction.inputs);
+    }
+    if (ANVIL__check__empty_list(abstraction.outputs) == ANVIL__bt__false) {
+        ANVIL__close__list(abstraction.outputs);
+    }
+    if (ANVIL__check__empty_list(abstraction.doubles) == ANVIL__bt__false) {
+        ANVIL__close__list(abstraction.doubles);
+    }
+    if (ANVIL__check__empty_list(abstraction.variables) == ANVIL__bt__false) {
+        ANVIL__close__list(abstraction.variables);
+    }
+    if (ANVIL__check__empty_list(abstraction.offsets) == ANVIL__bt__false) {
+        ANVIL__close__list(abstraction.offsets);
+    }
+    if (ANVIL__check__empty_list(abstraction.flags) == ANVIL__bt__false) {
+        ANVIL__close__list(abstraction.flags);
+    }
 
     // close statements
     COMP__close__accountling_statements(abstraction.statements);
@@ -2301,21 +2356,23 @@ void COMP__account__verify_all_calls(ANVIL__list parsling_programs, ANVIL__list 
 typedef struct COMP__accountling_program {
     ANVIL__list call_blueprint; // COMP__accountling_abstraction_header
     ANVIL__list abstractions; // COMP__accountling_abstraction
+    ANVIL__list predefined_variables; // COMP__parsling_argument
 } COMP__accountling_program;
 
 // create custom accountling program
-COMP__accountling_program COMP__create__accountling_program(ANVIL__list call_blueprint, ANVIL__list abstractions) {
+COMP__accountling_program COMP__create__accountling_program(ANVIL__list call_blueprint, ANVIL__list abstractions, ANVIL__list predefined_variables) {
     COMP__accountling_program output;
 
     output.call_blueprint = call_blueprint;
     output.abstractions = abstractions;
+    output.predefined_variables = predefined_variables;
 
     return output;
 }
 
 // create null accountling program
 COMP__accountling_program COMP__create_null__accountling_program() {
-    return COMP__create__accountling_program(ANVIL__create_null__list(), ANVIL__create_null__list());
+    return COMP__create__accountling_program(ANVIL__create_null__list(), ANVIL__create_null__list(), ANVIL__create_null__list());
 }
 
 // close accountling program
@@ -2361,6 +2418,9 @@ void COMP__close__accountling_program(COMP__accountling_program program) {
 
     // close abstraction list
     ANVIL__close__list(program.abstractions);
+
+    // close predefined variable list
+    ANVIL__close__list(program.predefined_variables);
 
     return;
 }
@@ -2414,6 +2474,11 @@ ANVIL__list COMP__account__accountling_argument_list(COMP__accountling_abstracti
         } else if (argument.type == COMP__pat__variable__output) {
             COMP__append__accountling_argument(&output, COMP__create__accountling_argument(argument.type, COMP__find__parsling_argument_index__by_name((*abstraction).outputs, argument)), error);
         } else if (argument.type == COMP__pat__variable || argument.type == COMP__pat__variable__body) {
+            ANVIL__bt is_predefined;
+            COMP__account__get_argument_in_list__by_text((*abstraction).predefined_variables, argument, &is_predefined);
+            if (is_predefined) {
+                argument.type = COMP__pat__variable__predefined;
+            }
             COMP__append__accountling_argument(&output, COMP__create__accountling_argument(argument.type, COMP__find__parsling_argument_index__by_name((*abstraction).variables, argument)), error);
         } else if (argument.type == COMP__pat__variable__double) {
             COMP__append__accountling_argument(&output, COMP__create__accountling_argument(argument.type, COMP__find__parsling_argument_index__by_name((*abstraction).doubles, argument)), error);
@@ -2434,7 +2499,7 @@ ANVIL__list COMP__account__accountling_argument_list(COMP__accountling_abstracti
 }
 
 // account an abstraction
-COMP__accountling_abstraction COMP__account__abstraction(ANVIL__list call_blueprint, COMP__parsling_abstraction parsling_abstraction, COMP__error* error) {
+COMP__accountling_abstraction COMP__account__abstraction(ANVIL__list call_blueprint, ANVIL__list* predefined_variables, COMP__parsling_abstraction parsling_abstraction, COMP__error* error) {
     COMP__accountling_abstraction output = COMP__create_null__accountling_abstraction();
 
     // get name
@@ -2443,6 +2508,9 @@ COMP__accountling_abstraction COMP__account__abstraction(ANVIL__list call_bluepr
     // get variables
     // validate that all variables are not used before declared
     {
+        // get predefined variables
+        output.predefined_variables = predefined_variables;
+
         // get abstraction inputs
         {
             // open inputs
@@ -2460,8 +2528,18 @@ COMP__accountling_abstraction COMP__account__abstraction(ANVIL__list call_bluepr
                 COMP__parsling_argument searching_for = *(COMP__parsling_argument*)current_input.start;
 
                 // get found variable back
+                ANVIL__bt found_predefined;
                 ANVIL__bt found_variable;
+                COMP__account__get_argument_in_list__by_text(predefined_variables, searching_for, &found_predefined);
                 COMP__account__get_argument_in_list__by_text(&output.inputs, searching_for, &found_variable);
+
+                // if variable already exists
+                if (found_predefined == ANVIL__bt__true) {
+                    // variable declared twice
+                    *error = COMP__open__error("Accounting Error: A predefined variable was illegally used as an input.", searching_for.text.lexling.location);
+
+                    return output;
+                }
 
                 // modify variable type
                 searching_for.type = COMP__pat__variable__input;
@@ -2502,8 +2580,18 @@ COMP__accountling_abstraction COMP__account__abstraction(ANVIL__list call_bluepr
                 COMP__parsling_argument searching_for = *(COMP__parsling_argument*)current_output.start;
 
                 // get found variable back
+                ANVIL__bt found_predefined;
                 ANVIL__bt found_variable;
+                COMP__account__get_argument_in_list__by_text(predefined_variables, searching_for, &found_predefined);
                 COMP__account__get_argument_in_list__by_text(&output.outputs, searching_for, &found_variable);
+
+                // if variable already exists
+                if (found_predefined == ANVIL__bt__true) {
+                    // variable declared twice
+                    *error = COMP__open__error("Accounting Error: A predefined variable was illegally used as an output.", searching_for.text.lexling.location);
+
+                    return output;
+                }
 
                 // modify variable type
                 searching_for.type = COMP__pat__variable__output;
@@ -2591,6 +2679,13 @@ COMP__accountling_abstraction COMP__account__abstraction(ANVIL__list call_bluepr
                         // get input
                         COMP__parsling_argument argument = *(COMP__parsling_argument*)current_input.start;
 
+                        // assuming its not already defined
+                        ANVIL__bt found_predefined;
+                        COMP__account__get_argument_in_list__by_text(output.predefined_variables, argument, &found_predefined);
+                        if (found_predefined == ANVIL__bt__true) {
+                            goto next_input;
+                        }
+
                         // if current argument is a variable
                         if (argument.type == COMP__pat__variable) {
                             // check if argument already exists
@@ -2606,6 +2701,7 @@ COMP__accountling_abstraction COMP__account__abstraction(ANVIL__list call_bluepr
                         }
 
                         // next input
+                        next_input:
                         current_input.start += sizeof(COMP__parsling_argument);
                     }
 
@@ -2618,6 +2714,15 @@ COMP__accountling_abstraction COMP__account__abstraction(ANVIL__list call_bluepr
                         // get output
                         COMP__parsling_argument argument = *(COMP__parsling_argument*)current_output.start;
 
+                        // assuming its not already defined
+                        ANVIL__bt found_predefined;
+                        COMP__account__get_argument_in_list__by_text(output.predefined_variables, argument, &found_predefined);
+                        if (found_predefined == ANVIL__bt__true) {
+                            *error = COMP__open__error("Accounting Error: Predefined variables cannot be written to.", argument.text.lexling.location);
+
+                            return output;
+                        }
+                    
                         // if current argument is a variable
                         if (argument.type == COMP__pat__variable) {
                             // check if argument already exists
@@ -2626,6 +2731,9 @@ COMP__accountling_abstraction COMP__account__abstraction(ANVIL__list call_bluepr
                             COMP__account__get_argument_in_list__by_text(&output.inputs, argument, &found_input);
                             COMP__account__get_argument_in_list__by_text(&output.variables, argument, &found_body);
                             if ((found_input || found_body) == ANVIL__bt__false) {
+                                // setup argument type
+                                argument.type = COMP__pat__variable__body;
+
                                 // create variable
                                 COMP__append__parsling_argument(&output.variables, argument, error);
                                 if (COMP__check__error_occured(error)) {
@@ -2761,6 +2869,30 @@ void COMP__print__call_blueprint(ANVIL__list blueprint) {
     return;
 }
 
+// append predefined variable
+void COMP__generate_and_append__predefined_variable(ANVIL__list* list, const char* name, COMP__error* error) {
+    // append
+    COMP__append__parsling_argument(list, COMP__create__parsling_argument(COMP__pat__variable__predefined, COMP__create__name(COMP__create__lexling(COMP__lt__end_of_file, ANVIL__open__buffer_from_string((ANVIL__u8*)name, ANVIL__bt__false, ANVIL__bt__false), COMP__create__character_location(-1, -1, -1))), 0), error);
+
+    return;
+}
+
+// generate predefined variables
+ANVIL__list COMP__generate__predefined_variables(COMP__error* error) {
+    ANVIL__list output;
+
+    // open output
+    output = COMP__open__list(sizeof(COMP__parsling_argument) * 16, error);
+    if (COMP__check__error_occured(error)) {
+        return output;
+    }
+
+    // append variables
+    COMP__generate_and_append__predefined_variable(&output, COMP__global__cell_name__error_code, error);
+
+    return output;
+}
+
 // account program
 COMP__accountling_program COMP__account__program(ANVIL__list parsling_programs, COMP__error* error) {
     COMP__accountling_program output = COMP__create_null__accountling_program();
@@ -2775,6 +2907,12 @@ COMP__accountling_program COMP__account__program(ANVIL__list parsling_programs, 
     COMP__account__verify_all_calls(parsling_programs, output.call_blueprint, error);
     if (COMP__check__error_occured(error)) {
         goto quit;
+    }
+
+    // generate predefined variables
+    output.predefined_variables = COMP__generate__predefined_variables(error);
+    if (COMP__check__error_occured(error)) {
+        return output;
     }
 
     // allocate accountling abstraction list
@@ -2800,8 +2938,12 @@ COMP__accountling_program COMP__account__program(ANVIL__list parsling_programs, 
             COMP__parsling_abstraction parsling_abstraction = *(COMP__parsling_abstraction*)current_parsling_abstraction.start;
 
             // account the parsling abstraction
-            COMP__accountling_abstraction accountling_abstraction = COMP__account__abstraction(output.call_blueprint, parsling_abstraction, error);
+            COMP__accountling_abstraction accountling_abstraction = COMP__account__abstraction(output.call_blueprint, &output.predefined_variables, parsling_abstraction, error);
             if (COMP__check__error_occured(error)) {
+                // close abstraction
+                COMP__close__accountling_abstraction(accountling_abstraction);
+
+                // quit
                 goto quit;
             }
 
@@ -2826,14 +2968,14 @@ COMP__accountling_program COMP__account__program(ANVIL__list parsling_programs, 
 }
 
 // print variable list
-void COMP__print__accountling_variable_list(ANVIL__list* variables) {
+void COMP__print__accountling_variable_list(ANVIL__list* variables, COMP__tab_count tabs) {
     // setup current
     COMP__current current_variable = COMP__calculate__current_from_list_filled_index(variables);
 
     // print each argument
     while (COMP__check__current_within_range(current_variable)) {
         // print variable
-        printf("\t\t\t\t");
+        COMP__print__tabs(tabs);
         COMP__print__parsling_argument(*(COMP__parsling_argument*)current_variable.start);
         printf("\n");
 
@@ -2858,7 +3000,10 @@ void COMP__print__accountling_arguments(ANVIL__list arguments) {
         COMP__accountling_argument argument = *(COMP__accountling_argument*)current_argument.start;
 
         // print argument
-        printf("[%lu:%lu]", argument.type, argument.index);
+        printf("[");
+        ANVIL__print__buffer(COMP__convert__parsed_argument_type_to_string_buffer(argument.type));
+        printf(":%lu]", argument.index);
+
 
         // next argument
         current_argument.start += sizeof(COMP__accountling_argument);
@@ -2877,6 +3022,12 @@ void COMP__print__accountling_program(COMP__accountling_program program) {
 
     // print headers
     COMP__print__call_blueprint(program.call_blueprint);
+
+    // print predefined variables
+    printf("\tPredefined Variables:\n");
+
+    // print variables
+    COMP__print__accountling_variable_list(&program.predefined_variables, 2);
 
     // print abstractions
     printf("\tAbstractions:\n");
@@ -2907,35 +3058,35 @@ void COMP__print__accountling_program(COMP__accountling_program program) {
             if (abstraction.inputs.filled_index > 0) {
                 // print inputs
                 printf("\t\t\tInputs:\n");
-                COMP__print__accountling_variable_list(&abstraction.inputs);
+                COMP__print__accountling_variable_list(&abstraction.inputs, 4);
             }
 
             // if there are outputs
             if (abstraction.outputs.filled_index > 0) {
                 // print outputs
                 printf("\t\t\tOutputs:\n");
-                COMP__print__accountling_variable_list(&abstraction.outputs);
+                COMP__print__accountling_variable_list(&abstraction.outputs, 4);
             }
 
             // if there are doubles
             if (abstraction.doubles.filled_index > 0) {
                 // print doubles
                 printf("\t\t\tDoubles:\n");
-                COMP__print__accountling_variable_list(&abstraction.doubles);
+                COMP__print__accountling_variable_list(&abstraction.doubles, 4);
             }
 
             // if there are variables
             if (abstraction.variables.filled_index > 0) {
                 // print variables
                 printf("\t\t\tVariables:\n");
-                COMP__print__accountling_variable_list(&abstraction.variables);
+                COMP__print__accountling_variable_list(&abstraction.variables, 4);
             }
 
             // if there are statements
             if (abstraction.statements.filled_index > 0) {
                 // print statements
                 // print header
-                printf("\t\t\tStatements\n");
+                printf("\t\t\tStatements:\n");
 
                 // setup current
                 COMP__current current_statement = COMP__calculate__current_from_list_filled_index(&abstraction.statements);
@@ -3306,7 +3457,7 @@ void COMP__close__compilation_unit(COMP__compilation_unit unit) {
     }
 
     // close accountling data
-    if (unit.stages_completed > COMP__pst__parsing) {
+    if (unit.stages_completed >= COMP__pst__parsing) {
         COMP__close__accountling_program(unit.accountlings);
     }
 
