@@ -3484,8 +3484,15 @@ void COMP__forge__anvil_abstraction(COMP__generation_workspace* workspace, COMP_
             if (statement.header.call_index < COMP__act__user_defined) {
                 // determine instruction type & write instruction
                 switch ((COMP__act)statement.header.call_index) {
+                case COMP__act__set__boolean:
+                case COMP__act__set__binary:
                 case COMP__act__set__integer:
+                case COMP__act__set__hexadecimal:
                     ANVIL__code__write_cell(workspace->workspace, (ANVIL__cell)COMP__get__abstractling_statement_argument_by_index(statement.inputs, 0).index, COMP__get__abstractling_statement_argument_by_index(statement.outputs, 0).index);
+
+                    break;
+                case COMP__act__debug_print_integer_unsigned:
+                    ANVIL__code__debug__print_cell_as_decimal(workspace->workspace, COMP__get__abstractling_statement_argument_by_index(statement.inputs, 0).index);
 
                     break;
                 case COMP__act__debug_print_character:
@@ -3493,6 +3500,7 @@ void COMP__forge__anvil_abstraction(COMP__generation_workspace* workspace, COMP_
 
                     break;
                 default:
+                    // should not be reachable
                     break;
                 }
             // if statement is abstraction call
@@ -3544,9 +3552,6 @@ void COMP__forge__anvil_program(ANVIL__buffer* final_program, COMP__accountling_
         return;
     }
 
-    // DEBUG
-    printf("Function count: %lu\n", workspace.function_count);
-
     // forge program
     for (ANVIL__pt pass = ANVIL__pt__get_offsets; pass < ANVIL__pt__COUNT; pass++) {
         // setup pass
@@ -3570,18 +3575,6 @@ void COMP__forge__anvil_program(ANVIL__buffer* final_program, COMP__accountling_
             current_abstraction.start += sizeof(COMP__generation_abstraction);
             index++;
         }
-
-        /*// generate abstractions
-        for (COMP__abstraction_index i = 0; i < workspace.function_count; i++) {
-            // create abstraction
-            COMP__forge__anvil_abstraction(&workspace, i, COMP__find__accountling_abstraction_by_index(accountlings, i), error);
-            if (COMP__check__error_occured(error)) {
-                return;
-            }
-        }*/
-
-        // DEBUG
-        printf("Entry point offset: %lu\nTotal byte count: %lu\n", COMP__find__generation_abstraction_by_index(&workspace, workspace.entry_point).offsets.function_start, workspace.anvil.current_program_offset);
     }
 
     // close workspace

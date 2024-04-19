@@ -384,8 +384,18 @@ int main(int argc, char** argv) {
                 // setup context
                 ANVIL__context context = ANVIL__setup__context(program);
 
+                // print debug
+                if (debug_mode == ANVIL__bt__true) {
+                    printf("Running program...\n------------------\n");
+                }
+
                 // run code
                 ANVIL__run__context(&allocations, &context, ANVIL__define__run_forever);
+
+                // print debug
+                if (debug_mode == ANVIL__bt__true) {
+                    printf("\n");
+                }
 
                 // close allocations
                 ANVIL__close__allocations(&allocations);
