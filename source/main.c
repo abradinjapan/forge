@@ -337,8 +337,11 @@ int main(int argc, char** argv) {
 
         // if files were passed
         if (COMP__check__current_within_range(COMP__calculate__current_from_list_filled_index(&files)) == ANVIL__bt__true) {
+            // setup output
+            ANVIL__buffer program = ANVIL__create_null__buffer();
+
             // run compiler
-            COMP__compile__files(files, debug_mode, &error);
+            COMP__compile__files(files, debug_mode, &program, &error);
 
             // if error
             if (COMP__check__error_occured(&error)) {
@@ -358,6 +361,37 @@ int main(int argc, char** argv) {
 
                 // deallocate error message
                 ANVIL__close__buffer(json);
+            // no error occured, run code
+            } else {
+                ANVIL__bt memory_error_occured = ANVIL__bt__false;
+
+                // setup allocations
+                ANVIL__allocations allocations = ANVIL__open__allocations(&memory_error_occured);
+                if (memory_error_occured) {
+                    printf("Internal Error: Program built successfully, but allocations failed to open.\n");
+
+                    return 1;
+                }
+
+                // add allocation
+                ANVIL__remember__allocation(&allocations, program, &memory_error_occured);
+                if (memory_error_occured) {
+                    printf("Internal Error: Program built successfully, but allocations failed to append.\n");
+
+                    return 1;
+                }
+
+                // setup context
+                ANVIL__context context = ANVIL__setup__context(program);
+
+                // run code
+                ANVIL__run__context(&allocations, &context, ANVIL__define__run_forever);
+
+                // close allocations
+                ANVIL__close__allocations(&allocations);
+
+                // close program
+                ANVIL__close__buffer(program);
             }
         // if no files
         } else {

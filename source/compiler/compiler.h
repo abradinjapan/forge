@@ -1801,28 +1801,37 @@ void COMP__close__accountling_abstraction_header(COMP__accountling_abstraction_h
 
 // accountling statement
 typedef struct COMP__accountling_statement {
+    // type
+    COMP__st type;
+
+    // call
     COMP__accountling_abstraction_header header;
     ANVIL__list inputs; // COMP__accountling_argument
     ANVIL__list outputs; // COMP__accountling_argument
+
+    // offset
+    COMP__offset_index offset_ID;
 } COMP__accountling_statement;
 
 // setup custom accountling statement
-COMP__accountling_statement COMP__create__accountling_statement(COMP__accountling_abstraction_header header, ANVIL__list inputs, ANVIL__list outputs) {
+COMP__accountling_statement COMP__create__accountling_statement(COMP__st type, COMP__accountling_abstraction_header header, ANVIL__list inputs, ANVIL__list outputs, COMP__offset_index offset_ID) {
     COMP__accountling_statement output;
 
+    output.type = type;
     output.header = header;
     output.inputs = inputs;
     output.outputs = outputs;
+    output.offset_ID = offset_ID;
 
     return output;
 }
 
 // create null accountling statement
 COMP__accountling_statement COMP__create_null__accountling_statement() {
-    return COMP__create__accountling_statement(COMP__create_null__accountling_abstraction_header(), ANVIL__create_null__list(), ANVIL__create_null__list());
+    return COMP__create__accountling_statement(COMP__st__invalid, COMP__create_null__accountling_abstraction_header(), ANVIL__create_null__list(), ANVIL__create_null__list(), COMP__define__null_offset_ID);
 }
 
-// open statement
+/*// open statement
 COMP__accountling_statement COMP__open__accountling_statement(COMP__accountling_abstraction_header header, COMP__error* error) {
     COMP__accountling_statement output;
 
@@ -1840,7 +1849,7 @@ COMP__accountling_statement COMP__open__accountling_statement(COMP__accountling_
     }
 
     return output;
-}
+}*/
 
 // close statement
 void COMP__close__accountling_statement(COMP__accountling_statement statement) {
@@ -1849,6 +1858,11 @@ void COMP__close__accountling_statement(COMP__accountling_statement statement) {
     ANVIL__close__list(statement.outputs);
 
     return;
+}
+
+// get statement input by index
+COMP__accountling_argument COMP__get__abstractling_statement_argument_by_index(ANVIL__list list, COMP__argument_index index) {
+    return ((COMP__accountling_argument*)list.buffer.start)[index];
 }
 
 // accountling abstraction
@@ -1927,12 +1941,8 @@ void COMP__close__accountling_statements(ANVIL__list statements) {
 
     // for each statement
     while (COMP__check__current_within_range(current_statement)) {
-        // get statement
-        COMP__accountling_statement statement = *(COMP__accountling_statement*)current_statement.start;
-
-        // close statement subdata
-        ANVIL__close__list(statement.inputs);
-        ANVIL__close__list(statement.outputs);
+        // close statement
+        COMP__close__accountling_statement(*(COMP__accountling_statement*)current_statement.start);
 
         // next statement
         current_statement.start += sizeof(COMP__accountling_statement);
@@ -2814,6 +2824,9 @@ COMP__accountling_abstraction COMP__account__abstraction(ANVIL__list call_bluepr
             // translate statement
             // statement is a call
             if (parsling_statement.type == COMP__st__abstraction_call) {
+                // set type
+                accountling_statement.type = parsling_statement.type;
+
                 // get accountling header index
                 COMP__header_index header_index = COMP__find__accountling_header_index(call_blueprint, parsling_statement);
                 if (header_index > COMP__calculate__call_blueprint_entry_count(call_blueprint)) {
@@ -2837,6 +2850,14 @@ COMP__accountling_abstraction COMP__account__abstraction(ANVIL__list call_bluepr
 
                 // append statement
                 COMP__append__accountling_statement(&output.statements, accountling_statement, error);
+            // statement is an offset
+            } else if (parsling_statement.type == COMP__st__offset) {
+                // set type
+                accountling_statement.type = parsling_statement.type;
+
+                // get offset index
+                // TODO
+                accountling_statement.offset_ID = COMP__define__null_offset_ID;
             }
 
             // next statement
@@ -2972,7 +2993,7 @@ COMP__accountling_program COMP__account__program(ANVIL__list parsling_programs, 
 
     // search for main
     // setup current
-    COMP__current current_header = COMP__calculate__current_from_list_filled_index(&output.abstractions);
+    COMP__current current_header = COMP__calculate__current_from_list_filled_index(&output.call_blueprint);
     output.main_abstraction_ID = 0;
 
     // for each header
@@ -3363,20 +3384,18 @@ typedef struct COMP__generation_workspace {
 } COMP__generation_workspace;
 
 // open workspace
-COMP__generation_workspace COMP__open__generation_workspace(ANVIL__buffer* program_buffer, COMP__accountling_program accountlings, COMP__error* error) {
-    COMP__generation_workspace output;
-
+void COMP__open__generation_workspace(ANVIL__buffer* program_buffer, COMP__accountling_program accountlings, COMP__generation_workspace* output, COMP__error* error) {
     // setup anvil workspace
-    output.anvil = ANVIL__setup__workspace(program_buffer);
-    output.workspace = &output.anvil;
+    output->anvil = ANVIL__setup__workspace(program_buffer);
+    output->workspace = &(output->anvil);
 
     // setup entry point
-    output.entry_point = COMP__calculate__abstraction_index_from_call_index(accountlings.main_abstraction_ID);
+    output->entry_point = COMP__calculate__abstraction_index_from_call_index(accountlings.main_abstraction_ID);
 
     // setup generation abstractions from accountling abstractions
     // open generation abstractions
-    output.abstractions = COMP__open__list(sizeof(COMP__generation_abstraction) * 16, error);
-    output.function_count = 0;
+    output->abstractions = COMP__open__list(sizeof(COMP__generation_abstraction) * 16, error);
+    output->function_count = 0;
 
     // setup current
     COMP__current current_accountling_abstraction = COMP__calculate__current_from_list_filled_index(&accountlings.abstractions);
@@ -3389,21 +3408,21 @@ COMP__generation_workspace COMP__open__generation_workspace(ANVIL__buffer* progr
         // setup generation abstraction
         COMP__generation_abstraction generation_abstraction = COMP__open__generation_abstraction(accountling_abstraction, error);
         if (COMP__check__error_occured(error)) {
-            return output;
+            return;
         }
 
         // append abstraction
-        COMP__append__generation_abstraction(&output.abstractions, generation_abstraction, error);
+        COMP__append__generation_abstraction(&output->abstractions, generation_abstraction, error);
         if (COMP__check__error_occured(error)) {
-            return output;
+            return;
         }
 
         // next abstraction
-        output.function_count++;
+        output->function_count++;
         current_accountling_abstraction.start += sizeof(COMP__accountling_abstraction);
     }
 
-    return output;
+    return;
 }
 
 // close workspace
@@ -3436,17 +3455,12 @@ COMP__accountling_abstraction COMP__find__accountling_abstraction_by_index(COMP_
 }
 
 // generate function
-void COMP__forge__anvil_abstraction(COMP__generation_workspace* workspace, COMP__abstraction_index generation_abstraction_index, COMP__accountling_abstraction accountling_abstraction, COMP__error* error) {
-    COMP__generation_abstraction* generation_abstraction;
-
-    // setup generation abstraction address
-    generation_abstraction = (COMP__generation_abstraction*)((*workspace).abstractions.buffer.start + (sizeof(COMP__generation_abstraction) * generation_abstraction_index));
-
+void COMP__forge__anvil_abstraction(COMP__generation_workspace* workspace, COMP__generation_abstraction* generation_abstraction, COMP__accountling_abstraction accountling_abstraction, COMP__error* error) {
     // setup offset
     (*generation_abstraction).offsets.function_start = ANVIL__get__offset((*workspace).workspace);
 
     // setup function prologue
-    ANVIL__code__preserve_workspace((*workspace).workspace, ANVIL__sft__always_run, (*generation_abstraction).cells.workspace_total_range.start, (*generation_abstraction).cells.workspace_total_range.end);
+    ANVIL__code__preserve_workspace((*workspace).workspace, ANVIL__sft__always_run, generation_abstraction->cells.workspace_total_range.start, generation_abstraction->cells.workspace_total_range.end);
 
     // get inputs
     for (COMP__input_count i = 0; i < COMP__calculate__list_content_count(accountling_abstraction.inputs, sizeof(COMP__parsling_argument)); i++) {
@@ -3464,7 +3478,39 @@ void COMP__forge__anvil_abstraction(COMP__generation_workspace* workspace, COMP_
         COMP__accountling_statement statement = *(COMP__accountling_statement*)current_statement.start;
 
         // build statement
-        // TODO
+        // if statement is call
+        if (statement.type == COMP__st__abstraction_call) {
+            // if statement is instruction
+            if (statement.header.call_index < COMP__act__user_defined) {
+                // determine instruction type & write instruction
+                switch ((COMP__act)statement.header.call_index) {
+                case COMP__act__set__integer:
+                    ANVIL__code__write_cell(workspace->workspace, (ANVIL__cell)COMP__get__abstractling_statement_argument_by_index(statement.inputs, 0).index, COMP__get__abstractling_statement_argument_by_index(statement.outputs, 0).index);
+
+                    break;
+                case COMP__act__debug_print_character:
+                    ANVIL__code__debug__putchar(workspace->workspace, COMP__get__abstractling_statement_argument_by_index(statement.inputs, 0).index);
+
+                    break;
+                default:
+                    break;
+                }
+            // if statement is abstraction call
+            } else {
+                // TODO
+            }
+        // statement is offset
+        } else if (statement.type == COMP__st__offset) {
+            // TODO
+        // unrecognized statement type, error
+        } else {
+            *error = COMP__open__error("Internal Error: In code generator, invalid statement type, oops.", statement.header.header.name.text.lexling.location);
+
+            return;
+        }
+
+        // next statement
+        current_statement.start += sizeof(COMP__accountling_statement);
     }
 
     // pass outputs
@@ -3490,30 +3536,56 @@ void COMP__forge__anvil_abstraction(COMP__generation_workspace* workspace, COMP_
 
 // generate program
 void COMP__forge__anvil_program(ANVIL__buffer* final_program, COMP__accountling_program accountlings, ANVIL__stack_size stack_size, COMP__error* error) {
+    COMP__generation_workspace workspace;
+    
     // setup generation workspace
-    COMP__generation_workspace workspace = COMP__open__generation_workspace(final_program, accountlings, error);
+    COMP__open__generation_workspace(final_program, accountlings, &workspace, error);
     if (COMP__check__error_occured(error)) {
         return;
     }
 
+    // DEBUG
+    printf("Function count: %lu\n", workspace.function_count);
+
     // forge program
     for (ANVIL__pt pass = ANVIL__pt__get_offsets; pass < ANVIL__pt__COUNT; pass++) {
         // setup pass
-        ANVIL__setup__pass(&workspace.anvil, pass);
+        ANVIL__setup__pass(workspace.workspace, pass);
 
         // build program
         // setup kickstarter
         ANVIL__code__start(&workspace.anvil, stack_size, COMP__find__generation_abstraction_by_index(&workspace, workspace.entry_point).offsets.function_start);
 
         // weave abstractions
+        // setup current
+        COMP__current current_abstraction = COMP__calculate__current_from_list_filled_index(&workspace.abstractions);
+        COMP__abstraction_index index = 0;
+
+        // for each abstraction
+        while (COMP__check__current_within_range(current_abstraction)) {
+            // weave abstraction
+            COMP__forge__anvil_abstraction(&workspace, (COMP__generation_abstraction*)current_abstraction.start, COMP__find__accountling_abstraction_by_index(accountlings, index), error);
+
+            // next abstraction
+            current_abstraction.start += sizeof(COMP__generation_abstraction);
+            index++;
+        }
+
+        /*// generate abstractions
         for (COMP__abstraction_index i = 0; i < workspace.function_count; i++) {
             // create abstraction
             COMP__forge__anvil_abstraction(&workspace, i, COMP__find__accountling_abstraction_by_index(accountlings, i), error);
             if (COMP__check__error_occured(error)) {
                 return;
             }
-        }
+        }*/
+
+        // DEBUG
+        printf("Entry point offset: %lu\nTotal byte count: %lu\n", COMP__find__generation_abstraction_by_index(&workspace, workspace.entry_point).offsets.function_start, workspace.anvil.current_program_offset);
     }
+
+    // close workspace
+    COMP__close__generation_workspace(workspace);
 
     return;
 }
@@ -3575,7 +3647,7 @@ void COMP__close__compilation_unit(COMP__compilation_unit unit) {
 }
 
 // compile a program
-void COMP__compile__files(ANVIL__list user_codes, ANVIL__bt print_debug, COMP__error* error) {
+void COMP__compile__files(ANVIL__list user_codes, ANVIL__bt print_debug, ANVIL__buffer* final_program, COMP__error* error) {
     COMP__compilation_unit compilation_unit;
     COMP__current current;
     COMP__file_index current_file_index = 0;
@@ -3678,7 +3750,7 @@ void COMP__compile__files(ANVIL__list user_codes, ANVIL__bt print_debug, COMP__e
     }
 
     // generate program
-    // TODO
+    COMP__forge__anvil_program(final_program, compilation_unit.accountlings, 65536, error);
 
     // quit label
     quit:
