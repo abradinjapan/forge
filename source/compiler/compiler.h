@@ -3477,7 +3477,7 @@ COMP__accountling_abstraction COMP__find__accountling_abstraction_by_index(COMP_
 }
 
 // convert variable index to cell ID
-ANVIL__cell_ID COMP__translate__accountling_variable_index_to_cell_ID(COMP__generation_abstraction* generation_abstraction, COMP__accountling_abstraction accountling_abstraction, COMP__accountling_argument argument, COMP__error* error) {
+ANVIL__cell_ID COMP__translate__accountling_variable_index_to_cell_ID(COMP__generation_abstraction* generation_abstraction, COMP__accountling_argument argument, COMP__error* error) {
     // convert based on type
     if (argument.type == COMP__pat__variable || COMP__pat__variable__body) {
         // return cell ID
@@ -3530,19 +3530,19 @@ void COMP__forge__anvil_abstraction(COMP__generation_workspace* workspace, COMP_
                 case COMP__act__set__binary:
                 case COMP__act__set__integer:
                 case COMP__act__set__hexadecimal:
-                    ANVIL__code__write_cell(workspace->workspace, (ANVIL__cell)COMP__get__abstractling_statement_argument_by_index(statement.inputs, 0).index, COMP__translate__accountling_variable_index_to_cell_ID(generation_abstraction, accountling_abstraction, COMP__get__abstractling_statement_argument_by_index(statement.outputs, 0), error));
+                    ANVIL__code__write_cell(workspace->workspace, (ANVIL__cell)COMP__get__abstractling_statement_argument_by_index(statement.inputs, 0).index, COMP__translate__accountling_variable_index_to_cell_ID(generation_abstraction, COMP__get__abstractling_statement_argument_by_index(statement.outputs, 0), error));
 
                     break;
                 case COMP__act__set__offset:
-                    ANVIL__code__write_cell(workspace->workspace, (ANVIL__cell)(((ANVIL__offset*)generation_abstraction->offsets.statement_offsets.buffer.start)[COMP__get__abstractling_statement_argument_by_index(statement.inputs, 0).index]), COMP__translate__accountling_variable_index_to_cell_ID(generation_abstraction, accountling_abstraction, COMP__get__abstractling_statement_argument_by_index(statement.outputs, 0), error));
+                    ANVIL__code__write_cell(workspace->workspace, (ANVIL__cell)(((ANVIL__offset*)generation_abstraction->offsets.statement_offsets.buffer.start)[COMP__get__abstractling_statement_argument_by_index(statement.inputs, 0).index]), COMP__translate__accountling_variable_index_to_cell_ID(generation_abstraction, COMP__get__abstractling_statement_argument_by_index(statement.outputs, 0), error));
 
                     break;
                 case COMP__act__debug_print_integer_unsigned:
-                    ANVIL__code__debug__print_cell_as_decimal(workspace->workspace, COMP__translate__accountling_variable_index_to_cell_ID(generation_abstraction, accountling_abstraction, COMP__get__abstractling_statement_argument_by_index(statement.inputs, 0), error));
+                    ANVIL__code__debug__print_cell_as_decimal(workspace->workspace, COMP__translate__accountling_variable_index_to_cell_ID(generation_abstraction, COMP__get__abstractling_statement_argument_by_index(statement.inputs, 0), error));
 
                     break;
                 case COMP__act__debug_print_character:
-                    ANVIL__code__debug__putchar(workspace->workspace, COMP__translate__accountling_variable_index_to_cell_ID(generation_abstraction, accountling_abstraction, COMP__get__abstractling_statement_argument_by_index(statement.inputs, 0), error));
+                    ANVIL__code__debug__putchar(workspace->workspace, COMP__translate__accountling_variable_index_to_cell_ID(generation_abstraction, COMP__get__abstractling_statement_argument_by_index(statement.inputs, 0), error));
 
                     break;
                 default:
