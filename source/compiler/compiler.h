@@ -3551,7 +3551,20 @@ void COMP__forge__anvil_abstraction(COMP__generation_workspace* workspace, COMP_
                 }
             // if statement is abstraction call
             } else {
-                // TODO
+                // pass inputs
+                for (COMP__input_count i = 0; i < COMP__calculate__list_content_count(statement.inputs, sizeof(COMP__accountling_argument)); i++) {
+                    // pass input
+                    ANVIL__code__cell_to_cell(workspace->workspace, ANVIL__sft__always_run, COMP__translate__accountling_variable_index_to_cell_ID(generation_abstraction, COMP__get__abstractling_statement_argument_by_index(statement.inputs, i), error), ANVIL__srt__start__function_io + i);
+                }
+
+                // call function
+                ANVIL__code__call__static(workspace->workspace, ANVIL__sft__always_run, ((COMP__generation_abstraction*)workspace->abstractions.buffer.start)[COMP__calculate__abstraction_index_from_call_index(statement.header.call_index)].offsets.function_start);
+
+                // pass outputs
+                for (COMP__output_count i = 0; i < COMP__calculate__list_content_count(statement.outputs, sizeof(COMP__accountling_argument)); i++) {
+                    // pass output
+                    ANVIL__code__cell_to_cell(workspace->workspace, ANVIL__sft__always_run, ANVIL__srt__start__function_io + i, COMP__translate__accountling_variable_index_to_cell_ID(generation_abstraction, COMP__get__abstractling_statement_argument_by_index(statement.outputs, i), error));
+                }
             }
         // statement is offset
         } else if (statement.type == COMP__st__offset) {
