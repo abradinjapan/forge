@@ -2068,6 +2068,11 @@ COMP__header_index COMP__calculate__call_blueprint_entry_count(ANVIL__list call_
     return call_blueprint.filled_index / sizeof(COMP__accountling_abstraction_header);
 }
 
+// check if argument is in variable category
+ANVIL__bt COMP__check__argument_is_variable_type(COMP__pat argument_type) {
+    return (argument_type == COMP__pat__variable) || (argument_type == COMP__pat__variable__body) || (argument_type == COMP__pat__variable__double) || (argument_type == COMP__pat__variable__input) || (argument_type == COMP__pat__variable__output) || (argument_type == COMP__pat__variable__predefined);
+}
+
 // check if an accountling already exists
 COMP__header_index COMP__find__accountling_header_index(ANVIL__list call_blueprint, COMP__parsling_statement searching_for) {
     // search the blueprint for the correct header
@@ -2095,13 +2100,22 @@ COMP__header_index COMP__find__accountling_header_index(ANVIL__list call_bluepri
             if (ANVIL__check__empty_buffer(current_statement_io) == ANVIL__bt__false) {
                 // check inputs
                 while (COMP__check__current_within_range(current_statement_io) && COMP__check__current_within_range(current_header_io)) {
+                    // get types
+                    COMP__pat statement_io_type = (*(COMP__parsling_argument*)current_statement_io.start).type;
+                    COMP__pat header_io_type = (*(COMP__parsling_argument*)current_header_io.start).type;
+
                     // check types
-                    if ((*(COMP__parsling_argument*)current_statement_io.start).type != (*(COMP__parsling_argument*)current_header_io.start).type) {
+                    // if type is in variable category
+                    if (COMP__check__argument_is_variable_type(statement_io_type) && COMP__check__argument_is_variable_type(header_io_type)) {
+                        // next input
+                        goto next_input;
+                    } else if (statement_io_type != header_io_type) {
                         // not a match
                         goto next_header;
                     }
 
                     // next input
+                    next_input:
                     current_statement_io.start += sizeof(COMP__parsling_argument);
                     current_header_io.start += sizeof(COMP__parsling_argument);
                 }
@@ -2115,13 +2129,22 @@ COMP__header_index COMP__find__accountling_header_index(ANVIL__list call_bluepri
             if (ANVIL__check__empty_buffer(current_statement_io) == ANVIL__bt__false) {
                 // check outputs
                 while (COMP__check__current_within_range(current_statement_io) && COMP__check__current_within_range(current_header_io)) {
+                    // get types
+                    COMP__pat statement_io_type = (*(COMP__parsling_argument*)current_statement_io.start).type;
+                    COMP__pat header_io_type = (*(COMP__parsling_argument*)current_header_io.start).type;
+
                     // check types
-                    if ((*(COMP__parsling_argument*)current_statement_io.start).type != (*(COMP__parsling_argument*)current_header_io.start).type) {
+                    // if type is in variable category
+                    if (COMP__check__argument_is_variable_type(statement_io_type) && COMP__check__argument_is_variable_type(header_io_type)) {
+                        // next input
+                        goto next_output;
+                    } else if (statement_io_type != header_io_type) {
                         // not a match
                         goto next_header;
                     }
 
-                    // next input
+                    // next output
+                    next_output:
                     current_statement_io.start += sizeof(COMP__parsling_argument);
                     current_header_io.start += sizeof(COMP__parsling_argument);
                 }
@@ -2763,10 +2786,12 @@ COMP__accountling_abstraction COMP__account__abstraction(ANVIL__list call_bluepr
 
                             // check if argument already exists
                             ANVIL__bt found_input;
+                            ANVIL__bt found_output;
                             ANVIL__bt found_body;
                             COMP__account__get_argument_in_list__by_text(&output.inputs, argument, &found_input);
+                            COMP__account__get_argument_in_list__by_text(&output.outputs, argument, &found_output);
                             COMP__account__get_argument_in_list__by_text(&output.variables, argument, &found_body);
-                            if ((found_input || found_body) == ANVIL__bt__false) {
+                            if ((found_input || found_output || found_body) == ANVIL__bt__false) {
                                 // setup argument type
                                 argument.type = COMP__pat__variable__body;
 
@@ -2885,6 +2910,112 @@ COMP__accountling_abstraction COMP__account__abstraction(ANVIL__list call_bluepr
                     }
 
                     // next argument
+                    current_output.start += sizeof(COMP__parsling_argument);
+                }
+            }
+
+            // next statement
+            current_statement.start += sizeof(COMP__parsling_statement);
+        }
+    }
+
+    // modify parsling statements to reflect accurate variable types (predefined, input, output & body)
+    {
+        // get current statement
+        COMP__current current_statement = COMP__calculate__current_from_list_filled_index(&parsling_abstraction.statements);
+
+        // for each statement
+        while (COMP__check__current_within_range(current_statement)) {
+            // get statement
+            COMP__parsling_statement statement = *(COMP__parsling_statement*)current_statement.start;
+
+            // if statement is call
+            if (statement.type == COMP__st__abstraction_call) {
+                // modify inputs
+                // get inputs
+                COMP__current current_input = COMP__calculate__current_from_list_filled_index(&statement.inputs);
+
+                // for each input
+                while (COMP__check__current_within_range(current_input)) {
+                    // get input
+                    COMP__parsling_argument* input = (COMP__parsling_argument*)current_input.start;
+
+                    // if argument is variable
+                    if (input->type == COMP__pat__variable) {
+                        // find variable by type
+                        ANVIL__bt found_predefined;
+                        ANVIL__bt found_double;
+                        ANVIL__bt found_input;
+                        ANVIL__bt found_output;
+                        ANVIL__bt found_body;
+                        COMP__account__get_argument_in_list__by_text(output.predefined_variables, *input, &found_predefined);
+                        COMP__account__get_argument_in_list__by_text(&output.doubles, *input, &found_double);
+                        COMP__account__get_argument_in_list__by_text(&output.inputs, *input, &found_input);
+                        COMP__account__get_argument_in_list__by_text(&output.outputs, *input, &found_output);
+                        COMP__account__get_argument_in_list__by_text(&output.variables, *input, &found_body);
+
+                        // modify appropriately
+                        if (found_predefined) {
+                            input->type = COMP__pat__variable__predefined;
+                        } else if (found_double) {
+                            input->type = COMP__pat__variable__double;
+                        } else if (found_input) {
+                            input->type = COMP__pat__variable__input;
+                        } else if (found_output) {
+                            input->type = COMP__pat__variable__output;
+                        } else if (found_body) {
+                            input->type = COMP__pat__variable__body;
+                        } else {
+                            // error
+                            *error = COMP__open__error("Internal Error: Unrecognized variable type when modifying statement variable types, oops.", input->text.lexling.location);
+                        }
+                    }
+
+                    // next input
+                    current_input.start += sizeof(COMP__parsling_argument);
+                }
+                
+                // modify outputs
+                // get outputs
+                COMP__current current_output = COMP__calculate__current_from_list_filled_index(&statement.outputs);
+
+                // for each output
+                while (COMP__check__current_within_range(current_output)) {
+                    // get output
+                    COMP__parsling_argument* output_argument = (COMP__parsling_argument*)current_output.start;
+
+                    // if argument is variable
+                    if (output_argument->type == COMP__pat__variable) {
+                        // find variable by type
+                        ANVIL__bt found_predefined;
+                        ANVIL__bt found_double;
+                        ANVIL__bt found_input;
+                        ANVIL__bt found_output;
+                        ANVIL__bt found_body;
+                        COMP__account__get_argument_in_list__by_text(output.predefined_variables, *output_argument, &found_predefined);
+                        COMP__account__get_argument_in_list__by_text(&output.doubles, *output_argument, &found_double);
+                        COMP__account__get_argument_in_list__by_text(&output.inputs, *output_argument, &found_input);
+                        COMP__account__get_argument_in_list__by_text(&output.outputs, *output_argument, &found_output);
+                        COMP__account__get_argument_in_list__by_text(&output.variables, *output_argument, &found_body);
+
+                        // modify appropriately
+                        if (found_predefined) {
+                            output_argument->type = COMP__pat__variable__predefined;
+                        } else if (found_double) {
+                            output_argument->type = COMP__pat__variable__double;
+                        } else if (found_input) {
+                            output_argument->type = COMP__pat__variable__input;
+                        } else if (found_output) {
+                            output_argument->type = COMP__pat__variable__output;
+                        } else if (found_body) {
+                            output_argument->type = COMP__pat__variable__body;
+                        } else {
+                            // error
+                            *error = COMP__open__error("Internal Error: Unrecognized variable type when modifying statement variable types, oops.", output_argument->text.lexling.location);
+                        }
+                    }
+
+                    // next output
                     current_output.start += sizeof(COMP__parsling_argument);
                 }
             }
@@ -3342,11 +3473,11 @@ COMP__generation_cells COMP__setup__generation_cells(ANVIL__cell_count input_cou
     output.workspace_total_count = input_count + output_count + variable_count;
 
     // calculate ranges
-    output.function_input_range = COMP__calculate__generation_cell_range(ANVIL__srt__start__function_io, input_count - 1);
-    output.function_output_range = COMP__calculate__generation_cell_range(ANVIL__srt__start__function_io, output_count - 1);
-    output.workspace_input_range = COMP__calculate__generation_cell_range(ANVIL__srt__start__workspace, input_count - 1);
-    output.workspace_output_range = COMP__calculate__generation_cell_range(output.workspace_input_range.end + 1, output_count - 1);
-    output.workspace_body_range = COMP__calculate__generation_cell_range(output.workspace_output_range.end + 1, variable_count - 1);
+    output.function_input_range = COMP__calculate__generation_cell_range(ANVIL__srt__start__function_io, input_count);
+    output.function_output_range = COMP__calculate__generation_cell_range(ANVIL__srt__start__function_io, output_count);
+    output.workspace_input_range = COMP__calculate__generation_cell_range(ANVIL__srt__start__workspace, input_count);
+    output.workspace_output_range = COMP__calculate__generation_cell_range(output.workspace_input_range.end + 1, output_count);
+    output.workspace_body_range = COMP__calculate__generation_cell_range(output.workspace_output_range.end + 1, variable_count);
     output.workspace_total_range = COMP__create__generation_cell_range(output.workspace_input_range.start, output.workspace_body_range.end);
 
     return output;
@@ -3479,7 +3610,7 @@ COMP__accountling_abstraction COMP__find__accountling_abstraction_by_index(COMP_
 // convert variable index to cell ID
 ANVIL__cell_ID COMP__translate__accountling_variable_index_to_cell_ID(COMP__generation_abstraction* generation_abstraction, COMP__accountling_argument argument, COMP__error* error) {
     // convert based on type
-    if (argument.type == COMP__pat__variable || COMP__pat__variable__body) {
+    if (argument.type == COMP__pat__variable || argument.type == COMP__pat__variable__body) {
         // return cell ID
         return generation_abstraction->cells.workspace_body_range.start + argument.index;
     } else if (argument.type == COMP__pat__variable__input) {
@@ -3505,7 +3636,7 @@ void COMP__forge__anvil_abstraction(COMP__generation_workspace* workspace, COMP_
     ANVIL__code__preserve_workspace((*workspace).workspace, ANVIL__sft__always_run, generation_abstraction->cells.workspace_total_range.start, generation_abstraction->cells.workspace_total_range.end);
 
     // get inputs
-    for (COMP__input_count i = 0; i < COMP__calculate__list_content_count(accountling_abstraction.inputs, sizeof(COMP__parsling_argument)); i++) {
+    for (COMP__input_count i = 0; i < generation_abstraction->cells.input_count; i++) {
         // pass input
         ANVIL__code__cell_to_cell(workspace->workspace, ANVIL__sft__always_run, generation_abstraction->cells.function_input_range.start + i, generation_abstraction->cells.workspace_input_range.start + i);
     }
@@ -3554,7 +3685,7 @@ void COMP__forge__anvil_abstraction(COMP__generation_workspace* workspace, COMP_
                 // pass inputs
                 for (COMP__input_count i = 0; i < COMP__calculate__list_content_count(statement.inputs, sizeof(COMP__accountling_argument)); i++) {
                     // pass input
-                    ANVIL__code__cell_to_cell(workspace->workspace, ANVIL__sft__always_run, COMP__translate__accountling_variable_index_to_cell_ID(generation_abstraction, COMP__get__abstractling_statement_argument_by_index(statement.inputs, i), error), ANVIL__srt__start__function_io + i);
+                    ANVIL__code__cell_to_cell(workspace->workspace, ANVIL__sft__always_run, COMP__translate__accountling_variable_index_to_cell_ID(generation_abstraction, COMP__get__abstractling_statement_argument_by_index(statement.inputs, i), error), generation_abstraction->cells.function_input_range.start + i);
                 }
 
                 // call function
@@ -3563,7 +3694,7 @@ void COMP__forge__anvil_abstraction(COMP__generation_workspace* workspace, COMP_
                 // pass outputs
                 for (COMP__output_count i = 0; i < COMP__calculate__list_content_count(statement.outputs, sizeof(COMP__accountling_argument)); i++) {
                     // pass output
-                    ANVIL__code__cell_to_cell(workspace->workspace, ANVIL__sft__always_run, ANVIL__srt__start__function_io + i, COMP__translate__accountling_variable_index_to_cell_ID(generation_abstraction, COMP__get__abstractling_statement_argument_by_index(statement.outputs, i), error));
+                    ANVIL__code__cell_to_cell(workspace->workspace, ANVIL__sft__always_run, generation_abstraction->cells.function_output_range.start + i, COMP__translate__accountling_variable_index_to_cell_ID(generation_abstraction, COMP__get__abstractling_statement_argument_by_index(statement.outputs, i), error));
                 }
             }
         // statement is offset
@@ -3590,7 +3721,7 @@ void COMP__forge__anvil_abstraction(COMP__generation_workspace* workspace, COMP_
     generation_abstraction->offsets.function_return = ANVIL__get__offset(workspace->workspace);
 
     // pass outputs
-    for (COMP__output_count i = 0; i < COMP__calculate__list_content_count(accountling_abstraction.outputs, sizeof(COMP__parsling_argument)); i++) {
+    for (COMP__output_count i = 0; i < generation_abstraction->cells.output_count; i++) {
         // pass input
         ANVIL__code__cell_to_cell(workspace->workspace, ANVIL__sft__always_run, generation_abstraction->cells.workspace_output_range.start + i, generation_abstraction->cells.function_output_range.start + i);
     }
