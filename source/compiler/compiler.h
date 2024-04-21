@@ -49,7 +49,9 @@ typedef ANVIL__u64 COMP__abstraction_index;
 #define COMP__define__u64_max_base_10_conversion_character_limit 20
 #define COMP__define__invalid_abstraction_call_ID -1
 
-char* COMP__global__cell_name__error_code = "frost.error_code";
+char* COMP__global__predefined_cell_name_strings[] = {
+    "frost.error_code",
+};
 char* COMP__global__argument_type_name_strings[] = {
     "invalid",
     "variable",
@@ -1681,6 +1683,15 @@ void COMP__print__parsed_program(COMP__parsling_program program) {
 }
 
 /* Accounting */
+// predefined variable type
+typedef enum COMP__pvt {
+    // variables
+    COMP__pvt__error_code,
+
+    // count
+    COMP__pvt__COUNT,
+} COMP__pvt;
+
 // accountling argument
 typedef struct COMP__accountling_argument {
     COMP__pat type;
@@ -2136,7 +2147,7 @@ COMP__header_index COMP__find__accountling_header_index(ANVIL__list call_bluepri
                     // check types
                     // if type is in variable category
                     if (COMP__check__argument_is_variable_type(statement_io_type) && COMP__check__argument_is_variable_type(header_io_type)) {
-                        // next input
+                        // next output
                         goto next_output;
                     } else if (statement_io_type != header_io_type) {
                         // not a match
@@ -2524,13 +2535,6 @@ ANVIL__list COMP__account__accountling_argument_list(COMP__accountling_abstracti
         } else if (argument.type == COMP__pat__variable__output) {
             COMP__append__accountling_argument(&output, COMP__create__accountling_argument(argument.type, COMP__find__parsling_argument_index__by_name((*abstraction).outputs, argument)), error);
         } else if (argument.type == COMP__pat__variable || argument.type == COMP__pat__variable__body) {
-            ANVIL__bt is_predefined;
-            COMP__account__get_argument_in_list__by_text((*abstraction).predefined_variables, argument, &is_predefined);
-            if (is_predefined) {
-                argument.type = COMP__pat__variable__predefined;
-            } else {
-                argument.type = COMP__pat__variable__body;
-            }
             COMP__append__accountling_argument(&output, COMP__create__accountling_argument(argument.type, COMP__find__parsling_argument_index__by_name((*abstraction).variables, argument)), error);
         } else if (argument.type == COMP__pat__variable__double) {
             COMP__append__accountling_argument(&output, COMP__create__accountling_argument(argument.type, COMP__find__parsling_argument_index__by_name((*abstraction).doubles, argument)), error);
@@ -2538,6 +2542,8 @@ ANVIL__list COMP__account__accountling_argument_list(COMP__accountling_abstracti
             COMP__append__accountling_argument(&output, COMP__create__accountling_argument(argument.type, argument.value), error);
         } else if (argument.type == COMP__pat__offset) {
             COMP__append__accountling_argument(&output, COMP__create__accountling_argument(argument.type, COMP__find__parsling_argument_index__by_name((*abstraction).offsets, argument)), error);
+        } else if (argument.type == COMP__pat__variable__predefined) {
+            COMP__append__accountling_argument(&output, COMP__create__accountling_argument(argument.type, COMP__find__parsling_argument_index__by_name(*(*abstraction).predefined_variables, argument)), error);
         } else {
             // error
             *error = COMP__open__error("Internal Error: Unsupported argument type in accountling argument list.", argument.text.lexling.location);
@@ -2919,7 +2925,7 @@ COMP__accountling_abstraction COMP__account__abstraction(ANVIL__list call_bluepr
         }
     }
 
-    // modify parsling statements to reflect accurate variable types (predefined, input, output & body)
+    // modify parsling statements to reflect accurate variable types (predefined, input, output, double & body)
     {
         // get current statement
         COMP__current current_statement = COMP__calculate__current_from_list_filled_index(&parsling_abstraction.statements);
@@ -3147,7 +3153,7 @@ ANVIL__list COMP__generate__predefined_variables(COMP__error* error) {
     }
 
     // append variables
-    COMP__generate_and_append__predefined_variable(&output, COMP__global__cell_name__error_code, error);
+    COMP__generate_and_append__predefined_variable(&output, COMP__global__predefined_cell_name_strings[COMP__pvt__error_code], error);
 
     return output;
 }
@@ -3619,12 +3625,17 @@ ANVIL__cell_ID COMP__translate__accountling_variable_index_to_cell_ID(COMP__gene
     } else if (argument.type == COMP__pat__variable__output) {
         // return cell ID
         return generation_abstraction->cells.workspace_output_range.start + argument.index;
-    } else {
-        // error
-        *error = COMP__open__error("Internal Error: Unsupported variable index type.", COMP__create_null__character_location());
-
-        return COMP__define__null_offset_ID;
+    } else if (argument.type == COMP__pat__variable__predefined) {
+        // determine variable type
+        if (argument.index == COMP__pvt__error_code) {
+            return ANVIL__rt__error_code;
+        }
     }
+    
+    // error
+    *error = COMP__open__error("Internal Error: Unsupported variable index type.", COMP__create_null__character_location());
+
+    return COMP__define__null_offset_ID;
 }
 
 // generate function
