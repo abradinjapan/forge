@@ -1744,6 +1744,7 @@ typedef enum COMP__act {
     COMP__act__debug_print_integer_signed,
     COMP__act__debug_print_integer_unsigned,
     COMP__act__debug_print_character,
+    COMP__act__integer_add,
 
     // end
     COMP__act__END,
@@ -2019,6 +2020,7 @@ typedef enum COMP__bnit {
     COMP__bnit__debug_print_integer_signed,
     COMP__bnit__debug_print_integer_unsigned,
     COMP__bnit__debug_print_character,
+    COMP__bnit__integer_add,
 
     // stats
     COMP__bnit__COUNT,
@@ -2182,6 +2184,7 @@ ANVIL__list COMP__generate__call_blueprint(ANVIL__list parsling_programs, COMP__
         "frost.debug.print.integer.signed",
         "frost.debug.print.integer.unsigned",
         "frost.debug.print.character",
+        "frost.integer.add",
     };
     const COMP__blueprintling blueprint[] = {
         COMP__abt__define_call,
@@ -2237,6 +2240,14 @@ ANVIL__list COMP__generate__call_blueprint(ANVIL__list parsling_programs, COMP__
             1,
             COMP__pat__variable,
             0,
+        COMP__abt__define_call,
+            COMP__act__integer_add,
+            COMP__bnit__integer_add,
+            2,
+            COMP__pat__variable,
+            COMP__pat__variable,
+            1,
+            COMP__pat__variable,
         COMP__abt__end_of_blueprint,
     };
 
@@ -3685,6 +3696,10 @@ void COMP__forge__anvil_abstraction(COMP__generation_workspace* workspace, COMP_
                     break;
                 case COMP__act__debug_print_character:
                     ANVIL__code__debug__putchar(workspace->workspace, COMP__translate__accountling_variable_index_to_cell_ID(generation_abstraction, COMP__get__abstractling_statement_argument_by_index(statement.inputs, 0), error));
+
+                    break;
+                case COMP__act__integer_add:
+                    ANVIL__code__operate(workspace->workspace, ANVIL__sft__always_run, ANVIL__ot__integer_add, COMP__translate__accountling_variable_index_to_cell_ID(generation_abstraction, COMP__get__abstractling_statement_argument_by_index(statement.inputs, 0), error), COMP__translate__accountling_variable_index_to_cell_ID(generation_abstraction, COMP__get__abstractling_statement_argument_by_index(statement.inputs, 1), error), ANVIL__unused_cell_ID, COMP__translate__accountling_variable_index_to_cell_ID(generation_abstraction, COMP__get__abstractling_statement_argument_by_index(statement.outputs, 0), error));
 
                     break;
                 default:
