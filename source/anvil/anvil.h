@@ -28,6 +28,7 @@ typedef ANVIL__s64 s64;
 
 typedef void* ANVIL__address;
 #define ANVIL__define__null_address 0
+#define ANVIL__define__null_flag 0
 
 typedef ANVIL__u64 ANVIL__length;
 
