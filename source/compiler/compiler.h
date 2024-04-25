@@ -88,6 +88,7 @@ char* COMP__global__accountling_call_type_name_strings[] = {
     "frost.integer.add",
     "frost.integer.within_range",
     "frost.jump",
+    "frost.reset.error_code",
 };
 
 // program stage type
@@ -1801,6 +1802,9 @@ typedef enum COMP__act {
     // jumps
     COMP__act__jump,
 
+    // etc
+    COMP__act__reset_error_code_cell,
+
     // end
     COMP__act__END,
 
@@ -2069,6 +2073,7 @@ typedef enum COMP__bnit {
     COMP__bnit__integer_add,
     COMP__bnit__integer_within_range,
     COMP__bnit__jump,
+    COMP__bnit__reset_error_code,
 
     // stats
     COMP__bnit__COUNT,
@@ -2374,6 +2379,13 @@ ANVIL__list COMP__generate__call_blueprint(ANVIL__list parsling_programs, COMP__
             2,
             COMP__pat__flag,
             COMP__pat__offset,
+            0,
+        
+        // etc
+        COMP__abt__define_call,
+            COMP__act__reset_error_code_cell,
+            COMP__bnit__reset_error_code,
+            0,
             0,
         COMP__abt__end_of_blueprint,
     };
@@ -4149,6 +4161,10 @@ void COMP__forge__anvil_abstraction(COMP__generation_workspace* workspace, COMP_
                 case COMP__act__jump:
                     ANVIL__code__jump__static(workspace->workspace, COMP__translate__accountling_flag_index_to_flag_ID(COMP__get__abstractling_statement_argument_by_index(statement.inputs, 0), error), (((ANVIL__offset*)generation_abstraction->offsets.statement_offsets.buffer.start)[COMP__get__abstractling_statement_argument_by_index(statement.inputs, 1).index]));
 
+                    break;
+                case COMP__act__reset_error_code_cell:
+                    ANVIL__code__write_cell(workspace->workspace, ANVIL__et__no_error, ANVIL__rt__error_code);
+                    
                     break;
                 default:
                     // should not be reachable
