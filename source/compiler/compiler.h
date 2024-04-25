@@ -86,6 +86,10 @@ char* COMP__global__accountling_call_type_name_strings[] = {
     "frost.io.address_to_cell",
     "frost.copy",
     "frost.integer.add",
+    "frost.integer.subtract",
+    "frost.integer.multiply",
+    "frost.integer.divide",
+    "frost.integer.modulous",
     "frost.integer.within_range",
     "frost.jump",
     "frost.reset.error_code",
@@ -1796,8 +1800,12 @@ typedef enum COMP__act {
     COMP__act__debug_print_buffer_as_string,
 
     // integers
-    COMP__act__integer_within_range,
     COMP__act__integer_add,
+    COMP__act__integer_subtract,
+    COMP__act__integer_multiply,
+    COMP__act__integer_divide,
+    COMP__act__integer_modulous,
+    COMP__act__integer_within_range,
 
     // jumps
     COMP__act__jump,
@@ -2071,6 +2079,10 @@ typedef enum COMP__bnit {
     COMP__bnit__io__address_to_cell,
     COMP__bnit__copy,
     COMP__bnit__integer_add,
+    COMP__bnit__integer_subtract,
+    COMP__bnit__integer_multiply,
+    COMP__bnit__integer_divide,
+    COMP__bnit__integer_modulous,
     COMP__bnit__integer_within_range,
     COMP__bnit__jump,
     COMP__bnit__reset_error_code,
@@ -2354,6 +2366,46 @@ ANVIL__list COMP__generate__call_blueprint(ANVIL__list parsling_programs, COMP__
         
         // integer operations
         COMP__abt__define_call,
+            COMP__act__integer_add,
+            COMP__bnit__integer_add,
+            2,
+            COMP__pat__variable,
+            COMP__pat__variable,
+            1,
+            COMP__pat__variable,
+        COMP__abt__define_call,
+            COMP__act__integer_subtract,
+            COMP__bnit__integer_subtract,
+            2,
+            COMP__pat__variable,
+            COMP__pat__variable,
+            1,
+            COMP__pat__variable,
+        COMP__abt__define_call,
+            COMP__act__integer_multiply,
+            COMP__bnit__integer_multiply,
+            2,
+            COMP__pat__variable,
+            COMP__pat__variable,
+            1,
+            COMP__pat__variable,
+        COMP__abt__define_call,
+            COMP__act__integer_divide,
+            COMP__bnit__integer_divide,
+            2,
+            COMP__pat__variable,
+            COMP__pat__variable,
+            1,
+            COMP__pat__variable,
+        COMP__abt__define_call,
+            COMP__act__integer_modulous,
+            COMP__bnit__integer_modulous,
+            2,
+            COMP__pat__variable,
+            COMP__pat__variable,
+            1,
+            COMP__pat__variable,
+        COMP__abt__define_call,
             COMP__act__integer_within_range,
             COMP__bnit__integer_within_range,
             4,
@@ -2363,14 +2415,6 @@ ANVIL__list COMP__generate__call_blueprint(ANVIL__list parsling_programs, COMP__
             COMP__pat__flag,
             1,
             COMP__pat__flag,
-        COMP__abt__define_call,
-            COMP__act__integer_add,
-            COMP__bnit__integer_add,
-            2,
-            COMP__pat__variable,
-            COMP__pat__variable,
-            1,
-            COMP__pat__variable,
         
         // jumps
         COMP__abt__define_call,
@@ -4153,6 +4197,22 @@ void COMP__forge__anvil_abstraction(COMP__generation_workspace* workspace, COMP_
                     ANVIL__code__operate(workspace->workspace, ANVIL__sft__always_run, ANVIL__ot__integer_add, COMP__translate__accountling_variable_index_to_cell_ID(generation_abstraction, COMP__get__abstractling_statement_argument_by_index(statement.inputs, 0), error), COMP__translate__accountling_variable_index_to_cell_ID(generation_abstraction, COMP__get__abstractling_statement_argument_by_index(statement.inputs, 1), error), ANVIL__unused_cell_ID, COMP__translate__accountling_variable_index_to_cell_ID(generation_abstraction, COMP__get__abstractling_statement_argument_by_index(statement.outputs, 0), error));
 
                     break;
+                case COMP__act__integer_subtract:
+                    ANVIL__code__operate(workspace->workspace, ANVIL__sft__always_run, ANVIL__ot__integer_subtract, COMP__translate__accountling_variable_index_to_cell_ID(generation_abstraction, COMP__get__abstractling_statement_argument_by_index(statement.inputs, 0), error), COMP__translate__accountling_variable_index_to_cell_ID(generation_abstraction, COMP__get__abstractling_statement_argument_by_index(statement.inputs, 1), error), ANVIL__unused_cell_ID, COMP__translate__accountling_variable_index_to_cell_ID(generation_abstraction, COMP__get__abstractling_statement_argument_by_index(statement.outputs, 0), error));
+
+                    break;
+                case COMP__act__integer_multiply:
+                    ANVIL__code__operate(workspace->workspace, ANVIL__sft__always_run, ANVIL__ot__integer_multiply, COMP__translate__accountling_variable_index_to_cell_ID(generation_abstraction, COMP__get__abstractling_statement_argument_by_index(statement.inputs, 0), error), COMP__translate__accountling_variable_index_to_cell_ID(generation_abstraction, COMP__get__abstractling_statement_argument_by_index(statement.inputs, 1), error), ANVIL__unused_cell_ID, COMP__translate__accountling_variable_index_to_cell_ID(generation_abstraction, COMP__get__abstractling_statement_argument_by_index(statement.outputs, 0), error));
+
+                    break;
+                case COMP__act__integer_divide:
+                    ANVIL__code__operate(workspace->workspace, ANVIL__sft__always_run, ANVIL__ot__integer_division, COMP__translate__accountling_variable_index_to_cell_ID(generation_abstraction, COMP__get__abstractling_statement_argument_by_index(statement.inputs, 0), error), COMP__translate__accountling_variable_index_to_cell_ID(generation_abstraction, COMP__get__abstractling_statement_argument_by_index(statement.inputs, 1), error), ANVIL__unused_cell_ID, COMP__translate__accountling_variable_index_to_cell_ID(generation_abstraction, COMP__get__abstractling_statement_argument_by_index(statement.outputs, 0), error));
+
+                    break;
+                case COMP__act__integer_modulous:
+                    ANVIL__code__operate(workspace->workspace, ANVIL__sft__always_run, ANVIL__ot__integer_modulous, COMP__translate__accountling_variable_index_to_cell_ID(generation_abstraction, COMP__get__abstractling_statement_argument_by_index(statement.inputs, 0), error), COMP__translate__accountling_variable_index_to_cell_ID(generation_abstraction, COMP__get__abstractling_statement_argument_by_index(statement.inputs, 1), error), ANVIL__unused_cell_ID, COMP__translate__accountling_variable_index_to_cell_ID(generation_abstraction, COMP__get__abstractling_statement_argument_by_index(statement.outputs, 0), error));
+
+                    break;
                 case COMP__act__integer_within_range:
                     ANVIL__code__write_cell(workspace->workspace, (ANVIL__cell)(ANVIL__cell_integer_value)COMP__translate__accountling_flag_index_to_flag_ID(COMP__get__abstractling_statement_argument_by_index(statement.outputs, 0), error), ANVIL__srt__temp__flag_ID);
                     ANVIL__code__operate__flag(workspace->workspace, ANVIL__sft__always_run, COMP__translate__accountling_variable_index_to_cell_ID(generation_abstraction, COMP__get__abstractling_statement_argument_by_index(statement.inputs, 0), error), COMP__translate__accountling_variable_index_to_cell_ID(generation_abstraction, COMP__get__abstractling_statement_argument_by_index(statement.inputs, 1), error), COMP__translate__accountling_variable_index_to_cell_ID(generation_abstraction, COMP__get__abstractling_statement_argument_by_index(statement.inputs, 2), error), COMP__translate__accountling_flag_index_to_flag_ID(COMP__get__abstractling_statement_argument_by_index(statement.inputs, 3), error), ANVIL__srt__temp__flag_ID);
@@ -4164,7 +4224,7 @@ void COMP__forge__anvil_abstraction(COMP__generation_workspace* workspace, COMP_
                     break;
                 case COMP__act__reset_error_code_cell:
                     ANVIL__code__write_cell(workspace->workspace, ANVIL__et__no_error, ANVIL__rt__error_code);
-                    
+
                     break;
                 default:
                     // should not be reachable
