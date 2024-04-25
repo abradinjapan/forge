@@ -81,7 +81,6 @@ char* COMP__global__accountling_call_type_name_strings[] = {
     "frost.print.integer.signed",
     "frost.print.integer.unsigned",
     "frost.print.character",
-    "frost.print.buffer_as_string",
     "frost.io.cell_to_address",
     "frost.io.address_to_cell",
     "frost.copy",
@@ -1794,10 +1793,9 @@ typedef enum COMP__act {
     COMP__act__copy,
 
     // prints
-    COMP__act__debug_print_integer_signed,
-    COMP__act__debug_print_integer_unsigned,
-    COMP__act__debug_print_character,
-    COMP__act__debug_print_buffer_as_string,
+    COMP__act__print__signed_integer,
+    COMP__act__print__unsigned_integer,
+    COMP__act__print__character,
 
     // integers
     COMP__act__integer_add,
@@ -2071,10 +2069,9 @@ typedef enum COMP__abt {
 typedef enum COMP__bnit {
     // names
     COMP__bnit__set,
-    COMP__bnit__debug_print_integer_signed,
-    COMP__bnit__debug_print_integer_unsigned,
-    COMP__bnit__debug_print_character,
-    COMP__bnit__debug_print_buffer_as_string,
+    COMP__bnit__print__signed_integer,
+    COMP__bnit__print__unsigned_integer,
+    COMP__bnit__print__character,
     COMP__bnit__io__cell_to_address,
     COMP__bnit__io__address_to_cell,
     COMP__bnit__copy,
@@ -2339,28 +2336,21 @@ ANVIL__list COMP__generate__call_blueprint(ANVIL__list parsling_programs, COMP__
         
         // printing
         COMP__abt__define_call,
-            COMP__act__debug_print_integer_signed,
-            COMP__bnit__debug_print_integer_signed,
+            COMP__act__print__signed_integer,
+            COMP__bnit__print__signed_integer,
             1,
             COMP__pat__variable,
             0,
         COMP__abt__define_call,
-            COMP__act__debug_print_integer_unsigned,
-            COMP__bnit__debug_print_integer_unsigned,
+            COMP__act__print__unsigned_integer,
+            COMP__bnit__print__unsigned_integer,
             1,
             COMP__pat__variable,
             0,
         COMP__abt__define_call,
-            COMP__act__debug_print_character,
-            COMP__bnit__debug_print_character,
+            COMP__act__print__character,
+            COMP__bnit__print__character,
             1,
-            COMP__pat__variable,
-            0,
-        COMP__abt__define_call,
-            COMP__act__debug_print_buffer_as_string,
-            COMP__bnit__debug_print_buffer_as_string,
-            2,
-            COMP__pat__variable,
             COMP__pat__variable,
             0,
         
@@ -4181,16 +4171,12 @@ void COMP__forge__anvil_abstraction(COMP__generation_workspace* workspace, COMP_
                     ANVIL__code__cell_to_cell(workspace->workspace, ANVIL__sft__always_run, COMP__translate__accountling_variable_index_to_cell_ID(generation_abstraction, COMP__get__abstractling_statement_argument_by_index(statement.inputs, 0), error), COMP__translate__accountling_variable_index_to_cell_ID(generation_abstraction, COMP__get__abstractling_statement_argument_by_index(statement.outputs, 0), error));
 
                     break;
-                case COMP__act__debug_print_integer_unsigned:
+                case COMP__act__print__unsigned_integer:
                     ANVIL__code__debug__print_cell_as_decimal(workspace->workspace, COMP__translate__accountling_variable_index_to_cell_ID(generation_abstraction, COMP__get__abstractling_statement_argument_by_index(statement.inputs, 0), error));
 
                     break;
-                case COMP__act__debug_print_character:
+                case COMP__act__print__character:
                     ANVIL__code__debug__putchar(workspace->workspace, COMP__translate__accountling_variable_index_to_cell_ID(generation_abstraction, COMP__get__abstractling_statement_argument_by_index(statement.inputs, 0), error));
-
-                    break;
-                case COMP__act__debug_print_buffer_as_string:
-                    // TODO
 
                     break;
                 case COMP__act__integer_add:
@@ -4330,9 +4316,6 @@ void COMP__forge__anvil_program(ANVIL__buffer* final_program, COMP__accountling_
             current_abstraction.start += sizeof(COMP__generation_abstraction);
             index++;
         }
-
-        // weave built in abstractions
-        // TODO
     }
 
     // close workspace
