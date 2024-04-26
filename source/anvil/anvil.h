@@ -2116,6 +2116,8 @@ typedef enum ANVIL__srt {
     ANVIL__srt__constant__cell_byte_count = ANVIL__srt__constant__8,
     ANVIL__srt__constant__cell_bit_count = ANVIL__srt__constant__64,
     ANVIL__srt__constant__bits_in_byte = ANVIL__srt__constant__8,
+    ANVIL__srt__constant__ascii_character_byte_size = ANVIL__srt__constant__1,
+    ANVIL__srt__constant__ascii_character_bit_size = ANVIL__srt__constant__8,
 
     // locations
     ANVIL__srt__start__workspace = 4096,

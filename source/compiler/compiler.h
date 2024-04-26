@@ -4,6 +4,7 @@
 /* Include */
 // anvil / basic
 #include "../anvil/anvil.h"
+#include "standard.h"
 
 /* Define */
 // basics
@@ -81,6 +82,8 @@ char* COMP__global__accountling_call_type_name_strings[] = {
     "frost.print.integer.signed",
     "frost.print.integer.unsigned",
     "frost.print.character",
+    "frost.print.buffer_as_string",
+    "frost.print.binary",
     "frost.io.cell_to_address",
     "frost.io.address_to_cell",
     "frost.copy",
@@ -1793,9 +1796,11 @@ typedef enum COMP__act {
     COMP__act__copy,
 
     // prints
+    COMP__act__print__binary,
     COMP__act__print__signed_integer,
     COMP__act__print__unsigned_integer,
     COMP__act__print__character,
+    COMP__act__print__buffer_as_string,
 
     // integers
     COMP__act__integer_add,
@@ -2072,6 +2077,8 @@ typedef enum COMP__bnit {
     COMP__bnit__print__signed_integer,
     COMP__bnit__print__unsigned_integer,
     COMP__bnit__print__character,
+    COMP__bnit__print__buffer_as_string,
+    COMP__bnit__print__binary,
     COMP__bnit__io__cell_to_address,
     COMP__bnit__io__address_to_cell,
     COMP__bnit__copy,
@@ -2350,6 +2357,19 @@ ANVIL__list COMP__generate__call_blueprint(ANVIL__list parsling_programs, COMP__
         COMP__abt__define_call,
             COMP__act__print__character,
             COMP__bnit__print__character,
+            1,
+            COMP__pat__variable,
+            0,
+        COMP__abt__define_call,
+            COMP__act__print__buffer_as_string,
+            COMP__bnit__print__buffer_as_string,
+            2,
+            COMP__pat__variable,
+            COMP__pat__variable,
+            0,
+        COMP__abt__define_call,
+            COMP__act__print__binary,
+            COMP__bnit__print__binary,
             1,
             COMP__pat__variable,
             0,
@@ -3990,6 +4010,7 @@ typedef struct COMP__generation_workspace {
     ANVIL__list abstractions; // COMP__generation_abstraction
     COMP__abstraction_index entry_point;
     COMP__abstraction_index function_count;
+    STD__offsets standard_offsets;
 } COMP__generation_workspace;
 
 // open workspace
@@ -4179,6 +4200,14 @@ void COMP__forge__anvil_abstraction(COMP__generation_workspace* workspace, COMP_
                     ANVIL__code__debug__putchar(workspace->workspace, COMP__translate__accountling_variable_index_to_cell_ID(generation_abstraction, COMP__get__abstractling_statement_argument_by_index(statement.inputs, 0), error));
 
                     break;
+                case COMP__act__print__buffer_as_string:
+                    STD__code__call__print_buffer_as_string(workspace->workspace, &workspace->standard_offsets, ANVIL__sft__always_run, COMP__translate__accountling_variable_index_to_cell_ID(generation_abstraction, COMP__get__abstractling_statement_argument_by_index(statement.inputs, 0), error), COMP__translate__accountling_variable_index_to_cell_ID(generation_abstraction, COMP__get__abstractling_statement_argument_by_index(statement.inputs, 1), error));
+
+                    break;
+                case COMP__act__print__binary:
+                    STD__code__call__print_binary(workspace->workspace, &workspace->standard_offsets, ANVIL__sft__always_run, COMP__translate__accountling_variable_index_to_cell_ID(generation_abstraction, COMP__get__abstractling_statement_argument_by_index(statement.inputs, 0), error));
+
+                    break;
                 case COMP__act__integer_add:
                     ANVIL__code__operate(workspace->workspace, ANVIL__sft__always_run, ANVIL__ot__integer_add, COMP__translate__accountling_variable_index_to_cell_ID(generation_abstraction, COMP__get__abstractling_statement_argument_by_index(statement.inputs, 0), error), COMP__translate__accountling_variable_index_to_cell_ID(generation_abstraction, COMP__get__abstractling_statement_argument_by_index(statement.inputs, 1), error), ANVIL__unused_cell_ID, COMP__translate__accountling_variable_index_to_cell_ID(generation_abstraction, COMP__get__abstractling_statement_argument_by_index(statement.outputs, 0), error));
 
@@ -4316,6 +4345,9 @@ void COMP__forge__anvil_program(ANVIL__buffer* final_program, COMP__accountling_
             current_abstraction.start += sizeof(COMP__generation_abstraction);
             index++;
         }
+
+        // forge built in functions
+        STD__code__package(workspace.workspace, &workspace.standard_offsets);
     }
 
     // close workspace
