@@ -564,7 +564,7 @@ void ANVIL__list__erase__space(ANVIL__list* list, ANVIL__list_filled_index range
     // buffer was clipped, change filled index
     } else {
         // change current
-        (*list).filled_index -= range_end_index - range_start_index;
+        (*list).filled_index -= range_end_index - range_start_index + 1;
     }
 
     return;
@@ -1445,6 +1445,9 @@ ANVIL__nit ANVIL__run__instruction(ANVIL__allocations* allocations, ANVIL__conte
             ANVIL__close__buffer(return_memory__allocation);
         // allocation did not exist
         } else {
+            // DEBUG
+            printf("Allocation did not exist!\n");
+
             // set error
             ANVIL__set__error_code_cell(context, ANVIL__et__invalid_allocation__allocation_does_not_exist);
         }
