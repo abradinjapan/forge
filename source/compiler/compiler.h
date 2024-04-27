@@ -87,6 +87,7 @@ char* COMP__global__accountling_call_type_name_strings[] = {
     "frost.io.cell_to_address",
     "frost.io.address_to_cell",
     "frost.copy",
+    "frost.cast.cell_to_unsigned_integer_string",
     "frost.integer.add",
     "frost.integer.subtract",
     "frost.integer.multiply",
@@ -1795,6 +1796,9 @@ typedef enum COMP__act {
     // copy
     COMP__act__copy,
 
+    // casts
+    COMP__act__cast__cell_to_unsigned_integer_string,
+
     // prints
     COMP__act__print__binary,
     COMP__act__print__signed_integer,
@@ -2082,6 +2086,7 @@ typedef enum COMP__bnit {
     COMP__bnit__io__cell_to_address,
     COMP__bnit__io__address_to_cell,
     COMP__bnit__copy,
+    COMP__bnit__cast__cell_to_unsigned_integer_string,
     COMP__bnit__integer_add,
     COMP__bnit__integer_subtract,
     COMP__bnit__integer_multiply,
@@ -2339,6 +2344,16 @@ ANVIL__list COMP__generate__call_blueprint(ANVIL__list parsling_programs, COMP__
             1,
             COMP__pat__variable,
             1,
+            COMP__pat__variable,
+        
+        // casting
+        COMP__abt__define_call,
+            COMP__act__cast__cell_to_unsigned_integer_string,
+            COMP__bnit__cast__cell_to_unsigned_integer_string,
+            1,
+            COMP__pat__variable,
+            2,
+            COMP__pat__variable,
             COMP__pat__variable,
         
         // printing
@@ -4190,6 +4205,10 @@ void COMP__forge__anvil_abstraction(COMP__generation_workspace* workspace, COMP_
                     break;
                 case COMP__act__copy:
                     ANVIL__code__cell_to_cell(workspace->workspace, ANVIL__sft__always_run, COMP__translate__accountling_variable_index_to_cell_ID(generation_abstraction, COMP__get__abstractling_statement_argument_by_index(statement.inputs, 0), error), COMP__translate__accountling_variable_index_to_cell_ID(generation_abstraction, COMP__get__abstractling_statement_argument_by_index(statement.outputs, 0), error));
+
+                    break;
+                case COMP__act__cast__cell_to_unsigned_integer_string:
+                    STD__code__call__cell_to_unsigned_integer_string(workspace->workspace, &workspace->standard_offsets, ANVIL__sft__always_run, COMP__translate__accountling_variable_index_to_cell_ID(generation_abstraction, COMP__get__abstractling_statement_argument_by_index(statement.inputs, 0), error), COMP__translate__accountling_variable_index_to_cell_ID(generation_abstraction, COMP__get__abstractling_statement_argument_by_index(statement.outputs, 0), error), COMP__translate__accountling_variable_index_to_cell_ID(generation_abstraction, COMP__get__abstractling_statement_argument_by_index(statement.outputs, 1), error));
 
                     break;
                 case COMP__act__print__unsigned_integer:

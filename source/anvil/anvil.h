@@ -1161,7 +1161,7 @@ ANVIL__nit ANVIL__run__operation(ANVIL__context* context, ANVIL__ot operation_ty
         // check if modulous is possible
         if (temp_input_1 != 0) {
             // compute result
-            temp_result = temp_input_0 / temp_input_1;
+            temp_result = temp_input_0 % temp_input_1;
         } else {
             // set error
             ANVIL__set__error_code_cell(context, ANVIL__et__modulous_by_zero);
