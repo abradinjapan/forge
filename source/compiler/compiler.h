@@ -1946,6 +1946,7 @@ typedef struct COMP__accountling_abstraction {
     ANVIL__list* predefined_variables; // COMP__parsling_argument
     ANVIL__list* predefined_flags; // COMP__parsling_argument
     ANVIL__list strings; // COMP__parsling_argument
+    ANVIL__list converted_strings; // ANVIL__buffer
     ANVIL__list inputs; // COMP__parsling_argument
     ANVIL__list outputs; // COMP__parsling_argument
     ANVIL__list doubles; // COMP__parsling_argument (doubles are variables that are both inputs and outputs)
@@ -1956,13 +1957,14 @@ typedef struct COMP__accountling_abstraction {
 } COMP__accountling_abstraction;
 
 // create custom accountling abstraction
-COMP__accountling_abstraction COMP__create__accountling_abstraction(COMP__parsling_statement header, ANVIL__list* predefined_variables, ANVIL__list* predefined_flags, ANVIL__list strings, ANVIL__list inputs, ANVIL__list outputs, ANVIL__list doubles, ANVIL__list variables, ANVIL__list offsets, ANVIL__list flags, ANVIL__list statements) {
+COMP__accountling_abstraction COMP__create__accountling_abstraction(COMP__parsling_statement header, ANVIL__list* predefined_variables, ANVIL__list* predefined_flags, ANVIL__list strings, ANVIL__list converted_strings, ANVIL__list inputs, ANVIL__list outputs, ANVIL__list doubles, ANVIL__list variables, ANVIL__list offsets, ANVIL__list flags, ANVIL__list statements) {
     COMP__accountling_abstraction output;
 
     output.header = header;
     output.predefined_variables = predefined_variables;
     output.predefined_flags = predefined_flags;
     output.strings = strings;
+    output.converted_strings = converted_strings;
     output.inputs = inputs;
     output.outputs = outputs;
     output.doubles = doubles;
@@ -1976,7 +1978,7 @@ COMP__accountling_abstraction COMP__create__accountling_abstraction(COMP__parsli
 
 // create null accountling abstraction
 COMP__accountling_abstraction COMP__create_null__accountling_abstraction() {
-    return COMP__create__accountling_abstraction(COMP__create_null__parsling_statement(), ANVIL__define__null_address, ANVIL__define__null_address, ANVIL__create_null__list(), ANVIL__create_null__list(), ANVIL__create_null__list(), ANVIL__create_null__list(), ANVIL__create_null__list(), ANVIL__create_null__list(), ANVIL__create_null__list(), ANVIL__create_null__list());
+    return COMP__create__accountling_abstraction(COMP__create_null__parsling_statement(), ANVIL__define__null_address, ANVIL__define__null_address, ANVIL__create_null__list(), ANVIL__create_null__list(), ANVIL__create_null__list(), ANVIL__create_null__list(), ANVIL__create_null__list(), ANVIL__create_null__list(), ANVIL__create_null__list(), ANVIL__create_null__list(), ANVIL__create_null__list());
 }
 
 // append accountling statement
@@ -2056,6 +2058,21 @@ void COMP__close__accountling_abstraction(COMP__accountling_abstraction abstract
     }
     if (ANVIL__check__empty_list(abstraction.strings) == ANVIL__bt__false) {
         ANVIL__close__list(abstraction.strings);
+    }
+    if (ANVIL__check__empty_list(abstraction.converted_strings) == ANVIL__bt__false) {
+        COMP__current current_buffer = COMP__calculate__current_from_list_filled_index(&abstraction.converted_strings);
+
+        // for each buffer
+        while (COMP__check__current_within_range(current_buffer)) {
+            // free buffer
+            ANVIL__close__buffer(*(ANVIL__buffer*)current_buffer.start);
+
+            // next buffer
+            current_buffer.start += sizeof(ANVIL__buffer);
+        }
+
+        // close list
+        ANVIL__close__list(abstraction.converted_strings);
     }
 
     // close statements
@@ -2733,6 +2750,89 @@ void COMP__close__accountling_program(COMP__accountling_program program) {
     return;
 }
 
+// convert string to converted string
+ANVIL__buffer COMP__account__convert_string(COMP__parsling_argument string, COMP__error* error) {
+    ANVIL__buffer output = ANVIL__create_null__buffer();
+    ANVIL__length character_count = 0;
+
+    // count characters
+    for (COMP__character_index i = 1; i < ANVIL__calculate__buffer_length(string.text.lexling.value) - 1; i++) {
+        // check for escape sequence
+        if (((ANVIL__character*)string.text.lexling.value.start)[i] == '%') {
+            // check for characters available
+            if (i + 3 <= ANVIL__calculate__buffer_length(string.text.lexling.value) - 1) {
+                // validate characters
+                ANVIL__bt invalid_hexadecimal_character_1;
+                ANVIL__bt invalid_hexadecimal_character_2;
+                ANVIL__bt semi_colon_missing;
+                COMP__translate__character_to_hexadecimal(((ANVIL__character*)string.text.lexling.value.start)[i + 1], &invalid_hexadecimal_character_1);
+                COMP__translate__character_to_hexadecimal(((ANVIL__character*)string.text.lexling.value.start)[i + 2], &invalid_hexadecimal_character_2);
+                semi_colon_missing = (ANVIL__bt)(((ANVIL__character*)string.text.lexling.value.start)[i + 3] != ';');
+
+                // determine validity
+                if (invalid_hexadecimal_character_1 != ANVIL__bt__false || invalid_hexadecimal_character_2 != ANVIL__bt__false || semi_colon_missing != ANVIL__bt__false) {
+                    // invalid escape sequence
+                    *error = COMP__open__error("Accounting Error: String literal has invalid escape sequences.", string.text.lexling.location);
+                    
+                    return output;
+                }
+
+                // skip past characters
+                i += 3;
+            // error
+            } else {
+                *error = COMP__open__error("Accounting Error: String literal has invalid escape sequences.", string.text.lexling.location);
+
+                return output;
+            }
+        }
+
+        // next character
+        character_count++;
+    }
+
+    // check for empty string
+    if (character_count == 0) {
+        // return empty string
+        return output;
+    }
+
+    // allocate string
+    output = ANVIL__open__buffer(character_count);
+    if (ANVIL__check__empty_buffer(output)) {
+        *error = COMP__open__internal_memory_error();
+
+        return output;
+    }
+
+    // translate string
+    character_count = 0;
+    for (COMP__character_index i = 1; i < ANVIL__calculate__buffer_length(string.text.lexling.value) - 1; i++) {
+        // check for escape sequence
+        if (((ANVIL__character*)string.text.lexling.value.start)[i] == '%') {
+            // validate characters
+            ANVIL__bt invalid_hexadecimal_character_1;
+            ANVIL__bt invalid_hexadecimal_character_2;
+            ANVIL__character a = COMP__translate__character_to_hexadecimal(((ANVIL__character*)string.text.lexling.value.start)[i + 1], &invalid_hexadecimal_character_1);
+            ANVIL__character b = COMP__translate__character_to_hexadecimal(((ANVIL__character*)string.text.lexling.value.start)[i + 2], &invalid_hexadecimal_character_2);
+
+            // write character
+            ((ANVIL__character*)output.start)[character_count] = b + (a << 4);
+            
+            // skip past characters
+            i += 3;
+        } else {
+            // write character
+            ((ANVIL__character*)output.start)[character_count] = ((ANVIL__character*)string.text.lexling.value.start)[i];
+        }
+
+        // next character
+        character_count++;
+    }
+
+    return output;
+}
+
 // check to see if argument is in list
 COMP__parsling_argument COMP__account__get_argument_in_list__by_text(ANVIL__list* arguments, COMP__parsling_argument searching_for, ANVIL__bt* found) {
     // setup current
@@ -2796,7 +2896,7 @@ ANVIL__list COMP__account__accountling_argument_list(COMP__accountling_abstracti
         } else if (argument.type == COMP__pat__flag__user_defined) {
             COMP__append__accountling_argument(&output, COMP__create__accountling_argument(argument.type, COMP__find__parsling_argument_index__by_name((*abstraction).flags, argument), argument), error);
         } else if (argument.type == COMP__pat__literal__string) {
-            COMP__append__accountling_argument(&output, COMP__create__accountling_argument(argument.type, 0, argument), error);
+            COMP__append__accountling_argument(&output, COMP__create__accountling_argument(argument.type, COMP__find__parsling_argument_index__by_name((*abstraction).strings, argument), argument), error);
         } else {
             // error
             *error = COMP__open__error("Internal Error: Unsupported argument type in accountling argument list.", argument.text.lexling.location);
@@ -3274,6 +3374,10 @@ COMP__accountling_abstraction COMP__account__abstraction(ANVIL__list call_bluepr
         if (COMP__check__error_occured(error)) {
             return output;
         }
+        output.converted_strings = COMP__open__list(sizeof(ANVIL__buffer) * 16, error);
+        if (COMP__check__error_occured(error)) {
+            return output;
+        }
 
         // get current statement
         COMP__current current_statement = COMP__calculate__current_from_list_filled_index(&parsling_abstraction.statements);
@@ -3300,7 +3404,14 @@ COMP__accountling_abstraction COMP__account__abstraction(ANVIL__list call_bluepr
                         if (COMP__check__error_occured(error)) {
                             return output;
                         }
+
+                        // translate string data
+                        COMP__append__buffer(&output.converted_strings, COMP__account__convert_string(*input, error), error);
+                        if (COMP__check__error_occured(error)) {
+                            return output;
+                        }
                     }
+
                     // next input
                     current_input.start += sizeof(COMP__parsling_argument);
                 }
@@ -3979,7 +4090,7 @@ COMP__generation_cells COMP__setup__generation_cells(ANVIL__cell_count input_cou
 typedef struct COMP__generation_abstraction {
     COMP__generation_cells cells;
     COMP__generation_offsets offsets;
-    ANVIL__list strings; // COMP__parsling_argument (copied from accountlings! do not free!)
+    ANVIL__list converted_strings; // ANVIL__buffer (copied from accountlings! do not free!)
 } COMP__generation_abstraction;
 
 // translate accountling abstraction to generation abstraction
@@ -4015,7 +4126,7 @@ COMP__generation_abstraction COMP__open__generation_abstraction(COMP__accountlin
     }
 
     // open strings
-    output.strings = accountlings.strings;
+    output.converted_strings = accountlings.converted_strings;
 
     return output;
 }
@@ -4353,12 +4464,12 @@ void COMP__forge__anvil_abstraction(COMP__generation_workspace* workspace, COMP_
     generation_abstraction->offsets.function_data = ANVIL__get__offset(workspace->workspace);
 
     // setup strings
-    for (COMP__string_index i = 0; i < COMP__calculate__list_content_count(generation_abstraction->strings, sizeof(COMP__parsling_argument)); i++) {
+    for (COMP__string_index i = 0; i < COMP__calculate__list_content_count(generation_abstraction->converted_strings, sizeof(ANVIL__buffer)); i++) {
         // setup offset
         ((ANVIL__offset*)generation_abstraction->offsets.strings_offsets.buffer.start)[i] = ANVIL__get__offset(workspace->workspace);
 
         // embed string
-        ANVIL__code__buffer(workspace->workspace, ((COMP__parsling_argument*)generation_abstraction->strings.buffer.start)[i].text.lexling.value);
+        ANVIL__code__buffer(workspace->workspace, ((ANVIL__buffer*)generation_abstraction->converted_strings.buffer.start)[i]);
     }
 
     return;
