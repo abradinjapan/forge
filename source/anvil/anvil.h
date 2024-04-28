@@ -784,6 +784,7 @@ typedef enum ANVIL__it {
     ANVIL__it__cell_to_address, // write cell to memory
     ANVIL__it__file_to_buffer, // get file into buffer
     ANVIL__it__buffer_to_file, // write buffer to disk
+    ANVIL__it__buffer_to_buffer, // copy data from one buffer to another of the same size
     ANVIL__it__run, // run context (both until finished and run one instruction)
 
     // extra defined instructions
@@ -811,6 +812,7 @@ typedef enum ANVIL__ilt {
     ANVIL__ilt__cell_to_address = sizeof(ANVIL__instruction_ID) + sizeof(ANVIL__flag_ID) + (sizeof(ANVIL__cell_ID) * 3),
     ANVIL__ilt__file_to_buffer = sizeof(ANVIL__instruction_ID) + (sizeof(ANVIL__cell_ID) * 4),
     ANVIL__ilt__buffer_to_file = sizeof(ANVIL__instruction_ID) + (sizeof(ANVIL__cell_ID) * 4),
+    ANVIL__ilt__buffer_to_buffer = sizeof(ANVIL__instruction_ID) + (sizeof(ANVIL__cell_ID) * 4),
     ANVIL__ilt__run = sizeof(ANVIL__instruction_ID) + (sizeof(ANVIL__cell_ID) * 3),
     ANVIL__ilt__debug__putchar = sizeof(ANVIL__instruction_ID) + sizeof(ANVIL__cell_ID),
     ANVIL__ilt__debug__print_cell_as_decimal = sizeof(ANVIL__instruction_ID) + sizeof(ANVIL__cell_ID),
@@ -833,6 +835,7 @@ typedef enum ANVIL__et {
     ANVIL__et__internal_allocation_tracking_error__could_not_record_buffer,
     ANVIL__et__invalid_allocation__allocation_does_not_exist,
     ANVIL__et__invalid_address_range,
+    ANVIL__et__buffer_to_buffer__buffers_are_different_sizes,
 
     // count
     ANVIL__et__COUNT,
@@ -1323,6 +1326,15 @@ ANVIL__nit ANVIL__run__instruction(ANVIL__allocations* allocations, ANVIL__conte
     ANVIL__buffer buffer_to_file__file_name;
     ANVIL__bt buffer_to_file__error = ANVIL__bt__false;
 
+    // buffer to buffer temps
+    ANVIL__cell_ID buffer_to_buffer__source_start;
+    ANVIL__cell_ID buffer_to_buffer__source_end;
+    ANVIL__cell_ID buffer_to_buffer__destination_start;
+    ANVIL__cell_ID buffer_to_buffer__destination_end;
+    ANVIL__buffer buffer_to_buffer__source;
+    ANVIL__buffer buffer_to_buffer__destination;
+    ANVIL__bt buffer_to_buffer__error = ANVIL__bt__false;
+
     // run temps
     ANVIL__cell_ID run__context_buffer_start;
     ANVIL__cell_ID run__context_buffer_end;
@@ -1567,6 +1579,36 @@ ANVIL__nit ANVIL__run__instruction(ANVIL__allocations* allocations, ANVIL__conte
                 ANVIL__set__error_code_cell(context, ANVIL__et__file_not_created);
             }
         // if any allocations do not exist
+        } else {
+            // set error
+            ANVIL__set__error_code_cell(context, ANVIL__et__invalid_allocation__allocation_does_not_exist);
+        }
+
+        break;
+    // copy one buffer of data from one area to another of equal size
+    case ANVIL__it__buffer_to_buffer:
+        // get parameters
+        buffer_to_buffer__source_start = ANVIL__read_next__cell_ID(execution_read_address);
+        buffer_to_buffer__source_end = ANVIL__read_next__cell_ID(execution_read_address);
+        buffer_to_buffer__destination_start = ANVIL__read_next__cell_ID(execution_read_address);
+        buffer_to_buffer__destination_end = ANVIL__read_next__cell_ID(execution_read_address);
+
+        // setup temps
+        buffer_to_buffer__source.start = (*context).cells[buffer_to_buffer__source_start];
+        buffer_to_buffer__source.end = (*context).cells[buffer_to_buffer__source_end];
+        buffer_to_buffer__destination.start = (*context).cells[buffer_to_buffer__destination_start];
+        buffer_to_buffer__destination.end = (*context).cells[buffer_to_buffer__destination_end];
+
+        // if both allocations exist
+        if (ANVIL__check__valid_address_range_in_allocations(allocations, buffer_to_buffer__source) && ANVIL__check__valid_address_range_in_allocations(allocations, buffer_to_buffer__destination)) {
+            // perform copy
+            ANVIL__copy__buffer(buffer_to_buffer__source, buffer_to_buffer__destination, &buffer_to_buffer__error);
+
+            // check for error
+            if (buffer_to_buffer__error == ANVIL__bt__true) {
+                ANVIL__set__error_code_cell(context, ANVIL__et__buffer_to_buffer__buffers_are_different_sizes);
+            }
+        // if one allocation does not exist
         } else {
             // set error
             ANVIL__set__error_code_cell(context, ANVIL__et__invalid_allocation__allocation_does_not_exist);
@@ -1999,6 +2041,18 @@ void ANVIL__code__buffer_to_file(ANVIL__workspace* workspace, ANVIL__cell_ID fil
     ANVIL__write_next__cell_ID(workspace, file_data_end);
     ANVIL__write_next__cell_ID(workspace, file_name_start);
     ANVIL__write_next__cell_ID(workspace, file_name_end);
+
+    return;
+}
+
+// write buffer to buffer instruction
+void ANVIL__code__buffer_to_buffer(ANVIL__workspace* workspace, ANVIL__cell_ID source_start, ANVIL__cell_ID source_end, ANVIL__cell_ID destination_start, ANVIL__cell_ID destination_end) {
+    // write instruction
+    ANVIL__write_next__instruction_ID(workspace, ANVIL__it__buffer_to_buffer);
+    ANVIL__write_next__cell_ID(workspace, source_start);
+    ANVIL__write_next__cell_ID(workspace, source_end);
+    ANVIL__write_next__cell_ID(workspace, destination_start);
+    ANVIL__write_next__cell_ID(workspace, destination_end);
 
     return;
 }
