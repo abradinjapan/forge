@@ -89,6 +89,7 @@ char* COMP__global__accountling_call_type_name_strings[] = {
     "frost.copy",
     "frost.memory.request",
     "frost.memory.return",
+    "frost.buffer.calculate_length",
     "frost.cast.cell_to_unsigned_integer_string",
     "frost.integer.add",
     "frost.integer.subtract",
@@ -1802,6 +1803,9 @@ typedef enum COMP__act {
     COMP__act__memory__request_memory,
     COMP__act__memory__return_memory,
 
+    // buffers
+    COMP__act__buffer__calculate_length,
+
     // casts
     COMP__act__cast__cell_to_unsigned_integer_string,
 
@@ -2111,6 +2115,7 @@ typedef enum COMP__bnit {
     COMP__bnit__copy,
     COMP__bnit__memory__request_memory,
     COMP__bnit__memory__return_memory,
+    COMP__bnit__buffer__calculate_length,
     COMP__bnit__cast__cell_to_unsigned_integer_string,
     COMP__bnit__integer_add,
     COMP__bnit__integer_subtract,
@@ -2387,6 +2392,16 @@ ANVIL__list COMP__generate__call_blueprint(ANVIL__list parsling_programs, COMP__
             COMP__pat__variable,
             COMP__pat__variable,
             0,
+        
+        // buffers
+        COMP__abt__define_call,
+            COMP__act__buffer__calculate_length,
+            COMP__bnit__buffer__calculate_length,
+            2,
+            COMP__pat__variable,
+            COMP__pat__variable,
+            1,
+            COMP__pat__variable,
         
         // casting
         COMP__abt__define_call,
@@ -4349,6 +4364,11 @@ void COMP__forge__anvil_abstraction(COMP__generation_workspace* workspace, COMP_
                     break;
                 case COMP__act__memory__return_memory:
                     ANVIL__code__return_memory(workspace->workspace, COMP__translate__accountling_variable_index_to_cell_ID(generation_abstraction, COMP__get__abstractling_statement_argument_by_index(statement.inputs, 0), error), COMP__translate__accountling_variable_index_to_cell_ID(generation_abstraction, COMP__get__abstractling_statement_argument_by_index(statement.inputs, 1), error));
+
+                    break;
+                case COMP__act__buffer__calculate_length:
+                    ANVIL__code__operate(workspace->workspace, ANVIL__sft__always_run, ANVIL__ot__integer_subtract, COMP__translate__accountling_variable_index_to_cell_ID(generation_abstraction, COMP__get__abstractling_statement_argument_by_index(statement.inputs, 1), error), COMP__translate__accountling_variable_index_to_cell_ID(generation_abstraction, COMP__get__abstractling_statement_argument_by_index(statement.inputs, 0), error), ANVIL__unused_cell_ID, COMP__translate__accountling_variable_index_to_cell_ID(generation_abstraction, COMP__get__abstractling_statement_argument_by_index(statement.outputs, 0), error));
+                    ANVIL__code__operate(workspace->workspace, ANVIL__sft__always_run, ANVIL__ot__integer_add, COMP__translate__accountling_variable_index_to_cell_ID(generation_abstraction, COMP__get__abstractling_statement_argument_by_index(statement.outputs, 0), error), ANVIL__srt__constant__1, ANVIL__unused_cell_ID, COMP__translate__accountling_variable_index_to_cell_ID(generation_abstraction, COMP__get__abstractling_statement_argument_by_index(statement.outputs, 0), error));
 
                     break;
                 case COMP__act__cast__cell_to_unsigned_integer_string:

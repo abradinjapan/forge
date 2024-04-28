@@ -552,7 +552,7 @@ void ANVIL__list__erase__space(ANVIL__list* list, ANVIL__list_filled_index range
 
     // get new right buffer
     old_right = ANVIL__create__buffer(ANVIL__calculate__address_from_buffer_index((*list).buffer.start, range_end_index), ANVIL__calculate__list_current_address(list));
-    new_right = ANVIL__create__buffer(old_right.start - (range_end_index - range_start_index), old_right.end - (range_end_index - range_start_index));
+    new_right = ANVIL__create__buffer(old_right.start - (range_end_index - range_start_index + 1), old_right.end - (range_end_index - range_start_index + 1));
 
     // move data from left to right filling in the gap
     ANVIL__copy__buffer(old_right, new_right, &error);
@@ -563,7 +563,7 @@ void ANVIL__list__erase__space(ANVIL__list* list, ANVIL__list_filled_index range
         printf("Internal Error: Buffer could not erase data.\n");
     // buffer was clipped, change filled index
     } else {
-        // change current
+        // change filled index
         (*list).filled_index -= range_end_index - range_start_index + 1;
     }
 
