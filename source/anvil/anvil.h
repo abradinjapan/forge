@@ -8,6 +8,9 @@
 #include <stdio.h>
 #include <signal.h>
 
+// compiler
+#include "../compiler/compiler.h"
+
 /* Define */
 typedef uint8_t ANVIL__u8;
 typedef uint16_t ANVIL__u16;
@@ -777,6 +780,31 @@ void ANVIL__close__allocations(ANVIL__allocations* allocations) {
     return;
 }
 
+/* Compiler Predefinitions */
+// tracking types
+typedef ANVIL__u64 COMP__file_index;
+typedef ANVIL__u64 COMP__line_number;
+typedef ANVIL__u64 COMP__character_index;
+// parsing buffer location
+typedef struct COMP__character_location {
+    COMP__file_index file_index;
+    COMP__line_number line_number;
+    COMP__character_index character_index;
+} COMP__character_location;
+// error information
+typedef struct COMP__error {
+    ANVIL__bt occured;
+    ANVIL__buffer message;
+    COMP__character_location location;
+    ANVIL__bt memory_error_occured;
+} COMP__error;
+ANVIL__buffer COMP__get__error_message_from_error(COMP__error* error);
+void COMP__compile__files(ANVIL__buffer user_codes, ANVIL__bt print_debug, ANVIL__buffer* final_program, COMP__error* error);
+ANVIL__bt COMP__get__error_occured_from_error(COMP__error* error);
+ANVIL__cell_integer_value COMP__get__error_character_location_file_index(COMP__error* error);
+ANVIL__cell_integer_value COMP__get__error_character_location_line_number(COMP__error* error);
+ANVIL__cell_integer_value COMP__get__error_character_location_character_index(COMP__error* error);
+
 /* Alloy Specification */
 // context cell organization defines
 // cell type
@@ -827,6 +855,7 @@ typedef enum ANVIL__it {
     ANVIL__it__file_to_buffer, // get file into buffer
     ANVIL__it__buffer_to_file, // write buffer to disk
     ANVIL__it__buffer_to_buffer, // copy data from one buffer to another of the same size
+    ANVIL__it__compile, // compile one or more source files to an anvil program
     ANVIL__it__run, // run context (both until finished and run one instruction)
 
     // extra defined instructions
@@ -855,6 +884,7 @@ typedef enum ANVIL__ilt {
     ANVIL__ilt__file_to_buffer = sizeof(ANVIL__instruction_ID) + (sizeof(ANVIL__cell_ID) * 4),
     ANVIL__ilt__buffer_to_file = sizeof(ANVIL__instruction_ID) + (sizeof(ANVIL__cell_ID) * 4),
     ANVIL__ilt__buffer_to_buffer = sizeof(ANVIL__instruction_ID) + (sizeof(ANVIL__cell_ID) * 4),
+    ANVIL__ilt__compile = sizeof(ANVIL__instruction_ID) + (sizeof(ANVIL__cell_ID) * 11),
     ANVIL__ilt__run = sizeof(ANVIL__instruction_ID) + (sizeof(ANVIL__cell_ID) * 3),
     ANVIL__ilt__debug__putchar = sizeof(ANVIL__instruction_ID) + sizeof(ANVIL__cell_ID),
     ANVIL__ilt__debug__print_cell_as_decimal = sizeof(ANVIL__instruction_ID) + sizeof(ANVIL__cell_ID),
@@ -878,6 +908,7 @@ typedef enum ANVIL__et {
     ANVIL__et__invalid_allocation__allocation_does_not_exist,
     ANVIL__et__invalid_address_range,
     ANVIL__et__buffer_to_buffer__buffers_are_different_sizes,
+    ANVIL__et__compile__compilation_error,
 
     // count
     ANVIL__et__COUNT,
@@ -1376,6 +1407,23 @@ ANVIL__nit ANVIL__run__instruction(ANVIL__allocations* allocations, ANVIL__conte
     ANVIL__buffer buffer_to_buffer__destination;
     ANVIL__bt buffer_to_buffer__error = ANVIL__bt__false;
 
+    // compile temps
+    ANVIL__cell_ID compile__user_code_buffers_buffer_start;
+    ANVIL__cell_ID compile__user_code_buffers_buffer_end;
+    ANVIL__cell_ID compile__debug_enabled;
+    ANVIL__cell_ID compile__output_start;
+    ANVIL__cell_ID compile__output_end;
+    ANVIL__cell_ID compile__error__occured;
+    ANVIL__cell_ID compile__error__message_start;
+    ANVIL__cell_ID compile__error__message_end;
+    ANVIL__cell_ID compile__error__character_location__file_index;
+    ANVIL__cell_ID compile__error__character_location__line_number;
+    ANVIL__cell_ID compile__error__character_location__character_index;
+    ANVIL__buffer compile__output_program;
+    ANVIL__buffer compile__output_error_message;
+    COMP__error compile__error;
+    ANVIL__bt compile__buffer_appending_error = ANVIL__bt__false;
+
     // run temps
     ANVIL__cell_ID run__context_buffer_start;
     ANVIL__cell_ID run__context_buffer_end;
@@ -1651,6 +1699,78 @@ ANVIL__nit ANVIL__run__instruction(ANVIL__allocations* allocations, ANVIL__conte
             // set error
             ANVIL__set__error_code_cell(context, ANVIL__et__invalid_allocation__allocation_does_not_exist);
         }
+
+        break;
+    // compile program
+    case ANVIL__it__compile:
+        // get parameters
+        compile__user_code_buffers_buffer_start = ANVIL__read_next__cell_ID(execution_read_address);
+        compile__user_code_buffers_buffer_end = ANVIL__read_next__cell_ID(execution_read_address);
+        compile__debug_enabled = ANVIL__read_next__cell_ID(execution_read_address);
+        compile__output_start = ANVIL__read_next__cell_ID(execution_read_address);
+        compile__output_end = ANVIL__read_next__cell_ID(execution_read_address);
+        compile__error__occured = ANVIL__read_next__cell_ID(execution_read_address);
+        compile__error__message_start = ANVIL__read_next__cell_ID(execution_read_address);
+        compile__error__message_end = ANVIL__read_next__cell_ID(execution_read_address);
+        compile__error__character_location__file_index = ANVIL__read_next__cell_ID(execution_read_address);
+        compile__error__character_location__line_number = ANVIL__read_next__cell_ID(execution_read_address);
+        compile__error__character_location__character_index = ANVIL__read_next__cell_ID(execution_read_address);
+
+        // run compiler (WARNING, buffers are NOT checked for vality!)
+        COMP__compile__files(ANVIL__create__buffer((*context).cells[compile__user_code_buffers_buffer_start], (*context).cells[compile__user_code_buffers_buffer_end]), (ANVIL__bt)(ANVIL__cell_integer_value)(*context).cells[compile__debug_enabled], &compile__output_program, &compile__error);
+
+        // get temps
+        compile__output_error_message = COMP__get__error_message_from_error(&compile__error);
+
+        // check if program was created
+        if (COMP__get__error_occured_from_error(&compile__error) == ANVIL__bt__false) {
+            // add new buffer to allocations
+            ANVIL__remember__allocation(allocations, compile__output_program, &compile__buffer_appending_error);
+
+            // if buffer could not be added
+            if (compile__buffer_appending_error == ANVIL__bt__true) {
+                // set internal error
+                ANVIL__set__error_code_cell(context, ANVIL__et__internal_allocation_tracking_error__could_not_record_buffer);
+
+                // free buffer since it could not be safely added and is thus useless
+                ANVIL__close__buffer(compile__output_program);
+
+                // setup empty buffer
+                compile__output_program = ANVIL__create_null__buffer();
+            }
+        // program was not created
+        } else {
+            // setup empty buffer
+            compile__output_program = ANVIL__create_null__buffer();
+
+            // set error code
+            ANVIL__set__error_code_cell(context, ANVIL__et__compile__compilation_error);
+
+            // add error message to allocations
+            ANVIL__remember__allocation(allocations, compile__output_error_message, &compile__buffer_appending_error);
+
+            // if buffer could not be added
+            if (compile__buffer_appending_error == ANVIL__bt__true) {
+                // set internal error
+                ANVIL__set__error_code_cell(context, ANVIL__et__internal_allocation_tracking_error__could_not_record_buffer);
+
+                // free buffer since it could not be safely added and is thus useless
+                ANVIL__close__buffer(compile__output_error_message);
+
+                // setup empty buffer
+                compile__output_error_message = ANVIL__create_null__buffer();
+            }
+        }
+
+        // setup outputs
+        (*context).cells[compile__output_start] = compile__output_program.start;
+        (*context).cells[compile__output_end] = compile__output_program.end;
+        (*context).cells[compile__error__occured] = (ANVIL__cell)(ANVIL__cell_integer_value)COMP__get__error_occured_from_error(&compile__error);
+        (*context).cells[compile__error__message_start] = compile__output_error_message.start;
+        (*context).cells[compile__error__message_end] = compile__output_error_message.end;
+        (*context).cells[compile__error__character_location__file_index] = (ANVIL__cell)COMP__get__error_character_location_file_index(&compile__error);
+        (*context).cells[compile__error__character_location__line_number] = (ANVIL__cell)COMP__get__error_character_location_line_number(&compile__error);
+        (*context).cells[compile__error__character_location__character_index] = (ANVIL__cell)COMP__get__error_character_location_character_index(&compile__error);
 
         break;
     // run a context like a program
@@ -2091,6 +2211,25 @@ void ANVIL__code__buffer_to_buffer(ANVIL__workspace* workspace, ANVIL__cell_ID s
     ANVIL__write_next__cell_ID(workspace, source_end);
     ANVIL__write_next__cell_ID(workspace, destination_start);
     ANVIL__write_next__cell_ID(workspace, destination_end);
+
+    return;
+}
+
+// write compile instruction
+void ANVIL__code__compile(ANVIL__workspace* workspace, ANVIL__cell_ID user_codes_buffers_buffer_start, ANVIL__cell_ID user_codes_buffers_buffer_end, ANVIL__cell_ID debug_enabled, ANVIL__cell_ID output_program_start, ANVIL__cell_ID output_program_end, ANVIL__cell_ID error__error_occured, ANVIL__cell_ID error__message_start, ANVIL__cell_ID error__message_end, ANVIL__cell_ID error__character_location__file_index, ANVIL__cell_ID error__character_location__line_number, ANVIL__cell_ID error__character_location__character_index) {
+    // write instruction
+    ANVIL__write_next__instruction_ID(workspace, ANVIL__it__compile);
+    ANVIL__write_next__cell_ID(workspace, user_codes_buffers_buffer_start);
+    ANVIL__write_next__cell_ID(workspace, user_codes_buffers_buffer_end);
+    ANVIL__write_next__cell_ID(workspace, debug_enabled);
+    ANVIL__write_next__cell_ID(workspace, output_program_start);
+    ANVIL__write_next__cell_ID(workspace, output_program_end);
+    ANVIL__write_next__cell_ID(workspace, error__error_occured);
+    ANVIL__write_next__cell_ID(workspace, error__message_start);
+    ANVIL__write_next__cell_ID(workspace, error__message_end);
+    ANVIL__write_next__cell_ID(workspace, error__character_location__file_index);
+    ANVIL__write_next__cell_ID(workspace, error__character_location__line_number);
+    ANVIL__write_next__cell_ID(workspace, error__character_location__character_index);
 
     return;
 }

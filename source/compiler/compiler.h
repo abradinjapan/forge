@@ -13,11 +13,6 @@ typedef ANVIL__u64 COMP__tab_count;
 // aliases
 typedef ANVIL__buffer COMP__current;
 
-// tracking types
-typedef ANVIL__u64 COMP__file_index;
-typedef ANVIL__u64 COMP__line_number;
-typedef ANVIL__u64 COMP__character_index;
-
 // lexing types
 typedef ANVIL__u8 COMP__lexling_type;
 typedef ANVIL__address COMP__lexling_address;
@@ -114,6 +109,9 @@ char* COMP__global__accountling_call_type_name_strings[] = {
     "frost.flag.and",
     "frost.flag.xor",
     "frost.jump",
+    "frost.open.context",
+    "frost.compile",
+    "frost.run",
     "frost.reset.error_code",
 };
 
@@ -152,12 +150,7 @@ ANVIL__u64 COMP__calculate__exponent(ANVIL__u64 base, ANVIL__u64 exponent) {
     return output;
 }
 
-// parsing buffer location
-typedef struct COMP__character_location {
-    COMP__file_index file_index;
-    COMP__line_number line_number;
-    COMP__character_index character_index;
-} COMP__character_location;
+// defined in anvil.h
 
 // create custom character marker location
 COMP__character_location COMP__create__character_location(COMP__file_index file_index, COMP__line_number line_number, COMP__character_index character_index) {
@@ -238,13 +231,7 @@ ANVIL__buffer COMP__translate__integer_value_to_string(ANVIL__u64 number) {
 }
 
 /* Error */
-// error information
-typedef struct COMP__error {
-    ANVIL__bt occured;
-    ANVIL__buffer message;
-    COMP__character_location location;
-    ANVIL__bt memory_error_occured;
-} COMP__error;
+// defined in anvil.h
 
 // create custom error
 COMP__error COMP__create__error(ANVIL__bt occured, ANVIL__buffer message, COMP__character_location location, ANVIL__bt memory_error_occured) {
@@ -263,6 +250,31 @@ COMP__error COMP__create__error(ANVIL__bt occured, ANVIL__buffer message, COMP__
 COMP__error COMP__create_null__error() {
     // return empty
     return COMP__create__error(ANVIL__bt__false, ANVIL__create_null__buffer(), COMP__create_null__character_location(), ANVIL__bt__false);
+}
+
+// get occurance from structure
+ANVIL__bt COMP__get__error_occured_from_error(COMP__error* error) {
+    return error->occured;
+}
+
+// get message from structure
+ANVIL__buffer COMP__get__error_message_from_error(COMP__error* error) {
+    return error->message;
+}
+
+// get data from structure
+ANVIL__cell_integer_value COMP__get__error_character_location_file_index(COMP__error* error) {
+    return error->location.file_index;
+}
+
+// get data from structure
+ANVIL__cell_integer_value COMP__get__error_character_location_line_number(COMP__error* error) {
+    return error->location.line_number;
+}
+
+// get data from structure
+ANVIL__cell_integer_value COMP__get__error_character_location_character_index(COMP__error* error) {
+    return error->location.character_index;
 }
 
 // open a specific error
@@ -1866,6 +1878,11 @@ typedef enum COMP__act {
     // jumps
     COMP__act__jump,
 
+    // rtcg
+    COMP__act__open_context,
+    COMP__act__compile,
+    COMP__act__run,
+
     // etc
     COMP__act__reset_error_code_cell,
 
@@ -2179,6 +2196,9 @@ typedef enum COMP__bnit {
     COMP__bnit__flag__and,
     COMP__bnit__flag__xor,
     COMP__bnit__jump,
+    COMP__bnit__open_context,
+    COMP__bnit__compile,
+    COMP__bnit__run,
     COMP__bnit__reset_error_code,
 
     // stats
@@ -2692,6 +2712,41 @@ ANVIL__list COMP__generate__call_blueprint(ANVIL__list parsling_programs, COMP__
             2,
             COMP__pat__flag,
             COMP__pat__offset,
+            0,
+
+        // run time code generation
+        COMP__abt__define_call,
+            COMP__act__open_context,
+            COMP__bnit__open_context,
+            2,
+            COMP__pat__variable,
+            COMP__pat__variable,
+            2,
+            COMP__pat__variable,
+            COMP__pat__variable,
+        COMP__abt__define_call,
+            COMP__act__compile,
+            COMP__bnit__compile,
+            3,
+            COMP__pat__variable,
+            COMP__pat__variable,
+            COMP__pat__variable,
+            8,
+            COMP__pat__variable,
+            COMP__pat__variable,
+            COMP__pat__variable,
+            COMP__pat__variable,
+            COMP__pat__variable,
+            COMP__pat__variable,
+            COMP__pat__variable,
+            COMP__pat__variable,
+        COMP__abt__define_call,
+            COMP__act__run,
+            COMP__bnit__run,
+            3,
+            COMP__pat__variable,
+            COMP__pat__variable,
+            COMP__pat__variable,
             0,
         
         // etc
@@ -4533,8 +4588,7 @@ void COMP__forge__anvil_abstraction(COMP__generation_workspace* workspace, COMP_
 
                     break;
                 case COMP__act__io__cell_to_address:
-                    ANVIL__code__write_cell(workspace->workspace, (ANVIL__cell)(ANVIL__cell_integer_value)COMP__translate__accountling_flag_index_to_flag_ID(COMP__get__abstractling_statement_argument_by_index(statement.inputs, 0), error), ANVIL__srt__temp__flag_ID_0);
-                    ANVIL__code__cell_to_address(workspace->workspace, ANVIL__srt__temp__flag_ID_0, COMP__translate__accountling_variable_index_to_cell_ID(generation_abstraction, COMP__get__abstractling_statement_argument_by_index(statement.inputs, 1), error), COMP__translate__accountling_variable_index_to_cell_ID(generation_abstraction, COMP__get__abstractling_statement_argument_by_index(statement.inputs, 2), error), COMP__translate__accountling_variable_index_to_cell_ID(generation_abstraction, COMP__get__abstractling_statement_argument_by_index(statement.outputs, 0), error));
+                    ANVIL__code__cell_to_address(workspace->workspace, COMP__translate__accountling_flag_index_to_flag_ID(COMP__get__abstractling_statement_argument_by_index(statement.inputs, 0), error), COMP__translate__accountling_variable_index_to_cell_ID(generation_abstraction, COMP__get__abstractling_statement_argument_by_index(statement.inputs, 1), error), COMP__translate__accountling_variable_index_to_cell_ID(generation_abstraction, COMP__get__abstractling_statement_argument_by_index(statement.inputs, 2), error), COMP__translate__accountling_variable_index_to_cell_ID(generation_abstraction, COMP__get__abstractling_statement_argument_by_index(statement.outputs, 0), error));
 
                     break;
                 case COMP__act__io__address_to_cell:
@@ -4682,6 +4736,31 @@ void COMP__forge__anvil_abstraction(COMP__generation_workspace* workspace, COMP_
                     break;
                 case COMP__act__jump:
                     ANVIL__code__jump__static(workspace->workspace, COMP__translate__accountling_flag_index_to_flag_ID(COMP__get__abstractling_statement_argument_by_index(statement.inputs, 0), error), (((ANVIL__offset*)generation_abstraction->offsets.statement_offsets.buffer.start)[COMP__get__abstractling_statement_argument_by_index(statement.inputs, 1).index]));
+
+                    break;
+                case COMP__act__open_context:
+                    ANVIL__code__setup__context(workspace->workspace, COMP__translate__accountling_variable_index_to_cell_ID(generation_abstraction, COMP__get__abstractling_statement_argument_by_index(statement.inputs, 0), error), COMP__translate__accountling_variable_index_to_cell_ID(generation_abstraction, COMP__get__abstractling_statement_argument_by_index(statement.inputs, 1), error), COMP__translate__accountling_variable_index_to_cell_ID(generation_abstraction, COMP__get__abstractling_statement_argument_by_index(statement.outputs, 0), error), COMP__translate__accountling_variable_index_to_cell_ID(generation_abstraction, COMP__get__abstractling_statement_argument_by_index(statement.outputs, 1), error));
+
+                    break;
+                case COMP__act__compile:
+                    ANVIL__code__compile(
+                        workspace->workspace,
+                        COMP__translate__accountling_variable_index_to_cell_ID(generation_abstraction, COMP__get__abstractling_statement_argument_by_index(statement.inputs, 0), error),
+                        COMP__translate__accountling_variable_index_to_cell_ID(generation_abstraction, COMP__get__abstractling_statement_argument_by_index(statement.inputs, 1), error),
+                        COMP__translate__accountling_variable_index_to_cell_ID(generation_abstraction, COMP__get__abstractling_statement_argument_by_index(statement.inputs, 2), error),
+                        COMP__translate__accountling_variable_index_to_cell_ID(generation_abstraction, COMP__get__abstractling_statement_argument_by_index(statement.outputs, 0), error),
+                        COMP__translate__accountling_variable_index_to_cell_ID(generation_abstraction, COMP__get__abstractling_statement_argument_by_index(statement.outputs, 1), error),
+                        COMP__translate__accountling_variable_index_to_cell_ID(generation_abstraction, COMP__get__abstractling_statement_argument_by_index(statement.outputs, 2), error),
+                        COMP__translate__accountling_variable_index_to_cell_ID(generation_abstraction, COMP__get__abstractling_statement_argument_by_index(statement.outputs, 3), error),
+                        COMP__translate__accountling_variable_index_to_cell_ID(generation_abstraction, COMP__get__abstractling_statement_argument_by_index(statement.outputs, 4), error),
+                        COMP__translate__accountling_variable_index_to_cell_ID(generation_abstraction, COMP__get__abstractling_statement_argument_by_index(statement.outputs, 5), error),
+                        COMP__translate__accountling_variable_index_to_cell_ID(generation_abstraction, COMP__get__abstractling_statement_argument_by_index(statement.outputs, 6), error),
+                        COMP__translate__accountling_variable_index_to_cell_ID(generation_abstraction, COMP__get__abstractling_statement_argument_by_index(statement.outputs, 7), error)
+                    );
+
+                    break;
+                case COMP__act__run:
+                    ANVIL__code__run(workspace->workspace, COMP__translate__accountling_variable_index_to_cell_ID(generation_abstraction, COMP__get__abstractling_statement_argument_by_index(statement.inputs, 0), error), COMP__translate__accountling_variable_index_to_cell_ID(generation_abstraction, COMP__get__abstractling_statement_argument_by_index(statement.inputs, 1), error), COMP__translate__accountling_variable_index_to_cell_ID(generation_abstraction, COMP__get__abstractling_statement_argument_by_index(statement.inputs, 2), error));
 
                     break;
                 case COMP__act__reset_error_code_cell:
@@ -4867,6 +4946,14 @@ void COMP__compile__files(ANVIL__buffer user_codes, ANVIL__bt print_debug, ANVIL
 
     // setup blank error
     *error = COMP__create_null__error();
+
+    // check for empty buffer
+    if (ANVIL__check__empty_buffer(user_codes)) {
+        // set error
+        *error = COMP__open__error("Compilation Error: No source files were passed.", COMP__create_null__character_location());
+
+        goto quit;
+    }
 
     // setup compilation unit user code list and lexling list
     compilation_unit.user_codes = user_codes;
