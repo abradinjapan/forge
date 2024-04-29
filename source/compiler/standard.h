@@ -356,7 +356,7 @@ void STD__code__print_buffer_as_string(ANVIL__workspace* workspace, STD__offsets
 	(*std_offsets).offsets[STD__ot__print_buffer_as_string__loop__start] = ANVIL__get__offset(workspace);
 
     // check if loop range is still valid and exit if necessary
-    ANVIL__code__write_cell(workspace, (ANVIL__cell)(ANVIL__cell_integer_value)ANVIL__sft__temp, ANVIL__srt__temp__flag_ID);
+    ANVIL__code__write_cell(workspace, (ANVIL__cell)(ANVIL__cell_integer_value)ANVIL__sft__temp, ANVIL__srt__temp__flag_ID_0);
     ANVIL__code__operate__jump__static(workspace, ANVIL__sft__always_run, STD__print_buffer_as_string__buffer_start, STD__print_buffer_as_string__current, STD__print_buffer_as_string__buffer_end, ANVIL__sft__always_run, (*std_offsets).offsets[STD__ot__print_buffer_as_string__loop__end]);
 
     // read character

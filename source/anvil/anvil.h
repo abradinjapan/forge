@@ -1193,7 +1193,7 @@ ANVIL__nit ANVIL__run__operation(ANVIL__context* context, ANVIL__ot operation_ty
 
         break;
     // flag or
-    case ANVIL__ot__flag_or: // untested!
+    case ANVIL__ot__flag_or:
         // get data
         temp_input_0 = (ANVIL__cell_integer_value)ANVIL__get__cell_from_context(context, input_0); // first flag
         temp_input_1 = (ANVIL__cell_integer_value)ANVIL__get__cell_from_context(context, input_1); // second flag
@@ -1204,28 +1204,28 @@ ANVIL__nit ANVIL__run__operation(ANVIL__context* context, ANVIL__ot operation_ty
 
         break;
     // flag invert
-    case ANVIL__ot__flag_invert: // untested!
+    case ANVIL__ot__flag_invert:
         // get data
         temp_input_0 = (ANVIL__cell_integer_value)ANVIL__get__cell_from_context(context, input_0); // first flag
         temp_result = (ANVIL__cell_integer_value)ANVIL__get__cell_from_context(context, output_0); // output flag
 
-        // 'or' flags into new flag
+        // invert flag
         ANVIL__set__flag_in_context(context, temp_result, (ANVIL__bt)!(ANVIL__get__flag_from_context(context, (ANVIL__flag_ID)temp_input_0)));
 
         break;
     // flag and
-    case ANVIL__ot__flag_and: // untested!
+    case ANVIL__ot__flag_and:
         // get data
         temp_input_0 = (ANVIL__cell_integer_value)ANVIL__get__cell_from_context(context, input_0); // first flag
         temp_input_1 = (ANVIL__cell_integer_value)ANVIL__get__cell_from_context(context, input_1); // second flag
         temp_result = (ANVIL__cell_integer_value)ANVIL__get__cell_from_context(context, output_0); // output flag
 
-        // 'or' flags into new flag
+        // 'and' flags into new flag
         ANVIL__set__flag_in_context(context, temp_result, (ANVIL__bt)(ANVIL__get__flag_from_context(context, (ANVIL__flag_ID)temp_input_0) & ANVIL__get__flag_from_context(context, (ANVIL__flag_ID)temp_input_1)));
 
         break;
     // flag xor
-    case ANVIL__ot__flag_xor: // untested!
+    case ANVIL__ot__flag_xor:
         // get data
         temp_input_0 = (ANVIL__cell_integer_value)ANVIL__get__cell_from_context(context, input_0); // first flag
         temp_input_1 = (ANVIL__cell_integer_value)ANVIL__get__cell_from_context(context, input_1); // second flag
@@ -1239,7 +1239,6 @@ ANVIL__nit ANVIL__run__operation(ANVIL__context* context, ANVIL__ot operation_ty
     case ANVIL__ot__flag_get:
         // get data
         temp_input_0 = (ANVIL__cell_integer_value)ANVIL__get__cell_from_context(context, input_0); // flag address
-        //temp_result = (ANVIL__cell_integer_value)ANVIL__get__cell_from_context(context, output_0); // output cell
 
         // get flag
         ANVIL__set__cell_by_address(ANVIL__get__cell_address_from_context(context, output_0), (ANVIL__cell)(ANVIL__u64)(ANVIL__get__flag_from_context(context, (ANVIL__flag_ID)temp_input_0) > 0));
@@ -1458,9 +1457,6 @@ ANVIL__nit ANVIL__run__instruction(ANVIL__allocations* allocations, ANVIL__conte
             ANVIL__close__buffer(return_memory__allocation);
         // allocation did not exist
         } else {
-            // DEBUG
-            printf("Allocation did not exist!\n");
-
             // set error
             ANVIL__set__error_code_cell(context, ANVIL__et__invalid_allocation__allocation_does_not_exist);
         }
@@ -2161,7 +2157,9 @@ typedef enum ANVIL__srt {
     ANVIL__srt__temp__offset,
     ANVIL__srt__temp__address,
     ANVIL__srt__temp__flag,
-    ANVIL__srt__temp__flag_ID,
+    ANVIL__srt__temp__flag_ID_0,
+    ANVIL__srt__temp__flag_ID_1,
+    ANVIL__srt__temp__flag_ID_2,
     ANVIL__srt__temp__bit_count,
     ANVIL__srt__temp__length,
 
@@ -2470,10 +2468,10 @@ void ANVIL__code__operate__flag(ANVIL__workspace* workspace, ANVIL__flag_ID flag
 // operate jump explicitly
 void ANVIL__code__operate__jump__explicit(ANVIL__workspace* workspace, ANVIL__flag_ID flag, ANVIL__cell_ID lower_bound, ANVIL__cell_ID value, ANVIL__cell_ID upper_bound, ANVIL__flag_ID invert_result, ANVIL__cell_ID jump_address) {
     // setup flag temp
-    ANVIL__code__write_cell(workspace, (ANVIL__cell)ANVIL__sft__temp, ANVIL__srt__temp__flag_ID);
+    ANVIL__code__write_cell(workspace, (ANVIL__cell)ANVIL__sft__temp, ANVIL__srt__temp__flag_ID_0);
 
     // perform comparison
-    ANVIL__code__operate__flag(workspace, flag, lower_bound, value, upper_bound, invert_result, ANVIL__srt__temp__flag_ID);
+    ANVIL__code__operate__flag(workspace, flag, lower_bound, value, upper_bound, invert_result, ANVIL__srt__temp__flag_ID_0);
 
     // attempt jump
     ANVIL__code__jump__explicit(workspace, ANVIL__sft__temp, jump_address);
