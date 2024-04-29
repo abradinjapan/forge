@@ -98,6 +98,13 @@ char* COMP__global__accountling_call_type_name_strings[] = {
     "frost.integer.divide",
     "frost.integer.modulous",
     "frost.integer.within_range",
+    "frost.binary.or",
+    "frost.binary.invert",
+    "frost.binary.and",
+    "frost.binary.xor",
+    "frost.binary.shift_higher",
+    "frost.binary.shift_lower",
+    "frost.binary.overwrite",
     "frost.jump",
     "frost.reset.error_code",
 };
@@ -1819,12 +1826,21 @@ typedef enum COMP__act {
     COMP__act__print__buffer_as_string,
 
     // integers
-    COMP__act__integer_add,
-    COMP__act__integer_subtract,
-    COMP__act__integer_multiply,
-    COMP__act__integer_divide,
-    COMP__act__integer_modulous,
-    COMP__act__integer_within_range,
+    COMP__act__integer__add,
+    COMP__act__integer__subtract,
+    COMP__act__integer__multiply,
+    COMP__act__integer__divide,
+    COMP__act__integer__modulous,
+    COMP__act__integer__within_range,
+
+    // binary
+    COMP__act__binary__or,
+    COMP__act__binary__invert,
+    COMP__act__binary__and,
+    COMP__act__binary__xor,
+    COMP__act__binary__shift_higher,
+    COMP__act__binary__shift_lower,
+    COMP__act__binary__overwrite,
 
     // jumps
     COMP__act__jump,
@@ -2126,6 +2142,13 @@ typedef enum COMP__bnit {
     COMP__bnit__integer_divide,
     COMP__bnit__integer_modulous,
     COMP__bnit__integer_within_range,
+    COMP__bnit__binary__or,
+    COMP__bnit__binary__invert,
+    COMP__bnit__binary__and,
+    COMP__bnit__binary__xor,
+    COMP__bnit__binary__shift_higher,
+    COMP__bnit__binary__shift_lower,
+    COMP__bnit__binary__overwrite,
     COMP__bnit__jump,
     COMP__bnit__reset_error_code,
 
@@ -2460,7 +2483,7 @@ ANVIL__list COMP__generate__call_blueprint(ANVIL__list parsling_programs, COMP__
         
         // integer operations
         COMP__abt__define_call,
-            COMP__act__integer_add,
+            COMP__act__integer__add,
             COMP__bnit__integer_add,
             2,
             COMP__pat__variable,
@@ -2468,7 +2491,7 @@ ANVIL__list COMP__generate__call_blueprint(ANVIL__list parsling_programs, COMP__
             1,
             COMP__pat__variable,
         COMP__abt__define_call,
-            COMP__act__integer_subtract,
+            COMP__act__integer__subtract,
             COMP__bnit__integer_subtract,
             2,
             COMP__pat__variable,
@@ -2476,7 +2499,7 @@ ANVIL__list COMP__generate__call_blueprint(ANVIL__list parsling_programs, COMP__
             1,
             COMP__pat__variable,
         COMP__abt__define_call,
-            COMP__act__integer_multiply,
+            COMP__act__integer__multiply,
             COMP__bnit__integer_multiply,
             2,
             COMP__pat__variable,
@@ -2484,7 +2507,7 @@ ANVIL__list COMP__generate__call_blueprint(ANVIL__list parsling_programs, COMP__
             1,
             COMP__pat__variable,
         COMP__abt__define_call,
-            COMP__act__integer_divide,
+            COMP__act__integer__divide,
             COMP__bnit__integer_divide,
             2,
             COMP__pat__variable,
@@ -2492,7 +2515,7 @@ ANVIL__list COMP__generate__call_blueprint(ANVIL__list parsling_programs, COMP__
             1,
             COMP__pat__variable,
         COMP__abt__define_call,
-            COMP__act__integer_modulous,
+            COMP__act__integer__modulous,
             COMP__bnit__integer_modulous,
             2,
             COMP__pat__variable,
@@ -2500,7 +2523,7 @@ ANVIL__list COMP__generate__call_blueprint(ANVIL__list parsling_programs, COMP__
             1,
             COMP__pat__variable,
         COMP__abt__define_call,
-            COMP__act__integer_within_range,
+            COMP__act__integer__within_range,
             COMP__bnit__integer_within_range,
             4,
             COMP__pat__variable,
@@ -2509,6 +2532,64 @@ ANVIL__list COMP__generate__call_blueprint(ANVIL__list parsling_programs, COMP__
             COMP__pat__flag,
             1,
             COMP__pat__flag,
+        
+        // binary operations
+        COMP__abt__define_call,
+            COMP__act__binary__or,
+            COMP__bnit__binary__or,
+            2,
+            COMP__pat__variable,
+            COMP__pat__variable,
+            1,
+            COMP__pat__variable,
+        COMP__abt__define_call,
+            COMP__act__binary__invert,
+            COMP__bnit__binary__invert,
+            1,
+            COMP__pat__variable,
+            1,
+            COMP__pat__variable,
+        COMP__abt__define_call,
+            COMP__act__binary__and,
+            COMP__bnit__binary__and,
+            2,
+            COMP__pat__variable,
+            COMP__pat__variable,
+            1,
+            COMP__pat__variable,
+        COMP__abt__define_call,
+            COMP__act__binary__xor,
+            COMP__bnit__binary__xor,
+            2,
+            COMP__pat__variable,
+            COMP__pat__variable,
+            1,
+            COMP__pat__variable,
+        COMP__abt__define_call,
+            COMP__act__binary__shift_higher,
+            COMP__bnit__binary__shift_higher,
+            2,
+            COMP__pat__variable,
+            COMP__pat__variable,
+            1,
+            COMP__pat__variable,
+        COMP__abt__define_call,
+            COMP__act__binary__shift_lower,
+            COMP__bnit__binary__shift_lower,
+            2,
+            COMP__pat__variable,
+            COMP__pat__variable,
+            1,
+            COMP__pat__variable,
+        COMP__abt__define_call,
+            COMP__act__binary__overwrite,
+            COMP__bnit__binary__overwrite,
+            3,
+            COMP__pat__variable,
+            COMP__pat__variable,
+            COMP__pat__variable,
+            1,
+            COMP__pat__variable,
         
         // jumps
         COMP__abt__define_call,
@@ -4407,29 +4488,57 @@ void COMP__forge__anvil_abstraction(COMP__generation_workspace* workspace, COMP_
                     STD__code__call__print_binary(workspace->workspace, &workspace->standard_offsets, ANVIL__sft__always_run, COMP__translate__accountling_variable_index_to_cell_ID(generation_abstraction, COMP__get__abstractling_statement_argument_by_index(statement.inputs, 0), error));
 
                     break;
-                case COMP__act__integer_add:
+                case COMP__act__integer__add:
                     ANVIL__code__operate(workspace->workspace, ANVIL__sft__always_run, ANVIL__ot__integer_add, COMP__translate__accountling_variable_index_to_cell_ID(generation_abstraction, COMP__get__abstractling_statement_argument_by_index(statement.inputs, 0), error), COMP__translate__accountling_variable_index_to_cell_ID(generation_abstraction, COMP__get__abstractling_statement_argument_by_index(statement.inputs, 1), error), ANVIL__unused_cell_ID, COMP__translate__accountling_variable_index_to_cell_ID(generation_abstraction, COMP__get__abstractling_statement_argument_by_index(statement.outputs, 0), error));
 
                     break;
-                case COMP__act__integer_subtract:
+                case COMP__act__integer__subtract:
                     ANVIL__code__operate(workspace->workspace, ANVIL__sft__always_run, ANVIL__ot__integer_subtract, COMP__translate__accountling_variable_index_to_cell_ID(generation_abstraction, COMP__get__abstractling_statement_argument_by_index(statement.inputs, 0), error), COMP__translate__accountling_variable_index_to_cell_ID(generation_abstraction, COMP__get__abstractling_statement_argument_by_index(statement.inputs, 1), error), ANVIL__unused_cell_ID, COMP__translate__accountling_variable_index_to_cell_ID(generation_abstraction, COMP__get__abstractling_statement_argument_by_index(statement.outputs, 0), error));
 
                     break;
-                case COMP__act__integer_multiply:
+                case COMP__act__integer__multiply:
                     ANVIL__code__operate(workspace->workspace, ANVIL__sft__always_run, ANVIL__ot__integer_multiply, COMP__translate__accountling_variable_index_to_cell_ID(generation_abstraction, COMP__get__abstractling_statement_argument_by_index(statement.inputs, 0), error), COMP__translate__accountling_variable_index_to_cell_ID(generation_abstraction, COMP__get__abstractling_statement_argument_by_index(statement.inputs, 1), error), ANVIL__unused_cell_ID, COMP__translate__accountling_variable_index_to_cell_ID(generation_abstraction, COMP__get__abstractling_statement_argument_by_index(statement.outputs, 0), error));
 
                     break;
-                case COMP__act__integer_divide:
+                case COMP__act__integer__divide:
                     ANVIL__code__operate(workspace->workspace, ANVIL__sft__always_run, ANVIL__ot__integer_division, COMP__translate__accountling_variable_index_to_cell_ID(generation_abstraction, COMP__get__abstractling_statement_argument_by_index(statement.inputs, 0), error), COMP__translate__accountling_variable_index_to_cell_ID(generation_abstraction, COMP__get__abstractling_statement_argument_by_index(statement.inputs, 1), error), ANVIL__unused_cell_ID, COMP__translate__accountling_variable_index_to_cell_ID(generation_abstraction, COMP__get__abstractling_statement_argument_by_index(statement.outputs, 0), error));
 
                     break;
-                case COMP__act__integer_modulous:
+                case COMP__act__integer__modulous:
                     ANVIL__code__operate(workspace->workspace, ANVIL__sft__always_run, ANVIL__ot__integer_modulous, COMP__translate__accountling_variable_index_to_cell_ID(generation_abstraction, COMP__get__abstractling_statement_argument_by_index(statement.inputs, 0), error), COMP__translate__accountling_variable_index_to_cell_ID(generation_abstraction, COMP__get__abstractling_statement_argument_by_index(statement.inputs, 1), error), ANVIL__unused_cell_ID, COMP__translate__accountling_variable_index_to_cell_ID(generation_abstraction, COMP__get__abstractling_statement_argument_by_index(statement.outputs, 0), error));
 
                     break;
-                case COMP__act__integer_within_range:
+                case COMP__act__integer__within_range:
                     ANVIL__code__write_cell(workspace->workspace, (ANVIL__cell)(ANVIL__cell_integer_value)COMP__translate__accountling_flag_index_to_flag_ID(COMP__get__abstractling_statement_argument_by_index(statement.outputs, 0), error), ANVIL__srt__temp__flag_ID);
                     ANVIL__code__operate__flag(workspace->workspace, ANVIL__sft__always_run, COMP__translate__accountling_variable_index_to_cell_ID(generation_abstraction, COMP__get__abstractling_statement_argument_by_index(statement.inputs, 0), error), COMP__translate__accountling_variable_index_to_cell_ID(generation_abstraction, COMP__get__abstractling_statement_argument_by_index(statement.inputs, 1), error), COMP__translate__accountling_variable_index_to_cell_ID(generation_abstraction, COMP__get__abstractling_statement_argument_by_index(statement.inputs, 2), error), COMP__translate__accountling_flag_index_to_flag_ID(COMP__get__abstractling_statement_argument_by_index(statement.inputs, 3), error), ANVIL__srt__temp__flag_ID);
+
+                    break;
+                case COMP__act__binary__or:
+                    ANVIL__code__operate(workspace->workspace, ANVIL__sft__always_run, ANVIL__ot__bits_or, COMP__translate__accountling_variable_index_to_cell_ID(generation_abstraction, COMP__get__abstractling_statement_argument_by_index(statement.inputs, 0), error), COMP__translate__accountling_variable_index_to_cell_ID(generation_abstraction, COMP__get__abstractling_statement_argument_by_index(statement.inputs, 1), error), ANVIL__unused_cell_ID, COMP__translate__accountling_variable_index_to_cell_ID(generation_abstraction, COMP__get__abstractling_statement_argument_by_index(statement.outputs, 0), error));
+
+                    break;
+                case COMP__act__binary__invert:
+                    ANVIL__code__operate(workspace->workspace, ANVIL__sft__always_run, ANVIL__ot__bits_invert, COMP__translate__accountling_variable_index_to_cell_ID(generation_abstraction, COMP__get__abstractling_statement_argument_by_index(statement.inputs, 0), error), ANVIL__unused_cell_ID, ANVIL__unused_cell_ID, COMP__translate__accountling_variable_index_to_cell_ID(generation_abstraction, COMP__get__abstractling_statement_argument_by_index(statement.outputs, 0), error));
+
+                    break;
+                case COMP__act__binary__and:
+                    ANVIL__code__operate(workspace->workspace, ANVIL__sft__always_run, ANVIL__ot__bits_and, COMP__translate__accountling_variable_index_to_cell_ID(generation_abstraction, COMP__get__abstractling_statement_argument_by_index(statement.inputs, 0), error), COMP__translate__accountling_variable_index_to_cell_ID(generation_abstraction, COMP__get__abstractling_statement_argument_by_index(statement.inputs, 1), error), ANVIL__unused_cell_ID, COMP__translate__accountling_variable_index_to_cell_ID(generation_abstraction, COMP__get__abstractling_statement_argument_by_index(statement.outputs, 0), error));
+
+                    break;
+                case COMP__act__binary__xor:
+                    ANVIL__code__operate(workspace->workspace, ANVIL__sft__always_run, ANVIL__ot__bits_xor, COMP__translate__accountling_variable_index_to_cell_ID(generation_abstraction, COMP__get__abstractling_statement_argument_by_index(statement.inputs, 0), error), COMP__translate__accountling_variable_index_to_cell_ID(generation_abstraction, COMP__get__abstractling_statement_argument_by_index(statement.inputs, 1), error), ANVIL__unused_cell_ID, COMP__translate__accountling_variable_index_to_cell_ID(generation_abstraction, COMP__get__abstractling_statement_argument_by_index(statement.outputs, 0), error));
+
+                    break;
+                case COMP__act__binary__shift_higher:
+                    ANVIL__code__operate(workspace->workspace, ANVIL__sft__always_run, ANVIL__ot__bits_shift_higher, COMP__translate__accountling_variable_index_to_cell_ID(generation_abstraction, COMP__get__abstractling_statement_argument_by_index(statement.inputs, 0), error), COMP__translate__accountling_variable_index_to_cell_ID(generation_abstraction, COMP__get__abstractling_statement_argument_by_index(statement.inputs, 1), error), ANVIL__unused_cell_ID, COMP__translate__accountling_variable_index_to_cell_ID(generation_abstraction, COMP__get__abstractling_statement_argument_by_index(statement.outputs, 0), error));
+
+                    break;
+                case COMP__act__binary__shift_lower:
+                    ANVIL__code__operate(workspace->workspace, ANVIL__sft__always_run, ANVIL__ot__bits_shift_lower, COMP__translate__accountling_variable_index_to_cell_ID(generation_abstraction, COMP__get__abstractling_statement_argument_by_index(statement.inputs, 0), error), COMP__translate__accountling_variable_index_to_cell_ID(generation_abstraction, COMP__get__abstractling_statement_argument_by_index(statement.inputs, 1), error), ANVIL__unused_cell_ID, COMP__translate__accountling_variable_index_to_cell_ID(generation_abstraction, COMP__get__abstractling_statement_argument_by_index(statement.outputs, 0), error));
+
+                    break;
+                case COMP__act__binary__overwrite:
+                    ANVIL__code__operate(workspace->workspace, ANVIL__sft__always_run, ANVIL__ot__bits_overwrite, COMP__translate__accountling_variable_index_to_cell_ID(generation_abstraction, COMP__get__abstractling_statement_argument_by_index(statement.inputs, 0), error), COMP__translate__accountling_variable_index_to_cell_ID(generation_abstraction, COMP__get__abstractling_statement_argument_by_index(statement.inputs, 1), error), COMP__translate__accountling_variable_index_to_cell_ID(generation_abstraction, COMP__get__abstractling_statement_argument_by_index(statement.inputs, 2), error), COMP__translate__accountling_variable_index_to_cell_ID(generation_abstraction, COMP__get__abstractling_statement_argument_by_index(statement.outputs, 0), error));
 
                     break;
                 case COMP__act__jump:
