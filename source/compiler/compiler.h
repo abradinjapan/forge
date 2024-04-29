@@ -872,17 +872,20 @@ ANVIL__bt COMP__translate__string_to_binary(ANVIL__buffer string, ANVIL__cell_in
         return ANVIL__bt__false;
     }
 
+    // setup bit index
+    ANVIL__bit_count bit_index = 0;
+
     // reset current
     current = ANVIL__create__buffer(string.start + ANVIL__calculate__buffer_length(prefix), string.end);
 
     // convert binary string to binary number
     while (COMP__check__current_within_range(current)) {
         if (COMP__check__character_range_at_current(current, '_', '_') == ANVIL__bt__false) {
-            // next value
-            *value <<= 1;
-
             // append value
-            *value += ((*(ANVIL__character*)current.start) - '0');
+            *value += (((*(ANVIL__character*)current.start) - '0') << bit_index);
+
+            // next bit index
+            bit_index++;
         }
 
         // next character
