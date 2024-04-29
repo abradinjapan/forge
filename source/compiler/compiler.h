@@ -4806,7 +4806,7 @@ void COMP__forge__anvil_program(ANVIL__buffer* final_program, COMP__accountling_
 /* Compile */
 // one compiled object across multiple stages
 typedef struct COMP__compilation_unit {
-    ANVIL__list user_codes;
+    ANVIL__buffer user_codes;
     ANVIL__list lexling_buffers;
     ANVIL__list parsling_buffers;
     COMP__accountling_program accountlings;
@@ -4860,7 +4860,7 @@ void COMP__close__compilation_unit(COMP__compilation_unit unit) {
 }
 
 // compile a program
-void COMP__compile__files(ANVIL__list user_codes, ANVIL__bt print_debug, ANVIL__buffer* final_program, COMP__error* error) {
+void COMP__compile__files(ANVIL__buffer user_codes, ANVIL__bt print_debug, ANVIL__buffer* final_program, COMP__error* error) {
     COMP__compilation_unit compilation_unit;
     COMP__current current;
     COMP__file_index current_file_index = 0;
@@ -4880,7 +4880,7 @@ void COMP__compile__files(ANVIL__list user_codes, ANVIL__bt print_debug, ANVIL__
     }
 
     // setup current
-    current = COMP__calculate__current_from_list_filled_index(&compilation_unit.user_codes);
+    current = compilation_unit.user_codes;
 
     // print compilation message
     if (print_debug) {

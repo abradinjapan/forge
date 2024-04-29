@@ -106,7 +106,7 @@ int main(int argc, char** argv) {
             ANVIL__buffer program = ANVIL__create_null__buffer();
 
             // run compiler
-            COMP__compile__files(files, debug_mode, &program, &error);
+            COMP__compile__files(ANVIL__calculate__list_current_buffer(&files), debug_mode, &program, &error);
 
             // if error
             if (COMP__check__error_occured(&error)) {
