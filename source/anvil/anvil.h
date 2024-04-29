@@ -279,14 +279,38 @@ void ANVIL__write__buffer(ANVIL__u64 source, ANVIL__length byte_amount, ANVIL__a
 	return;
 }
 
+// append null termination
+ANVIL__buffer ANVIL__add__null_termination_to_file_path(ANVIL__buffer file_path, ANVIL__bt* error_occured) {
+    ANVIL__buffer output;
+
+    // allocate buffer
+    output = ANVIL__open__buffer(ANVIL__calculate__buffer_length(file_path) + 1);
+
+    // copy buffer
+    ANVIL__copy__buffer(file_path, ANVIL__create__buffer(output.start, output.end - 1), error_occured);
+
+    // append null termination
+    *((ANVIL__character*)output.end) = 0;
+
+    return output;
+}
+
 // create buffer from file
-ANVIL__buffer ANVIL__move__file_to_buffer(ANVIL__buffer null_terminated_file_name) {
+ANVIL__buffer ANVIL__move__file_to_buffer(ANVIL__buffer file_path) {
 	ANVIL__buffer output;
 	FILE* file_handle;
 	ANVIL__u64 file_size;
+    ANVIL__buffer null_terminated_file_path = file_path;
+    ANVIL__bt error_occured = ANVIL__bt__false;
+
+    // check for null termination
+    if (*(ANVIL__character*)file_path.end != 0) {
+        // setup null termination
+        null_terminated_file_path = ANVIL__add__null_termination_to_file_path(file_path, &error_occured);
+    }
 
 	// open file
-	file_handle = fopen((const char*)null_terminated_file_name.start, "rb");
+	file_handle = fopen((const char*)null_terminated_file_path.start, "rb");
 
 	// check if the file opened
 	if (file_handle == 0) {
@@ -317,19 +341,31 @@ ANVIL__buffer ANVIL__move__file_to_buffer(ANVIL__buffer null_terminated_file_nam
 	// close file handle
 	fclose(file_handle);
 
+    // close null file path if necessary
+    if (*(ANVIL__character*)file_path.end != 0) {
+        ANVIL__close__buffer(null_terminated_file_path);
+    }
+
 	// return buffer
 	return output;
 }
 
 // create file from buffer
-void ANVIL__move__buffer_to_file(ANVIL__bt* error, ANVIL__buffer null_terminated_file_name, ANVIL__buffer data) {
+void ANVIL__move__buffer_to_file(ANVIL__bt* error, ANVIL__buffer file_path, ANVIL__buffer data) {
 	FILE* file_handle;
+    ANVIL__buffer null_terminated_file_path = file_path;
+
+    // check for null termination
+    if (*(ANVIL__character*)file_path.end != 0) {
+        // setup null termination
+        null_terminated_file_path = ANVIL__add__null_termination_to_file_path(file_path, error);
+    }
 
     // setup error to no error to start
     *error = ANVIL__bt__false;
 
 	// open file
-	file_handle = fopen((const char*)null_terminated_file_name.start, "w+b");
+	file_handle = fopen((const char*)null_terminated_file_path.start, "w+b");
 
 	// check if the file opened
 	if (file_handle == 0) {
@@ -344,6 +380,11 @@ void ANVIL__move__buffer_to_file(ANVIL__bt* error, ANVIL__buffer null_terminated
 
 	// close file handle
 	fclose(file_handle);
+
+    // close null file path if necessary
+    if (*(ANVIL__character*)file_path.end != 0) {
+        ANVIL__close__buffer(null_terminated_file_path);
+    }
 
 	// return
 	return;

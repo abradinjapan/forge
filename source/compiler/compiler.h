@@ -86,6 +86,8 @@ char* COMP__global__accountling_call_type_name_strings[] = {
     "frost.print.binary",
     "frost.io.cell_to_address",
     "frost.io.address_to_cell",
+    "frost.io.file_to_buffer",
+    "frost.io.buffer_to_file",
     "frost.copy",
     "frost.copy.buffer",
     "frost.memory.request",
@@ -1812,6 +1814,8 @@ typedef enum COMP__act {
     // io
     COMP__act__io__cell_to_address,
     COMP__act__io__address_to_cell,
+    COMP__act__io__file_to_buffer,
+    COMP__act__io__buffer_to_file,
 
     // copy
     COMP__act__copy__cell,
@@ -2147,6 +2151,8 @@ typedef enum COMP__bnit {
     COMP__bnit__print__binary,
     COMP__bnit__io__cell_to_address,
     COMP__bnit__io__address_to_cell,
+    COMP__bnit__io__file_to_buffer,
+    COMP__bnit__io__buffer_to_file,
     COMP__bnit__copy__cell,
     COMP__bnit__copy__buffer,
     COMP__bnit__memory__request_memory,
@@ -2414,6 +2420,24 @@ ANVIL__list COMP__generate__call_blueprint(ANVIL__list parsling_programs, COMP__
             COMP__pat__variable,
             COMP__pat__variable,
             1,
+            COMP__pat__variable,
+        COMP__abt__define_call,
+            COMP__act__io__file_to_buffer,
+            COMP__bnit__io__file_to_buffer,
+            2,
+            COMP__pat__variable,
+            COMP__pat__variable,
+            2,
+            COMP__pat__variable,
+            COMP__pat__variable,
+        COMP__abt__define_call,
+            COMP__act__io__buffer_to_file,
+            COMP__bnit__io__buffer_to_file,
+            2,
+            COMP__pat__variable,
+            COMP__pat__variable,
+            2,
+            COMP__pat__variable,
             COMP__pat__variable,
         
         // copies
@@ -4515,6 +4539,14 @@ void COMP__forge__anvil_abstraction(COMP__generation_workspace* workspace, COMP_
                     break;
                 case COMP__act__io__address_to_cell:
                     ANVIL__code__address_to_cell(workspace->workspace, COMP__translate__accountling_flag_index_to_flag_ID(COMP__get__abstractling_statement_argument_by_index(statement.inputs, 0), error), COMP__translate__accountling_variable_index_to_cell_ID(generation_abstraction, COMP__get__abstractling_statement_argument_by_index(statement.inputs, 1), error), COMP__translate__accountling_variable_index_to_cell_ID(generation_abstraction, COMP__get__abstractling_statement_argument_by_index(statement.inputs, 2), error), COMP__translate__accountling_variable_index_to_cell_ID(generation_abstraction, COMP__get__abstractling_statement_argument_by_index(statement.outputs, 0), error));
+
+                    break;
+                case COMP__act__io__file_to_buffer:
+                    ANVIL__code__file_to_buffer(workspace->workspace, COMP__translate__accountling_variable_index_to_cell_ID(generation_abstraction, COMP__get__abstractling_statement_argument_by_index(statement.inputs, 0), error), COMP__translate__accountling_variable_index_to_cell_ID(generation_abstraction, COMP__get__abstractling_statement_argument_by_index(statement.inputs, 1), error), COMP__translate__accountling_variable_index_to_cell_ID(generation_abstraction, COMP__get__abstractling_statement_argument_by_index(statement.outputs, 0), error), COMP__translate__accountling_variable_index_to_cell_ID(generation_abstraction, COMP__get__abstractling_statement_argument_by_index(statement.outputs, 1), error));
+
+                    break;
+                case COMP__act__io__buffer_to_file:
+                    ANVIL__code__buffer_to_file(workspace->workspace, COMP__translate__accountling_variable_index_to_cell_ID(generation_abstraction, COMP__get__abstractling_statement_argument_by_index(statement.inputs, 0), error), COMP__translate__accountling_variable_index_to_cell_ID(generation_abstraction, COMP__get__abstractling_statement_argument_by_index(statement.inputs, 1), error), COMP__translate__accountling_variable_index_to_cell_ID(generation_abstraction, COMP__get__abstractling_statement_argument_by_index(statement.outputs, 0), error), COMP__translate__accountling_variable_index_to_cell_ID(generation_abstraction, COMP__get__abstractling_statement_argument_by_index(statement.outputs, 1), error));
 
                     break;
                 case COMP__act__copy__cell:
