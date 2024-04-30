@@ -870,31 +870,6 @@ ANVIL__error ANVIL__create_null__error() {
     return ANVIL__create__error(ANVIL__bt__false, ANVIL__create_null__buffer(), ANVIL__create_null__character_location(), ANVIL__bt__false);
 }
 
-// get occurance from structure
-ANVIL__bt ANVIL__get__error_occured_from_error(ANVIL__error* error) {
-    return error->occured;
-}
-
-// get message from structure
-ANVIL__buffer ANVIL__get__error_message_from_error(ANVIL__error* error) {
-    return error->message;
-}
-
-// get data from structure
-ANVIL__cell_integer_value ANVIL__get__error_character_location_file_index(ANVIL__error* error) {
-    return error->location.file_index;
-}
-
-// get data from structure
-ANVIL__cell_integer_value ANVIL__get__error_character_location_line_number(ANVIL__error* error) {
-    return error->location.line_number;
-}
-
-// get data from structure
-ANVIL__cell_integer_value ANVIL__get__error_character_location_character_index(ANVIL__error* error) {
-    return error->location.character_index;
-}
-
 // open a specific error
 ANVIL__error ANVIL__open__error(const char* message, ANVIL__character_location location) {
     return ANVIL__create__error(ANVIL__bt__true, ANVIL__open__buffer_from_string((u8*)message, ANVIL__bt__true, ANVIL__bt__false), location, ANVIL__bt__false);
@@ -1137,12 +1112,7 @@ void ANVIL__close__allocations(ANVIL__allocations* allocations) {
 }
 
 /* Compiler Predefinitions */
-ANVIL__buffer ANVIL__get__error_message_from_error(ANVIL__error* error);
 void ANVIL__compile__files(ANVIL__buffer user_codes, ANVIL__bt print_debug, ANVIL__buffer* final_program, ANVIL__error* error);
-ANVIL__bt ANVIL__get__error_occured_from_error(ANVIL__error* error);
-ANVIL__cell_integer_value ANVIL__get__error_character_location_file_index(ANVIL__error* error);
-ANVIL__cell_integer_value ANVIL__get__error_character_location_line_number(ANVIL__error* error);
-ANVIL__cell_integer_value ANVIL__get__error_character_location_character_index(ANVIL__error* error);
 
 /* Alloy Specification */
 // context cell organization defines
@@ -2059,10 +2029,10 @@ ANVIL__nit ANVIL__run__instruction(ANVIL__allocations* allocations, ANVIL__conte
         ANVIL__compile__files(ANVIL__create__buffer((*context).cells[compile__user_code_buffers_buffer_start], (*context).cells[compile__user_code_buffers_buffer_end]), (ANVIL__bt)(ANVIL__cell_integer_value)(*context).cells[compile__debug_enabled], &compile__output_program, &compile__error);
 
         // get temps
-        compile__output_error_message = ANVIL__get__error_message_from_error(&compile__error);
+        compile__output_error_message = compile__error.message;
 
         // check if program was created
-        if (ANVIL__get__error_occured_from_error(&compile__error) == ANVIL__bt__false) {
+        if (ANVIL__check__error_occured(&compile__error) == ANVIL__bt__false) {
             // add new buffer to allocations
             ANVIL__remember__allocation(allocations, compile__output_program, &compile__buffer_appending_error);
 
@@ -2104,12 +2074,12 @@ ANVIL__nit ANVIL__run__instruction(ANVIL__allocations* allocations, ANVIL__conte
         // setup outputs
         (*context).cells[compile__output_start] = compile__output_program.start;
         (*context).cells[compile__output_end] = compile__output_program.end;
-        (*context).cells[compile__error__occured] = (ANVIL__cell)(ANVIL__cell_integer_value)ANVIL__get__error_occured_from_error(&compile__error);
+        (*context).cells[compile__error__occured] = (ANVIL__cell)(ANVIL__cell_integer_value)compile__error.occured;
         (*context).cells[compile__error__message_start] = compile__output_error_message.start;
         (*context).cells[compile__error__message_end] = compile__output_error_message.end;
-        (*context).cells[compile__error__character_location__file_index] = (ANVIL__cell)ANVIL__get__error_character_location_file_index(&compile__error);
-        (*context).cells[compile__error__character_location__line_number] = (ANVIL__cell)ANVIL__get__error_character_location_line_number(&compile__error);
-        (*context).cells[compile__error__character_location__character_index] = (ANVIL__cell)ANVIL__get__error_character_location_character_index(&compile__error);
+        (*context).cells[compile__error__character_location__file_index] = (ANVIL__cell)compile__error.location.file_index;
+        (*context).cells[compile__error__character_location__line_number] = (ANVIL__cell)compile__error.location.line_number;
+        (*context).cells[compile__error__character_location__character_index] = (ANVIL__cell)compile__error.location.character_index;
 
         break;
     // run a context like a program
