@@ -57,7 +57,7 @@ int main(int argc, char** argv) {
     error = COMP__create_null__error();
 
     // open files list
-    files = COMP__open__list(sizeof(ANVIL__buffer) * 32, &error);
+    files = COMP__open__list_with_error(sizeof(ANVIL__buffer) * 32, &error);
     if (COMP__check__error_occured(&error)) {
         printf("Error, could not open files list.\n");
 
@@ -89,7 +89,7 @@ int main(int argc, char** argv) {
             }
 
             // add file
-            COMP__append__buffer(&files, file, &error);
+            COMP__append__buffer_with_error(&files, file, &error);
             if (COMP__check__error_occured(&error) == ANVIL__bt__true) {
                 printf("Error, could not add buffer to inputs list.");
 
