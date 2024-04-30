@@ -1,5 +1,5 @@
-// compiler
-#include "./compiler/compiler.h"
+// anvil
+#include "anvil.h"
 
 // c
 #include <stdio.h>
@@ -51,14 +51,14 @@ int main(int argc, char** argv) {
     ANVIL__list files;
     ANVIL__bt debug_mode = ANVIL__bt__false;
     ANVIL__u64 current_argument = 1;
-    COMP__error error;
+    ANVIL__error error;
 
     // init error
-    error = COMP__create_null__error();
+    error = ANVIL__create_null__error();
 
     // open files list
-    files = COMP__open__list_with_error(sizeof(ANVIL__buffer) * 32, &error);
-    if (COMP__check__error_occured(&error)) {
+    files = ANVIL__open__list_with_error(sizeof(ANVIL__buffer) * 32, &error);
+    if (ANVIL__check__error_occured(&error)) {
         printf("Error, could not open files list.\n");
 
         return 1;
@@ -89,8 +89,8 @@ int main(int argc, char** argv) {
             }
 
             // add file
-            COMP__append__buffer_with_error(&files, file, &error);
-            if (COMP__check__error_occured(&error) == ANVIL__bt__true) {
+            ANVIL__append__buffer_with_error(&files, file, &error);
+            if (ANVIL__check__error_occured(&error) == ANVIL__bt__true) {
                 printf("Error, could not add buffer to inputs list.");
 
                 goto clean_up;
@@ -101,20 +101,20 @@ int main(int argc, char** argv) {
         }
 
         // if files were passed
-        if (COMP__check__current_within_range(COMP__calculate__current_from_list_filled_index(&files)) == ANVIL__bt__true) {
+        if (ANVIL__check__current_within_range(ANVIL__calculate__current_from_list_filled_index(&files)) == ANVIL__bt__true) {
             // setup output
             ANVIL__buffer program = ANVIL__create_null__buffer();
 
             // run compiler
-            COMP__compile__files(ANVIL__calculate__list_current_buffer(&files), debug_mode, &program, &error);
+            ANVIL__compile__files(ANVIL__calculate__list_current_buffer(&files), debug_mode, &program, &error);
 
             // if error
-            if (COMP__check__error_occured(&error)) {
+            if (ANVIL__check__error_occured(&error)) {
                 // setup json error
                 ANVIL__bt json_error_occured = ANVIL__bt__false;
 
                 // get message
-                ANVIL__buffer json = COMP__serialize__error_json(error, &json_error_occured);
+                ANVIL__buffer json = ANVIL__serialize__error_json(error, &json_error_occured);
                 if (json_error_occured) {
                     printf("Failed to serialize json error, oops.\n");
 
@@ -176,10 +176,10 @@ int main(int argc, char** argv) {
         // clean up
         clean_up:
         if (error.occured == ANVIL__bt__true) {
-            COMP__close__error(error);
+            ANVIL__close__error(error);
         }
-        COMP__current current_file = COMP__calculate__current_from_list_filled_index(&files);
-        while (COMP__check__current_within_range(current_file)) {
+        ANVIL__current current_file = ANVIL__calculate__current_from_list_filled_index(&files);
+        while (ANVIL__check__current_within_range(current_file)) {
             ANVIL__close__buffer(*(ANVIL__buffer*)current_file.start);
             current_file.start += sizeof(ANVIL__buffer);
         }
