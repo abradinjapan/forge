@@ -48,6 +48,7 @@ typedef ANVIL__u64 COMP__abstraction_index;
 
 char* COMP__global__predefined_cell_name_strings[] = {
     "frost.error_code",
+    "frost.constant.character_byte_size",
 };
 char* COMP__global__predefined_flag_name_strings[] = {
     "frost.always",
@@ -1752,6 +1753,7 @@ void COMP__print__parsed_program(COMP__parsling_program program) {
 typedef enum COMP__pvt {
     // variables
     COMP__pvt__error_code,
+    COMP__pvt__constant__character_byte_size,
 
     // count
     COMP__pvt__COUNT,
@@ -3940,6 +3942,7 @@ ANVIL__list COMP__generate__predefined_variables(COMP__error* error) {
 
     // append variables
     COMP__generate_and_append__predefined_variable(&output, COMP__global__predefined_cell_name_strings[COMP__pvt__error_code], error);
+    COMP__generate_and_append__predefined_variable(&output, COMP__global__predefined_cell_name_strings[COMP__pvt__constant__character_byte_size], error);
 
     return output;
 }
@@ -4508,6 +4511,8 @@ ANVIL__cell_ID COMP__translate__accountling_variable_index_to_cell_ID(COMP__gene
         // determine variable type
         if (argument.index == COMP__pvt__error_code) {
             return ANVIL__rt__error_code;
+        } else if (argument.index == COMP__pvt__constant__character_byte_size) {
+            return ANVIL__srt__constant__8;
         }
     }
     
