@@ -8119,6 +8119,11 @@ void ANVIL__compile__files(ANVIL__buffer user_codes, ANVIL__bt print_debug, ANVI
         ANVIL__print__accountling_program(compilation_unit.accountlings);
     }
 
+    // inform user of code generation
+    if (print_debug) {
+        printf("Generating code...\n");
+    }
+
     // generate program
     ANVIL__forge__anvil_program(final_program, compilation_unit.accountlings, 65536, error);
 
