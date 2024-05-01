@@ -1,4 +1,4 @@
-# Frost Project
+# Forge Project
 
 A simple programming language written in C.
 

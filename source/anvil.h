@@ -1,5 +1,5 @@
-#ifndef FROST__alloy
-#define FROST__alloy
+#ifndef FORGE__anvil
+#define FORGE__anvil
 
 /* Include */
 // C
@@ -92,13 +92,13 @@ typedef ANVIL__u64 ANVIL__abstraction_index;
 
 // strings
 char* ANVIL__global__predefined_cell_name_strings[] = {
-    "frost.error_code",
-    "frost.constant.character_byte_size",
+    "forge.error_code",
+    "forge.constant.character_byte_size",
 };
 char* ANVIL__global__predefined_flag_name_strings[] = {
-    "frost.always",
-    "frost.never",
-    "frost.temporary",
+    "forge.always",
+    "forge.never",
+    "forge.temporary",
 };
 char* ANVIL__global__argument_type_name_strings[] = {
     "invalid",
@@ -119,46 +119,46 @@ char* ANVIL__global__argument_type_name_strings[] = {
     "string",
 };
 char* ANVIL__global__accountling_call_type_name_strings[] = {
-    "frost.set",
-    "frost.print.integer.signed",
-    "frost.print.integer.unsigned",
-    "frost.print.character",
-    "frost.print.buffer_as_string",
-    "frost.print.binary",
-    "frost.io.cell_to_address",
-    "frost.io.address_to_cell",
-    "frost.io.file_to_buffer",
-    "frost.io.buffer_to_file",
-    "frost.copy",
-    "frost.copy.buffer",
-    "frost.memory.request",
-    "frost.memory.return",
-    "frost.buffer.calculate_length",
-    "frost.cast.cell_to_unsigned_integer_string",
-    "frost.integer.add",
-    "frost.integer.subtract",
-    "frost.integer.multiply",
-    "frost.integer.divide",
-    "frost.integer.modulous",
-    "frost.integer.within_range",
-    "frost.binary.or",
-    "frost.binary.invert",
-    "frost.binary.and",
-    "frost.binary.xor",
-    "frost.binary.shift_higher",
-    "frost.binary.shift_lower",
-    "frost.binary.overwrite",
-    "frost.flag.get",
-    "frost.flag.set",
-    "frost.flag.invert",
-    "frost.flag.or",
-    "frost.flag.and",
-    "frost.flag.xor",
-    "frost.jump",
-    "frost.open.context",
-    "frost.compile",
-    "frost.run",
-    "frost.reset.error_code",
+    "forge.set",
+    "forge.print.integer.signed",
+    "forge.print.integer.unsigned",
+    "forge.print.character",
+    "forge.print.buffer_as_string",
+    "forge.print.binary",
+    "forge.io.cell_to_address",
+    "forge.io.address_to_cell",
+    "forge.io.file_to_buffer",
+    "forge.io.buffer_to_file",
+    "forge.copy",
+    "forge.copy.buffer",
+    "forge.memory.request",
+    "forge.memory.return",
+    "forge.buffer.calculate_length",
+    "forge.cast.cell_to_unsigned_integer_string",
+    "forge.integer.add",
+    "forge.integer.subtract",
+    "forge.integer.multiply",
+    "forge.integer.divide",
+    "forge.integer.modulous",
+    "forge.integer.within_range",
+    "forge.binary.or",
+    "forge.binary.invert",
+    "forge.binary.and",
+    "forge.binary.xor",
+    "forge.binary.shift_higher",
+    "forge.binary.shift_lower",
+    "forge.binary.overwrite",
+    "forge.flag.get",
+    "forge.flag.set",
+    "forge.flag.invert",
+    "forge.flag.or",
+    "forge.flag.and",
+    "forge.flag.xor",
+    "forge.jump",
+    "forge.open.context",
+    "forge.compile",
+    "forge.run",
+    "forge.reset.error_code",
 };
 
 // program stage type
@@ -3899,12 +3899,12 @@ ANVIL__argument_index ANVIL__find__parsling_argument_index__by_name(ANVIL__list 
 // translate string to boolean
 ANVIL__bt ANVIL__translate__string_to_boolean(ANVIL__buffer string, ANVIL__cell_integer_value* value) {
     // check possible values
-    if (ANVIL__calculate__buffer_contents_equal(string, ANVIL__open__buffer_from_string((u8*)"frost.boolean.false", ANVIL__bt__false, ANVIL__bt__false)) == ANVIL__bt__true) {
+    if (ANVIL__calculate__buffer_contents_equal(string, ANVIL__open__buffer_from_string((u8*)"forge.boolean.false", ANVIL__bt__false, ANVIL__bt__false)) == ANVIL__bt__true) {
         *value = (ANVIL__cell_integer_value)(ANVIL__bt__false);
 
         return ANVIL__bt__true;
     }
-    if (ANVIL__calculate__buffer_contents_equal(string, ANVIL__open__buffer_from_string((u8*)"frost.boolean.true", ANVIL__bt__false, ANVIL__bt__false)) == ANVIL__bt__true) {
+    if (ANVIL__calculate__buffer_contents_equal(string, ANVIL__open__buffer_from_string((u8*)"forge.boolean.true", ANVIL__bt__false, ANVIL__bt__false)) == ANVIL__bt__true) {
         *value = (ANVIL__cell_integer_value)(ANVIL__bt__true);
 
         return ANVIL__bt__true;
@@ -3915,7 +3915,7 @@ ANVIL__bt ANVIL__translate__string_to_boolean(ANVIL__buffer string, ANVIL__cell_
 
 // translate string to binary
 ANVIL__bt ANVIL__translate__string_to_binary(ANVIL__buffer string, ANVIL__cell_integer_value* value) {
-    ANVIL__buffer prefix = ANVIL__open__buffer_from_string((u8*)"frost.binary.", ANVIL__bt__false, ANVIL__bt__false);
+    ANVIL__buffer prefix = ANVIL__open__buffer_from_string((u8*)"forge.binary.", ANVIL__bt__false, ANVIL__bt__false);
     ANVIL__buffer current;
     ANVIL__u64 character_count_limit = sizeof(ANVIL__u64) * ANVIL__define__bits_in_byte;
     ANVIL__u64 character_count = 0;
@@ -3983,7 +3983,7 @@ ANVIL__bt ANVIL__translate__string_to_binary(ANVIL__buffer string, ANVIL__cell_i
 
 // translate string to integer
 ANVIL__bt ANVIL__translate__string_to_integer(ANVIL__buffer string, ANVIL__cell_integer_value* value) {
-    ANVIL__buffer prefix = ANVIL__open__buffer_from_string((u8*)"frost.integer.", ANVIL__bt__false, ANVIL__bt__false);
+    ANVIL__buffer prefix = ANVIL__open__buffer_from_string((u8*)"forge.integer.", ANVIL__bt__false, ANVIL__bt__false);
     ANVIL__buffer suffix;
     ANVIL__u64 digit = 0;
 
@@ -4072,7 +4072,7 @@ ANVIL__cell_integer_value ANVIL__translate__character_to_hexadecimal(ANVIL__char
 
 // translate string to hexedecimal
 ANVIL__bt ANVIL__translate__string_to_hexedecimal(ANVIL__buffer string, ANVIL__cell_integer_value* value) {
-    ANVIL__buffer prefix = ANVIL__open__buffer_from_string((u8*)"frost.hexadecimal.", ANVIL__bt__false, ANVIL__bt__false);
+    ANVIL__buffer prefix = ANVIL__open__buffer_from_string((u8*)"forge.hexadecimal.", ANVIL__bt__false, ANVIL__bt__false);
     ANVIL__buffer suffix;
     ANVIL__buffer current;
     ANVIL__bt invalid_character;
