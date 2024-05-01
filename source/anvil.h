@@ -94,6 +94,31 @@ typedef ANVIL__u64 ANVIL__abstraction_index;
 char* ANVIL__global__predefined_cell_name_strings[] = {
     "forge.error_code",
     "forge.constant.character_byte_size",
+    "forge.constant.character_bit_size",
+    "forge.constant.bits_in_byte",
+    "forge.constant.cell_byte_size",
+    "forge.constant.cell_bit_size",
+    "forge.constant.true",
+    "forge.constant.false",
+    "forge.constant.0",
+    "forge.constant.1",
+    "forge.constant.2",
+    "forge.constant.4",
+    "forge.constant.8",
+    "forge.constant.16",
+    "forge.constant.24",
+    "forge.constant.32",
+    "forge.constant.40",
+    "forge.constant.48",
+    "forge.constant.56",
+    "forge.constant.64",
+    "forge.constant.program_input.start",
+    "forge.constant.program_input.end",
+    "forge.constant.program_output.start",
+    "forge.constant.program_output.end",
+    "forge.stack.start",
+    "forge.stack.current",
+    "forge.stack.end",
 };
 char* ANVIL__global__predefined_flag_name_strings[] = {
     "forge.always",
@@ -159,6 +184,7 @@ char* ANVIL__global__accountling_call_type_name_strings[] = {
     "forge.compile",
     "forge.run",
     "forge.reset.error_code",
+    "forge.set.program_outputs",
 };
 
 // program stage type
@@ -2092,8 +2118,15 @@ ANVIL__nit ANVIL__run__instruction(ANVIL__allocations* allocations, ANVIL__conte
         // useless operation to quiet compiler
         run__context_buffer_end = run__context_buffer_end;
 
-        // run context
-        ANVIL__run__context(allocations, (ANVIL__context*)(*context).cells[run__context_buffer_start], (u64)(*context).cells[run__instruction_count]);
+        // if context buffer is valid
+        if (ANVIL__check__valid_address_range_in_allocations(allocations, ANVIL__create__buffer((ANVIL__context*)(*context).cells[run__context_buffer_start], (ANVIL__context*)(*context).cells[run__context_buffer_end]))) {
+            // run context
+            ANVIL__run__context(allocations, (ANVIL__context*)(*context).cells[run__context_buffer_start], (u64)(*context).cells[run__instruction_count]);
+        // error
+        } else {
+            // set error
+            ANVIL__set__error_code_cell(context, ANVIL__et__invalid_address_range);
+        }
 
         break;
     // print one char to stdout
@@ -4819,6 +4852,31 @@ typedef enum ANVIL__pvt {
     // variables
     ANVIL__pvt__error_code,
     ANVIL__pvt__constant__character_byte_size,
+    ANVIL__pvt__constant__character_bit_size,
+    ANVIL__pvt__constant__bits_in_byte,
+    ANVIL__pvt__constant__cell_byte_size,
+    ANVIL__pvt__constant__cell_bit_size,
+    ANVIL__pvt__constant__true,
+    ANVIL__pvt__constant__false,
+    ANVIL__pvt__constant__0,
+    ANVIL__pvt__constant__1,
+    ANVIL__pvt__constant__2,
+    ANVIL__pvt__constant__4,
+    ANVIL__pvt__constant__8,
+    ANVIL__pvt__constant__16,
+    ANVIL__pvt__constant__24,
+    ANVIL__pvt__constant__32,
+    ANVIL__pvt__constant__40,
+    ANVIL__pvt__constant__48,
+    ANVIL__pvt__constant__56,
+    ANVIL__pvt__constant__64,
+    ANVIL__pvt__constant__input_start,
+    ANVIL__pvt__constant__input_end,
+    ANVIL__pvt__constant__output_start,
+    ANVIL__pvt__constant__output_end,
+    ANVIL__pvt__stack_start,
+    ANVIL__pvt__stack_current,
+    ANVIL__pvt__stack_end,
 
     // count
     ANVIL__pvt__COUNT,
@@ -4952,6 +5010,7 @@ typedef enum ANVIL__act {
 
     // etc
     ANVIL__act__reset_error_code_cell,
+    ANVIL__act__set_program_outputs,
 
     // end
     ANVIL__act__END,
@@ -5267,6 +5326,7 @@ typedef enum ANVIL__bnit {
     ANVIL__bnit__compile,
     ANVIL__bnit__run,
     ANVIL__bnit__reset_error_code,
+    ANVIL__bnit__set_program_outputs,
 
     // stats
     ANVIL__bnit__COUNT,
@@ -5822,6 +5882,15 @@ ANVIL__list ANVIL__generate__call_blueprint(ANVIL__list parsling_programs, ANVIL
             ANVIL__bnit__reset_error_code,
             0,
             0,
+        ANVIL__abt__define_call,
+            ANVIL__act__set_program_outputs,
+            ANVIL__bnit__set_program_outputs,
+            2,
+            ANVIL__pat__variable,
+            ANVIL__pat__variable,
+            0,
+        
+        // end of blueprint
         ANVIL__abt__end_of_blueprint,
     };
 
@@ -7008,6 +7077,31 @@ ANVIL__list ANVIL__generate__predefined_variables(ANVIL__error* error) {
     // append variables
     ANVIL__generate_and_append__predefined_variable(&output, ANVIL__global__predefined_cell_name_strings[ANVIL__pvt__error_code], error);
     ANVIL__generate_and_append__predefined_variable(&output, ANVIL__global__predefined_cell_name_strings[ANVIL__pvt__constant__character_byte_size], error);
+    ANVIL__generate_and_append__predefined_variable(&output, ANVIL__global__predefined_cell_name_strings[ANVIL__pvt__constant__character_bit_size], error);
+    ANVIL__generate_and_append__predefined_variable(&output, ANVIL__global__predefined_cell_name_strings[ANVIL__pvt__constant__bits_in_byte], error);
+    ANVIL__generate_and_append__predefined_variable(&output, ANVIL__global__predefined_cell_name_strings[ANVIL__pvt__constant__cell_byte_size], error);
+    ANVIL__generate_and_append__predefined_variable(&output, ANVIL__global__predefined_cell_name_strings[ANVIL__pvt__constant__cell_bit_size], error);
+    ANVIL__generate_and_append__predefined_variable(&output, ANVIL__global__predefined_cell_name_strings[ANVIL__pvt__constant__true], error);
+    ANVIL__generate_and_append__predefined_variable(&output, ANVIL__global__predefined_cell_name_strings[ANVIL__pvt__constant__false], error);
+    ANVIL__generate_and_append__predefined_variable(&output, ANVIL__global__predefined_cell_name_strings[ANVIL__pvt__constant__0], error);
+    ANVIL__generate_and_append__predefined_variable(&output, ANVIL__global__predefined_cell_name_strings[ANVIL__pvt__constant__1], error);
+    ANVIL__generate_and_append__predefined_variable(&output, ANVIL__global__predefined_cell_name_strings[ANVIL__pvt__constant__2], error);
+    ANVIL__generate_and_append__predefined_variable(&output, ANVIL__global__predefined_cell_name_strings[ANVIL__pvt__constant__4], error);
+    ANVIL__generate_and_append__predefined_variable(&output, ANVIL__global__predefined_cell_name_strings[ANVIL__pvt__constant__8], error);
+    ANVIL__generate_and_append__predefined_variable(&output, ANVIL__global__predefined_cell_name_strings[ANVIL__pvt__constant__16], error);
+    ANVIL__generate_and_append__predefined_variable(&output, ANVIL__global__predefined_cell_name_strings[ANVIL__pvt__constant__24], error);
+    ANVIL__generate_and_append__predefined_variable(&output, ANVIL__global__predefined_cell_name_strings[ANVIL__pvt__constant__32], error);
+    ANVIL__generate_and_append__predefined_variable(&output, ANVIL__global__predefined_cell_name_strings[ANVIL__pvt__constant__40], error);
+    ANVIL__generate_and_append__predefined_variable(&output, ANVIL__global__predefined_cell_name_strings[ANVIL__pvt__constant__48], error);
+    ANVIL__generate_and_append__predefined_variable(&output, ANVIL__global__predefined_cell_name_strings[ANVIL__pvt__constant__56], error);
+    ANVIL__generate_and_append__predefined_variable(&output, ANVIL__global__predefined_cell_name_strings[ANVIL__pvt__constant__64], error);
+    ANVIL__generate_and_append__predefined_variable(&output, ANVIL__global__predefined_cell_name_strings[ANVIL__pvt__constant__input_start], error);
+    ANVIL__generate_and_append__predefined_variable(&output, ANVIL__global__predefined_cell_name_strings[ANVIL__pvt__constant__input_end], error);
+    ANVIL__generate_and_append__predefined_variable(&output, ANVIL__global__predefined_cell_name_strings[ANVIL__pvt__constant__output_start], error);
+    ANVIL__generate_and_append__predefined_variable(&output, ANVIL__global__predefined_cell_name_strings[ANVIL__pvt__constant__output_end], error);
+    ANVIL__generate_and_append__predefined_variable(&output, ANVIL__global__predefined_cell_name_strings[ANVIL__pvt__stack_start], error);
+    ANVIL__generate_and_append__predefined_variable(&output, ANVIL__global__predefined_cell_name_strings[ANVIL__pvt__stack_current], error);
+    ANVIL__generate_and_append__predefined_variable(&output, ANVIL__global__predefined_cell_name_strings[ANVIL__pvt__stack_end], error);
 
     return output;
 }
@@ -7562,6 +7656,36 @@ ANVIL__accountling_abstraction ANVIL__find__accountling_abstraction_by_index(ANV
 
 // convert variable index to cell ID
 ANVIL__cell_ID ANVIL__translate__accountling_variable_index_to_cell_ID(ANVIL__generation_abstraction* generation_abstraction, ANVIL__accountling_argument argument, ANVIL__error* error) {
+    ANVIL__pvt predefineds[] = {
+        ANVIL__rt__error_code,
+        ANVIL__srt__constant__1,
+        ANVIL__srt__constant__8,
+        ANVIL__srt__constant__bits_in_byte,
+        ANVIL__srt__constant__cell_byte_count,
+        ANVIL__srt__constant__cell_bit_count,
+        ANVIL__srt__constant__true,
+        ANVIL__srt__constant__false,
+        ANVIL__srt__constant__0,
+        ANVIL__srt__constant__1,
+        ANVIL__srt__constant__2,
+        ANVIL__srt__constant__4,
+        ANVIL__srt__constant__8,
+        ANVIL__srt__constant__16,
+        ANVIL__srt__constant__24,
+        ANVIL__srt__constant__32,
+        ANVIL__srt__constant__40,
+        ANVIL__srt__constant__48,
+        ANVIL__srt__constant__56,
+        ANVIL__srt__constant__64,
+        ANVIL__srt__input_buffer_start,
+        ANVIL__srt__input_buffer_end,
+        ANVIL__srt__output_buffer_start,
+        ANVIL__srt__output_buffer_end,
+        ANVIL__srt__stack__start_address,
+        ANVIL__srt__stack__current_address,
+        ANVIL__srt__stack__end_address,
+    };
+
     // convert based on type
     if (argument.type == ANVIL__pat__variable || argument.type == ANVIL__pat__variable__body) {
         // return cell ID
@@ -7573,12 +7697,8 @@ ANVIL__cell_ID ANVIL__translate__accountling_variable_index_to_cell_ID(ANVIL__ge
         // return cell ID
         return generation_abstraction->cells.workspace_output_range.start + argument.index;
     } else if (argument.type == ANVIL__pat__variable__predefined) {
-        // determine variable type
-        if (argument.index == ANVIL__pvt__error_code) {
-            return ANVIL__rt__error_code;
-        } else if (argument.index == ANVIL__pvt__constant__character_byte_size) {
-            return ANVIL__srt__constant__8;
-        }
+        // return cell ID from list
+        return predefineds[argument.index];
     }
     
     // error
@@ -7835,6 +7955,11 @@ void ANVIL__forge__anvil_abstraction(ANVIL__generation_workspace* workspace, ANV
                     break;
                 case ANVIL__act__reset_error_code_cell:
                     ANVIL__code__write_cell(workspace->workspace, ANVIL__et__no_error, ANVIL__rt__error_code);
+
+                    break;
+                case ANVIL__act__set_program_outputs:
+                    ANVIL__code__cell_to_cell(workspace->workspace, ANVIL__sft__always_run, ANVIL__translate__accountling_variable_index_to_cell_ID(generation_abstraction, ANVIL__get__abstractling_statement_argument_by_index(statement.inputs, 0), error), ANVIL__srt__output_buffer_start);
+                    ANVIL__code__cell_to_cell(workspace->workspace, ANVIL__sft__always_run, ANVIL__translate__accountling_variable_index_to_cell_ID(generation_abstraction, ANVIL__get__abstractling_statement_argument_by_index(statement.inputs, 1), error), ANVIL__srt__output_buffer_end);
 
                     break;
                 default:
