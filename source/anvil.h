@@ -87,7 +87,7 @@ typedef ANVIL__accountling_index ANVIL__offset_index;
 typedef ANVIL__accountling_index ANVIL__flag_index;
 typedef ANVIL__accountling_index ANVIL__sttatement_index;
 typedef ANVIL__accountling_index ANVIL__header_index;
-typedef ANVIL__accountling_index ANVIL__sttring_index;
+typedef ANVIL__accountling_index ANVIL__string_index;
 typedef ANVIL__u64 ANVIL__abstraction_index;
 
 // strings
@@ -130,7 +130,6 @@ char* ANVIL__global__argument_type_name_strings[] = {
     "variable",
     "input_variable",
     "output_variable",
-    "double_variable",
     "body_variable",
     "predefined_variable",
     "offset",
@@ -1895,9 +1894,6 @@ ANVIL__nit ANVIL__run__instruction(ANVIL__allocations* allocations, ANVIL__conte
     switch (instruction_ID) {
     // if context should stop
     case ANVIL__it__stop:
-        // DEBUG
-        //printf("ANVIL__it__stop is running.\n");
-
         // return exit context
         return ANVIL__nit__return_context;
     // overwrite cell value
@@ -3939,7 +3935,6 @@ typedef enum ANVIL__pat {
     ANVIL__pat__variable,
     ANVIL__pat__variable__input,
     ANVIL__pat__variable__output,
-    ANVIL__pat__variable__double,
     ANVIL__pat__variable__body,
     ANVIL__pat__variable__predefined,
     ANVIL__pat__offset,
@@ -4806,7 +4801,7 @@ void ANVIL__print__parsling_argument(ANVIL__parsling_argument argument) {
     printf("]");
 
     // print data
-    if (argument.type == ANVIL__pat__variable || ANVIL__pat__variable__input || ANVIL__pat__variable__output || ANVIL__pat__variable__double || ANVIL__pat__variable__body || ANVIL__pat__variable__predefined || ANVIL__pat__offset || ANVIL__pat__flag || ANVIL__pat__literal__string) {
+    if (argument.type == ANVIL__pat__variable || ANVIL__pat__variable__input || ANVIL__pat__variable__output || ANVIL__pat__variable__body || ANVIL__pat__variable__predefined || ANVIL__pat__offset || ANVIL__pat__flag || ANVIL__pat__literal__string) {
         ANVIL__print__buffer(argument.text.lexling.value);
     } else if (argument.type == ANVIL__pat__literal__boolean || ANVIL__pat__literal__binary || ANVIL__pat__literal__hexadecimal) {
         ANVIL__print__buffer(argument.text.lexling.value);
@@ -5210,7 +5205,6 @@ typedef struct ANVIL__accountling_abstraction {
     ANVIL__list converted_strings; // ANVIL__buffer
     ANVIL__list inputs; // ANVIL__parsling_argument
     ANVIL__list outputs; // ANVIL__parsling_argument
-    ANVIL__list doubles; // ANVIL__parsling_argument (doubles are variables that are both inputs and outputs)
     ANVIL__list variables; // ANVIL__parsling_argument
     ANVIL__list offsets; // ANVIL__parsling_argument
     ANVIL__list flags; // ANVIL__parsling_argument
@@ -5218,7 +5212,7 @@ typedef struct ANVIL__accountling_abstraction {
 } ANVIL__accountling_abstraction;
 
 // create custom accountling abstraction
-ANVIL__accountling_abstraction ANVIL__create__accountling_abstraction(ANVIL__parsling_statement header, ANVIL__list* predefined_variables, ANVIL__list* predefined_flags, ANVIL__list strings, ANVIL__list converted_strings, ANVIL__list inputs, ANVIL__list outputs, ANVIL__list doubles, ANVIL__list variables, ANVIL__list offsets, ANVIL__list flags, ANVIL__list statements) {
+ANVIL__accountling_abstraction ANVIL__create__accountling_abstraction(ANVIL__parsling_statement header, ANVIL__list* predefined_variables, ANVIL__list* predefined_flags, ANVIL__list strings, ANVIL__list converted_strings, ANVIL__list inputs, ANVIL__list outputs, ANVIL__list variables, ANVIL__list offsets, ANVIL__list flags, ANVIL__list statements) {
     ANVIL__accountling_abstraction output;
 
     output.header = header;
@@ -5228,7 +5222,6 @@ ANVIL__accountling_abstraction ANVIL__create__accountling_abstraction(ANVIL__par
     output.converted_strings = converted_strings;
     output.inputs = inputs;
     output.outputs = outputs;
-    output.doubles = doubles;
     output.variables = variables;
     output.offsets = offsets;
     output.flags = flags;
@@ -5239,7 +5232,7 @@ ANVIL__accountling_abstraction ANVIL__create__accountling_abstraction(ANVIL__par
 
 // create null accountling abstraction
 ANVIL__accountling_abstraction ANVIL__create_null__accountling_abstraction() {
-    return ANVIL__create__accountling_abstraction(ANVIL__create_null__parsling_statement(), ANVIL__define__null_address, ANVIL__define__null_address, ANVIL__create_null__list(), ANVIL__create_null__list(), ANVIL__create_null__list(), ANVIL__create_null__list(), ANVIL__create_null__list(), ANVIL__create_null__list(), ANVIL__create_null__list(), ANVIL__create_null__list(), ANVIL__create_null__list());
+    return ANVIL__create__accountling_abstraction(ANVIL__create_null__parsling_statement(), ANVIL__define__null_address, ANVIL__define__null_address, ANVIL__create_null__list(), ANVIL__create_null__list(), ANVIL__create_null__list(), ANVIL__create_null__list(), ANVIL__create_null__list(), ANVIL__create_null__list(), ANVIL__create_null__list(), ANVIL__create_null__list());
 }
 
 // append accountling statement
@@ -5304,9 +5297,6 @@ void ANVIL__close__accountling_abstraction(ANVIL__accountling_abstraction abstra
     }
     if (ANVIL__check__empty_list(abstraction.outputs) == ANVIL__bt__false) {
         ANVIL__close__list(abstraction.outputs);
-    }
-    if (ANVIL__check__empty_list(abstraction.doubles) == ANVIL__bt__false) {
-        ANVIL__close__list(abstraction.doubles);
     }
     if (ANVIL__check__empty_list(abstraction.variables) == ANVIL__bt__false) {
         ANVIL__close__list(abstraction.variables);
@@ -5464,7 +5454,7 @@ ANVIL__header_index ANVIL__calculate__call_blueprint_entry_count(ANVIL__list cal
 
 // check if argument is in variable category
 ANVIL__bt ANVIL__check__argument_is_variable_type(ANVIL__pat argument_type) {
-    return (argument_type == ANVIL__pat__variable) || (argument_type == ANVIL__pat__variable__body) || (argument_type == ANVIL__pat__variable__double) || (argument_type == ANVIL__pat__variable__input) || (argument_type == ANVIL__pat__variable__output) || (argument_type == ANVIL__pat__variable__predefined);
+    return (argument_type == ANVIL__pat__variable) || (argument_type == ANVIL__pat__variable__body) || (argument_type == ANVIL__pat__variable__input) || (argument_type == ANVIL__pat__variable__output) || (argument_type == ANVIL__pat__variable__predefined);
 }
 
 // check if argument is in flag category
@@ -6351,8 +6341,6 @@ ANVIL__list ANVIL__account__accountling_argument_list(ANVIL__accountling_abstrac
             ANVIL__append__accountling_argument(&output, ANVIL__create__accountling_argument(argument.type, ANVIL__find__parsling_argument_index__by_name((*abstraction).outputs, argument), argument), error);
         } else if (argument.type == ANVIL__pat__variable || argument.type == ANVIL__pat__variable__body) {
             ANVIL__append__accountling_argument(&output, ANVIL__create__accountling_argument(argument.type, ANVIL__find__parsling_argument_index__by_name((*abstraction).variables, argument), argument), error);
-        } else if (argument.type == ANVIL__pat__variable__double) {
-            ANVIL__append__accountling_argument(&output, ANVIL__create__accountling_argument(argument.type, ANVIL__find__parsling_argument_index__by_name((*abstraction).doubles, argument), argument), error);
         } else if (argument.type == ANVIL__pat__literal__boolean || argument.type == ANVIL__pat__literal__binary || argument.type == ANVIL__pat__literal__integer || argument.type == ANVIL__pat__literal__hexadecimal) {
             ANVIL__append__accountling_argument(&output, ANVIL__create__accountling_argument(argument.type, argument.value, argument), error);
         } else if (argument.type == ANVIL__pat__offset) {
@@ -6498,43 +6486,6 @@ ANVIL__accountling_abstraction ANVIL__account__abstraction(ANVIL__list call_blue
 
                 // next argument
                 current_output.start += sizeof(ANVIL__parsling_argument);
-            }
-        }
-
-        // get abstraction doubles
-        {
-            // open doubles
-            output.doubles = ANVIL__open__list_with_error(sizeof(ANVIL__parsling_argument) * 16, error);
-            if (ANVIL__check__error_occured(error)) {
-                return output;
-            }
-
-            // setup current
-            ANVIL__current current_input = ANVIL__calculate__current_from_list_filled_index(&output.inputs);
-
-            // get outputs
-            while (ANVIL__check__current_within_range(current_input)) {
-                // get argument to look for
-                ANVIL__parsling_argument searching_for = *(ANVIL__parsling_argument*)current_input.start;
-
-                // check for output duplicate
-                ANVIL__bt found_duplicate;
-                ANVIL__account__get_argument_in_list__by_text(&output.outputs, searching_for, &found_duplicate);
-
-                // check for double
-                if (found_duplicate == ANVIL__bt__true) {
-                    // modify variable type
-                    searching_for.type = ANVIL__pat__variable__double;
-
-                    // add variable
-                    ANVIL__append__parsling_argument(&output.doubles, searching_for, error);
-                    if (ANVIL__check__error_occured(error)) {
-                        return output;
-                    }
-                }
-
-                // next argument
-                current_input.start += sizeof(ANVIL__parsling_argument);
             }
         }
 
@@ -6890,7 +6841,7 @@ ANVIL__accountling_abstraction ANVIL__account__abstraction(ANVIL__list call_blue
         }
     }
 
-    // modify parsling statements to reflect accurate variable types (predefined, input, output, double & body) & flag types (predefined & user defined)
+    // modify parsling statements to reflect accurate variable types (predefined, input, output & body) & flag types (predefined & user defined)
     {
         // get current statement
         ANVIL__current current_statement = ANVIL__calculate__current_from_list_filled_index(&parsling_abstraction.statements);
@@ -6915,12 +6866,10 @@ ANVIL__accountling_abstraction ANVIL__account__abstraction(ANVIL__list call_blue
                     if (input->type == ANVIL__pat__variable) {
                         // find variable by type
                         ANVIL__bt found_predefined;
-                        ANVIL__bt found_double;
                         ANVIL__bt found_input;
                         ANVIL__bt found_output;
                         ANVIL__bt found_body;
                         ANVIL__account__get_argument_in_list__by_text(output.predefined_variables, *input, &found_predefined);
-                        ANVIL__account__get_argument_in_list__by_text(&output.doubles, *input, &found_double);
                         ANVIL__account__get_argument_in_list__by_text(&output.inputs, *input, &found_input);
                         ANVIL__account__get_argument_in_list__by_text(&output.outputs, *input, &found_output);
                         ANVIL__account__get_argument_in_list__by_text(&output.variables, *input, &found_body);
@@ -6928,8 +6877,6 @@ ANVIL__accountling_abstraction ANVIL__account__abstraction(ANVIL__list call_blue
                         // modify appropriately
                         if (found_predefined) {
                             input->type = ANVIL__pat__variable__predefined;
-                        } else if (found_double) {
-                            input->type = ANVIL__pat__variable__double;
                         } else if (found_input) {
                             input->type = ANVIL__pat__variable__input;
                         } else if (found_output) {
@@ -6975,12 +6922,10 @@ ANVIL__accountling_abstraction ANVIL__account__abstraction(ANVIL__list call_blue
                     if (output_argument->type == ANVIL__pat__variable) {
                         // find variable by type
                         ANVIL__bt found_predefined;
-                        ANVIL__bt found_double;
                         ANVIL__bt found_input;
                         ANVIL__bt found_output;
                         ANVIL__bt found_body;
                         ANVIL__account__get_argument_in_list__by_text(output.predefined_variables, *output_argument, &found_predefined);
-                        ANVIL__account__get_argument_in_list__by_text(&output.doubles, *output_argument, &found_double);
                         ANVIL__account__get_argument_in_list__by_text(&output.inputs, *output_argument, &found_input);
                         ANVIL__account__get_argument_in_list__by_text(&output.outputs, *output_argument, &found_output);
                         ANVIL__account__get_argument_in_list__by_text(&output.variables, *output_argument, &found_body);
@@ -6988,8 +6933,6 @@ ANVIL__accountling_abstraction ANVIL__account__abstraction(ANVIL__list call_blue
                         // modify appropriately
                         if (found_predefined) {
                             output_argument->type = ANVIL__pat__variable__predefined;
-                        } else if (found_double) {
-                            output_argument->type = ANVIL__pat__variable__double;
                         } else if (found_input) {
                             output_argument->type = ANVIL__pat__variable__input;
                         } else if (found_output) {
@@ -7422,13 +7365,6 @@ void ANVIL__print__accountling_program(ANVIL__accountling_program program) {
                 ANVIL__print__accountling_variable_list(&abstraction.outputs, 4);
             }
 
-            // if there are doubles
-            if (abstraction.doubles.filled_index > 0) {
-                // print doubles
-                printf("\t\t\tDoubles:\n");
-                ANVIL__print__accountling_variable_list(&abstraction.doubles, 4);
-            }
-
             // if there are variables
             if (abstraction.variables.filled_index > 0) {
                 // print variables
@@ -7798,7 +7734,7 @@ ANVIL__flag_ID ANVIL__translate__accountling_flag_index_to_flag_ID(ANVIL__accoun
 
 // generate function
 void ANVIL__forge__anvil_abstraction(ANVIL__generation_workspace* workspace, ANVIL__generation_abstraction* generation_abstraction, ANVIL__accountling_abstraction accountling_abstraction, ANVIL__error* error) {
-    ANVIL__sttring_index current_string_ID = 0;
+    ANVIL__string_index current_string_ID = 0;
 
     // setup offset
     (*generation_abstraction).offsets.function_start = ANVIL__get__offset((*workspace).workspace);
@@ -8083,7 +8019,7 @@ void ANVIL__forge__anvil_abstraction(ANVIL__generation_workspace* workspace, ANV
 
     // pass outputs
     for (ANVIL__output_count i = 0; i < generation_abstraction->cells.output_count; i++) {
-        // pass input
+        // pass output
         ANVIL__code__cell_to_cell(workspace->workspace, ANVIL__sft__always_run, generation_abstraction->cells.workspace_output_range.start + i, generation_abstraction->cells.function_output_range.start + i);
     }
 
@@ -8097,7 +8033,7 @@ void ANVIL__forge__anvil_abstraction(ANVIL__generation_workspace* workspace, ANV
     generation_abstraction->offsets.function_data = ANVIL__get__offset(workspace->workspace);
 
     // setup strings
-    for (ANVIL__sttring_index i = 0; i < ANVIL__calculate__list_content_count(generation_abstraction->converted_strings, sizeof(ANVIL__buffer)); i++) {
+    for (ANVIL__string_index i = 0; i < ANVIL__calculate__list_content_count(generation_abstraction->converted_strings, sizeof(ANVIL__buffer)); i++) {
         // setup offset
         ((ANVIL__offset*)generation_abstraction->offsets.strings_offsets.buffer.start)[i] = ANVIL__get__offset(workspace->workspace);
 
