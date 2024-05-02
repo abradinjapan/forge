@@ -6455,9 +6455,11 @@ ANVIL__accountling_abstraction ANVIL__account__abstraction(ANVIL__list call_blue
 
                 // get found variable back
                 ANVIL__bt found_predefined;
-                ANVIL__bt found_variable;
+                ANVIL__bt found_input;
+                ANVIL__bt found_output;
                 ANVIL__account__get_argument_in_list__by_text(predefined_variables, searching_for, &found_predefined);
-                ANVIL__account__get_argument_in_list__by_text(&output.outputs, searching_for, &found_variable);
+                ANVIL__account__get_argument_in_list__by_text(&output.inputs, searching_for, &found_input);
+                ANVIL__account__get_argument_in_list__by_text(&output.outputs, searching_for, &found_output);
 
                 // if variable already exists
                 if (found_predefined == ANVIL__bt__true) {
@@ -6467,11 +6469,19 @@ ANVIL__accountling_abstraction ANVIL__account__abstraction(ANVIL__list call_blue
                     return output;
                 }
 
+                // if variable already exists
+                if (found_input == ANVIL__bt__true) {
+                    // variable declared twice
+                    *error = ANVIL__open__error("Accounting Error: An input was illegally used as an output.", searching_for.text.lexling.location);
+
+                    return output;
+                }
+
                 // modify variable type
                 searching_for.type = ANVIL__pat__variable__output;
 
                 // if variable already exists
-                if (found_variable == ANVIL__bt__true) {
+                if (found_output == ANVIL__bt__true) {
                     // variable declared twice
                     *error = ANVIL__open__error("Accounting Error: A duplicate header output was detected.", searching_for.text.lexling.location);
 
