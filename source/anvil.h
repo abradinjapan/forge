@@ -1034,6 +1034,27 @@ typedef enum ANVIL__nit {
     ANVIL__nit__COUNT,
 } ANVIL__nit;
 
+/* Current */
+// check if a current buffer is still valid
+ANVIL__bt ANVIL__check__current_within_range(ANVIL__buffer current) {
+    return (current.start <= current.end);
+}
+
+// calculate a current buffer from a list // NOTE: buffer cannot be null or calculation fails!
+ANVIL__current ANVIL__calculate__current_from_list_filled_index(ANVIL__list* list) {
+    return ANVIL__create__buffer((*list).buffer.start, (*list).buffer.start + (*list).filled_index - 1);
+}
+
+// check for a character at a current
+ANVIL__bt ANVIL__check__character_range_at_current(ANVIL__buffer current, ANVIL__character range_start, ANVIL__character range_end) {
+    return ((*(ANVIL__character*)current.start) >= range_start) && ((*(ANVIL__character*)current.start) <= range_end);
+}
+
+// calculate the amounnt of items in one list (assumes all items are same size!)
+ANVIL__list_filled_index ANVIL__calculate__list_content_count(ANVIL__list list, size_t item_size) {
+    return list.filled_index / item_size;
+}
+
 /* Allocations */
 // allocations
 typedef struct ANVIL__allocations {
@@ -1102,7 +1123,7 @@ ANVIL__bt ANVIL__check__valid_address_range_in_allocations(ANVIL__allocations* a
     ANVIL__buffer current;
     
     // setup current
-    current = ANVIL__create__buffer((*allocations).buffers.buffer.start, ANVIL__calculate__list_current_address(&((*allocations).buffers)));
+    current = ANVIL__calculate__list_current_buffer(&allocations->buffers); //ANVIL__create__buffer((*allocations).buffers.buffer.start, ANVIL__calculate__list_current_address(&((*allocations).buffers)) - 1);
 
     // check for valid allocation range
     while (current.start <= current.end) {
@@ -1133,6 +1154,29 @@ ANVIL__allocations ANVIL__open__allocations(ANVIL__bt* memory_error_occured) {
 void ANVIL__close__allocations(ANVIL__allocations* allocations) {
     // clean up
     ANVIL__close__list((*allocations).buffers);
+
+    return;
+}
+
+// print allocations
+void ANVIL__print__allocations(ANVIL__allocations allocations) {
+    // print header
+    printf("Allocations:\n");
+
+    // setup current
+    ANVIL__current current_allocation = ANVIL__calculate__current_from_list_filled_index(&allocations.buffers);
+
+    // for each allocation
+    while (ANVIL__check__current_within_range(current_allocation)) {
+        // get allocation
+        ANVIL__buffer allocation = *(ANVIL__buffer*)current_allocation.start;
+
+        // print allocation
+        printf("\t[ %lu %lu ] (%li)\n", (ANVIL__cell_integer_value)allocation.start, (ANVIL__cell_integer_value)allocation.end, (ANVIL__cell_integer_value)allocation.end - (ANVIL__cell_integer_value)allocation.start + 1);
+
+        // next allocation
+        current_allocation.start += sizeof(ANVIL__buffer);
+    }
 
     return;
 }
@@ -1244,6 +1288,7 @@ typedef enum ANVIL__et {
     ANVIL__et__invalid_address_range,
     ANVIL__et__buffer_to_buffer__buffers_are_different_sizes,
     ANVIL__et__compile__compilation_error,
+    ANVIL__et__program_ran_out_of_instructions,
 
     // count
     ANVIL__et__COUNT,
@@ -1286,6 +1331,31 @@ typedef enum ANVIL__ot {
 } ANVIL__ot;
 
 /* Helper Functions */
+// convert instruction type to instruction length type
+ANVIL__ilt ANVIL__convert__it_to_ilt(ANVIL__it instruction) {
+    ANVIL__ilt lengths[] = {
+        ANVIL__ilt__stop,
+        ANVIL__ilt__write_cell,
+        ANVIL__ilt__operate,
+        ANVIL__ilt__request_memory,
+        ANVIL__ilt__return_memory,
+        ANVIL__ilt__address_to_cell,
+        ANVIL__ilt__cell_to_address,
+        ANVIL__ilt__file_to_buffer,
+        ANVIL__ilt__buffer_to_file,
+        ANVIL__ilt__buffer_to_buffer,
+        ANVIL__ilt__compile,
+        ANVIL__ilt__run,
+        ANVIL__ilt__debug__putchar,
+        ANVIL__ilt__debug__print_cell_as_decimal,
+        ANVIL__ilt__debug__fgets,
+        ANVIL__ilt__debug__mark_data_section,
+        ANVIL__ilt__debug__mark_code_section,
+    };
+
+    return lengths[instruction];
+}
+
 // get a pointer from a context to a cell inside that context
 ANVIL__cell* ANVIL__get__cell_address_from_context(ANVIL__context* context, ANVIL__cell_ID cell_ID) {
     // return data
@@ -1661,7 +1731,7 @@ ANVIL__nit ANVIL__run__operation(ANVIL__context* context, ANVIL__ot operation_ty
         ANVIL__set__flag_in_context(context, (ANVIL__flag_ID)temp_result, (ANVIL__bt)temp_input_0);
 
         break;
-    // instruction ID was invalid
+    // operation ID was invalid
     default:
         // return failed instruction
         return ANVIL__nit__return_context;
@@ -1792,6 +1862,34 @@ ANVIL__nit ANVIL__run__instruction(ANVIL__allocations* allocations, ANVIL__conte
 
     // DEBUG
     // printf("[%lu]: instruction_ID: %lu\n", (ANVIL__u64)(*execution_read_address) - 1, (ANVIL__u64)instruction_ID);
+
+    // check for valid instruction ID
+    if (instruction_ID < ANVIL__it__COUNT) {
+        // check for valid allocation
+        if (ANVIL__check__valid_address_range_in_allocations(allocations, ANVIL__create__buffer((*context).cells[ANVIL__rt__program_current_address], (*context).cells[ANVIL__rt__program_current_address] + ANVIL__convert__it_to_ilt(instruction_ID) - 2)) == ANVIL__bt__false) {
+            // set error code
+            ANVIL__set__error_code_cell(context, ANVIL__et__program_ran_out_of_instructions);
+
+            /*// DEBUG
+            printf("Ran out of instructions!\n");
+            
+            // print allocations
+            ANVIL__print__allocations(*allocations);
+
+            // print allocation
+            printf("\t[ %lu %lu ] (%li)\n", (ANVIL__cell_integer_value)(*context).cells[ANVIL__rt__program_current_address], (ANVIL__cell_integer_value)(*context).cells[ANVIL__rt__program_current_address] + ANVIL__convert__it_to_ilt(instruction_ID) - 2, (ANVIL__cell_integer_value)(*context).cells[ANVIL__rt__program_current_address] + ANVIL__convert__it_to_ilt(instruction_ID) - 2 - (ANVIL__cell_integer_value)((ANVIL__cell_integer_value)(*context).cells[ANVIL__rt__program_current_address]));*/
+
+            // allocation does not exist, quit
+            return ANVIL__nit__return_context;
+        }
+    // invalid instruction ID
+    } else {
+        // set error
+        ANVIL__set__error_code_cell(context, ANVIL__et__invalid_instruction_ID);
+
+        // return exit context
+        return ANVIL__nit__return_context;
+    }
 
     // process instruction accordingly
     switch (instruction_ID) {
@@ -3450,29 +3548,6 @@ void ANVIL__standard__code__package(ANVIL__workspace* workspace, ANVIL__standard
 	ANVIL__standard__code__cell_to_unsigned_integer_string(workspace, standard_offsets);
 
     return;
-}
-
-/* Compiler */
-
-/* Current */
-// check if a current buffer is still valid
-ANVIL__bt ANVIL__check__current_within_range(ANVIL__buffer current) {
-    return (current.start <= current.end);
-}
-
-// calculate a current buffer from a list // NOTE: buffer cannot be null or calculation fails!
-ANVIL__current ANVIL__calculate__current_from_list_filled_index(ANVIL__list* list) {
-    return ANVIL__create__buffer((*list).buffer.start, (*list).buffer.start + (*list).filled_index - 1);
-}
-
-// check for a character at a current
-ANVIL__bt ANVIL__check__character_range_at_current(ANVIL__buffer current, ANVIL__character range_start, ANVIL__character range_end) {
-    return ((*(ANVIL__character*)current.start) >= range_start) && ((*(ANVIL__character*)current.start) <= range_end);
-}
-
-// calculate the amounnt of items in one list (assumes all items are same size!)
-ANVIL__list_filled_index ANVIL__calculate__list_content_count(ANVIL__list list, size_t item_size) {
-    return list.filled_index / item_size;
 }
 
 /* Lexer */
