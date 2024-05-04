@@ -6537,10 +6537,12 @@ ANVIL__accountling_abstraction ANVIL__account__abstraction(ANVIL__list call_blue
 
                             // check if argument already exists
                             ANVIL__bt found_input;
+                            ANVIL__bt found_output;
                             ANVIL__bt found_body;
                             ANVIL__account__get_argument_in_list__by_text(&output.inputs, argument, &found_input);
+                            ANVIL__account__get_argument_in_list__by_text(&output.outputs, argument, &found_output);
                             ANVIL__account__get_argument_in_list__by_text(&output.variables, argument, &found_body);
-                            if ((found_input || found_body) == ANVIL__bt__false) {
+                            if ((found_input || found_output || found_body) == ANVIL__bt__false) {
                                 *error = ANVIL__open__error("Accounting Error: A variable was used before it was declared.", argument.text.lexling.location);
 
                                 return output;
