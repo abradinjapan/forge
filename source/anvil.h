@@ -183,7 +183,10 @@ char* ANVIL__global__accountling_call_type_name_strings[] = {
     "forge.compile",
     "forge.run",
     "forge.reset.error_code",
+    "forge.get.program_inputs",
     "forge.set.program_outputs",
+    "forge.context_buffer.set_inputs",
+    "forge.context_buffer.get_outputs",
 };
 
 // program stage type
@@ -3180,6 +3183,10 @@ typedef enum ANVIL__standard__sot {
     ANVIL__standard__sot__print_buffer_as_string__loop__start,
     ANVIL__standard__sot__print_buffer_as_string__loop__end,
 
+    // context functions
+    ANVIL__standard__sot__set_inputs_in_context_buffer__start,
+    ANVIL__standard__sot__get_outputs_from_context_buffer__start,
+
     // count
     ANVIL__standard__sot__COUNT,
 } ANVIL__standard__sot;
@@ -3535,6 +3542,156 @@ void ANVIL__standard__code__print_buffer_as_string(ANVIL__workspace* workspace, 
 	return;
 }
 
+// register types
+typedef enum ANVIL__standard__set_inputs_in_context_buffer {
+	// preserve start
+	ANVIL__standard__set_inputs_in_context_buffer__preserve__START = ANVIL__srt__start__workspace,
+
+	// variables
+	ANVIL__standard__set_inputs_in_context_buffer__context_start = ANVIL__standard__set_inputs_in_context_buffer__preserve__START,
+	ANVIL__standard__set_inputs_in_context_buffer__context_end,
+	ANVIL__standard__set_inputs_in_context_buffer__input_start,
+	ANVIL__standard__set_inputs_in_context_buffer__input_end,
+	ANVIL__standard__set_inputs_in_context_buffer__input_start_offset,
+    ANVIL__standard__set_inputs_in_context_buffer__input_end_offset,
+	ANVIL__standard__set_inputs_in_context_buffer__input_start_address,
+	ANVIL__standard__set_inputs_in_context_buffer__input_end_address,
+
+	// preserve end
+	ANVIL__standard__set_inputs_in_context_buffer__preserve__END,
+
+	// inputs
+	ANVIL__standard__set_inputs_in_context_buffer__input__context_start = ANVIL__srt__start__function_io,
+	ANVIL__standard__set_inputs_in_context_buffer__input__context_end,
+	ANVIL__standard__set_inputs_in_context_buffer__input__input_start,
+	ANVIL__standard__set_inputs_in_context_buffer__input__input_end,
+} ANVIL__standard__set_inputs_in_context_buffer;
+
+// call function
+void ANVIL__code__call__standard__set_inputs_in_context_buffer(ANVIL__workspace* workspace, ANVIL__standard__offsets* anvil_offsets, ANVIL__flag_ID flag, ANVIL__cell_ID input__context_start, ANVIL__cell_ID input__context_end, ANVIL__cell_ID input__input_start, ANVIL__cell_ID input__input_end) {
+	// pass inputs
+	ANVIL__code__cell_to_cell(workspace, flag, input__context_start, ANVIL__standard__set_inputs_in_context_buffer__input__context_start);
+	ANVIL__code__cell_to_cell(workspace, flag, input__context_end, ANVIL__standard__set_inputs_in_context_buffer__input__context_end);
+	ANVIL__code__cell_to_cell(workspace, flag, input__input_start, ANVIL__standard__set_inputs_in_context_buffer__input__input_start);
+	ANVIL__code__cell_to_cell(workspace, flag, input__input_end, ANVIL__standard__set_inputs_in_context_buffer__input__input_end);
+
+	// call function
+	ANVIL__code__call__static(workspace, flag, (*anvil_offsets).offsets[ANVIL__standard__sot__set_inputs_in_context_buffer__start]);
+
+	return;
+}
+
+// build function
+void ANVIL__code__standard__set_inputs_in_context_buffer(ANVIL__workspace* workspace, ANVIL__standard__offsets* anvil_offsets) {
+	// setup function offset
+	(*anvil_offsets).offsets[ANVIL__standard__sot__set_inputs_in_context_buffer__start] = ANVIL__get__offset(workspace);
+
+	// setup function prologue
+	ANVIL__code__preserve_workspace(workspace, ANVIL__sft__always_run, ANVIL__standard__set_inputs_in_context_buffer__preserve__START, ANVIL__standard__set_inputs_in_context_buffer__preserve__END);
+
+	// get inputs
+	ANVIL__code__cell_to_cell(workspace, ANVIL__sft__always_run, ANVIL__standard__set_inputs_in_context_buffer__input__context_start, ANVIL__standard__set_inputs_in_context_buffer__context_start);
+	ANVIL__code__cell_to_cell(workspace, ANVIL__sft__always_run, ANVIL__standard__set_inputs_in_context_buffer__input__context_end, ANVIL__standard__set_inputs_in_context_buffer__context_end);
+	ANVIL__code__cell_to_cell(workspace, ANVIL__sft__always_run, ANVIL__standard__set_inputs_in_context_buffer__input__input_start, ANVIL__standard__set_inputs_in_context_buffer__input_start);
+	ANVIL__code__cell_to_cell(workspace, ANVIL__sft__always_run, ANVIL__standard__set_inputs_in_context_buffer__input__input_end, ANVIL__standard__set_inputs_in_context_buffer__input_end);
+
+	// calculate variable addresses
+    ANVIL__code__write_cell(workspace, (ANVIL__cell)(ANVIL__srt__input_buffer_start * sizeof(ANVIL__cell)), ANVIL__standard__set_inputs_in_context_buffer__input_start_offset);
+    ANVIL__code__write_cell(workspace, (ANVIL__cell)(ANVIL__srt__input_buffer_end * sizeof(ANVIL__cell)), ANVIL__standard__set_inputs_in_context_buffer__input_end_offset);
+    ANVIL__code__operate(workspace, ANVIL__sft__always_run, ANVIL__ot__integer_add, ANVIL__standard__set_inputs_in_context_buffer__context_start, ANVIL__standard__set_inputs_in_context_buffer__input_start_offset, ANVIL__unused_cell_ID, ANVIL__standard__set_inputs_in_context_buffer__input_start_address);
+    ANVIL__code__operate(workspace, ANVIL__sft__always_run, ANVIL__ot__integer_add, ANVIL__standard__set_inputs_in_context_buffer__context_start, ANVIL__standard__set_inputs_in_context_buffer__input_end_offset, ANVIL__unused_cell_ID, ANVIL__standard__set_inputs_in_context_buffer__input_end_address);
+
+    // write data
+    ANVIL__code__cell_to_address(workspace, ANVIL__sft__always_run, ANVIL__standard__set_inputs_in_context_buffer__input_start, ANVIL__srt__constant__cell_bit_count, ANVIL__standard__set_inputs_in_context_buffer__input_start_address);
+    ANVIL__code__cell_to_address(workspace, ANVIL__sft__always_run, ANVIL__standard__set_inputs_in_context_buffer__input_end, ANVIL__srt__constant__cell_bit_count, ANVIL__standard__set_inputs_in_context_buffer__input_end_address);
+
+	// setup function epilogue
+	ANVIL__code__restore_workspace(workspace, ANVIL__sft__always_run, ANVIL__standard__set_inputs_in_context_buffer__preserve__START, ANVIL__standard__set_inputs_in_context_buffer__preserve__END);
+
+	// return to caller
+	ANVIL__code__jump__explicit(workspace, ANVIL__sft__always_run, ANVIL__srt__return_address);
+
+	return;
+}
+
+// register types
+typedef enum ANVIL__standard__get_outputs_from_context_buffer {
+	// preserve start
+	ANVIL__standard__get_outputs_from_context_buffer__preserve__START = ANVIL__srt__start__workspace,
+
+	// variables
+	ANVIL__standard__get_outputs_from_context_buffer__context_start = ANVIL__standard__get_outputs_from_context_buffer__preserve__START,
+	ANVIL__standard__get_outputs_from_context_buffer__context_end,
+	ANVIL__standard__get_outputs_from_context_buffer__output_start,
+	ANVIL__standard__get_outputs_from_context_buffer__output_end,
+	ANVIL__standard__get_outputs_from_context_buffer__output_start_read_offset,
+	ANVIL__standard__get_outputs_from_context_buffer__output_end_read_offset,
+	ANVIL__standard__get_outputs_from_context_buffer__output_start_read_address,
+	ANVIL__standard__get_outputs_from_context_buffer__output_end_read_address,
+
+	// preserve end
+	ANVIL__standard__get_outputs_from_context_buffer__preserve__END,
+
+	// inputs
+	ANVIL__standard__get_outputs_from_context_buffer__input__context_start = ANVIL__srt__start__function_io,
+	ANVIL__standard__get_outputs_from_context_buffer__input__context_end,
+
+	// outputs
+	ANVIL__standard__get_outputs_from_context_buffer__output__output_start = ANVIL__srt__start__function_io,
+	ANVIL__standard__get_outputs_from_context_buffer__output__output_end,
+} ANVIL__standard__get_outputs_from_context_buffer;
+
+// call function
+void ANVIL__code__call__standard__get_outputs_from_context_buffer(ANVIL__workspace* workspace, ANVIL__standard__offsets* anvil_offsets, ANVIL__flag_ID flag, ANVIL__cell_ID input__context_start, ANVIL__cell_ID input__context_end, ANVIL__cell_ID output__output_start, ANVIL__cell_ID output__output_end) {
+	// pass inputs
+	ANVIL__code__cell_to_cell(workspace, flag, input__context_start, ANVIL__standard__get_outputs_from_context_buffer__input__context_start);
+	ANVIL__code__cell_to_cell(workspace, flag, input__context_end, ANVIL__standard__get_outputs_from_context_buffer__input__context_end);
+
+	// call function
+	ANVIL__code__call__static(workspace, flag, (*anvil_offsets).offsets[ANVIL__standard__sot__get_outputs_from_context_buffer__start]);
+
+	// pass outputs
+	ANVIL__code__cell_to_cell(workspace, flag, ANVIL__standard__get_outputs_from_context_buffer__output__output_start, output__output_start);
+	ANVIL__code__cell_to_cell(workspace, flag, ANVIL__standard__get_outputs_from_context_buffer__output__output_end, output__output_end);
+
+	return;
+}
+
+// build function
+void ANVIL__code__standard__get_outputs_from_context_buffer(ANVIL__workspace* workspace, ANVIL__standard__offsets* anvil_offsets) {
+	// setup function offset
+	(*anvil_offsets).offsets[ANVIL__standard__sot__get_outputs_from_context_buffer__start] = ANVIL__get__offset(workspace);
+
+	// setup function prologue
+	ANVIL__code__preserve_workspace(workspace, ANVIL__sft__always_run, ANVIL__standard__get_outputs_from_context_buffer__preserve__START, ANVIL__standard__get_outputs_from_context_buffer__preserve__END);
+
+	// get inputs
+	ANVIL__code__cell_to_cell(workspace, ANVIL__sft__always_run, ANVIL__standard__get_outputs_from_context_buffer__input__context_start, ANVIL__standard__get_outputs_from_context_buffer__context_start);
+	ANVIL__code__cell_to_cell(workspace, ANVIL__sft__always_run, ANVIL__standard__get_outputs_from_context_buffer__input__context_end, ANVIL__standard__get_outputs_from_context_buffer__context_end);
+
+	// setup addresses
+    ANVIL__code__write_cell(workspace, (ANVIL__cell)(ANVIL__srt__output_buffer_start * sizeof(ANVIL__cell)), ANVIL__standard__get_outputs_from_context_buffer__output_start_read_offset);
+    ANVIL__code__write_cell(workspace, (ANVIL__cell)(ANVIL__srt__output_buffer_end * sizeof(ANVIL__cell)), ANVIL__standard__get_outputs_from_context_buffer__output_end_read_offset);
+    ANVIL__code__operate(workspace, ANVIL__sft__always_run, ANVIL__ot__integer_add, ANVIL__standard__get_outputs_from_context_buffer__context_start, ANVIL__standard__get_outputs_from_context_buffer__output_start_read_offset, ANVIL__unused_cell_ID, ANVIL__standard__get_outputs_from_context_buffer__output_start_read_address);
+    ANVIL__code__operate(workspace, ANVIL__sft__always_run, ANVIL__ot__integer_add, ANVIL__standard__get_outputs_from_context_buffer__context_start, ANVIL__standard__get_outputs_from_context_buffer__output_end_read_offset, ANVIL__unused_cell_ID, ANVIL__standard__get_outputs_from_context_buffer__output_end_read_address);
+
+    // perform reads
+    ANVIL__code__address_to_cell(workspace, ANVIL__sft__always_run, ANVIL__standard__get_outputs_from_context_buffer__output_start_read_address, ANVIL__srt__constant__cell_bit_count, ANVIL__standard__get_outputs_from_context_buffer__output_start);
+    ANVIL__code__address_to_cell(workspace, ANVIL__sft__always_run, ANVIL__standard__get_outputs_from_context_buffer__output_end_read_address, ANVIL__srt__constant__cell_bit_count, ANVIL__standard__get_outputs_from_context_buffer__output_end);
+
+	// setup outputs
+	ANVIL__code__cell_to_cell(workspace, ANVIL__sft__always_run, ANVIL__standard__get_outputs_from_context_buffer__output_start, ANVIL__standard__get_outputs_from_context_buffer__output__output_start);
+	ANVIL__code__cell_to_cell(workspace, ANVIL__sft__always_run, ANVIL__standard__get_outputs_from_context_buffer__output_end, ANVIL__standard__get_outputs_from_context_buffer__output__output_end);
+
+	// setup function epilogue
+	ANVIL__code__restore_workspace(workspace, ANVIL__sft__always_run, ANVIL__standard__get_outputs_from_context_buffer__preserve__START, ANVIL__standard__get_outputs_from_context_buffer__preserve__END);
+
+	// return to caller
+	ANVIL__code__jump__explicit(workspace, ANVIL__sft__always_run, ANVIL__srt__return_address);
+
+	return;
+}
+
 // build package
 void ANVIL__standard__code__package(ANVIL__workspace* workspace, ANVIL__standard__offsets* standard_offsets) {
     // write functions
@@ -3542,6 +3699,8 @@ void ANVIL__standard__code__package(ANVIL__workspace* workspace, ANVIL__standard
     ANVIL__standard__code__print_buffer_as_string(workspace, standard_offsets);
 	ANVIL__standard__code__calculate_decimal_digit_count(workspace, standard_offsets);
 	ANVIL__standard__code__cell_to_unsigned_integer_string(workspace, standard_offsets);
+    ANVIL__code__standard__set_inputs_in_context_buffer(workspace, standard_offsets);
+    ANVIL__code__standard__get_outputs_from_context_buffer(workspace, standard_offsets);
 
     return;
 }
@@ -5080,7 +5239,10 @@ typedef enum ANVIL__act {
 
     // etc
     ANVIL__act__reset_error_code_cell,
+    ANVIL__act__get_program_inputs,
     ANVIL__act__set_program_outputs,
+    ANVIL__act__set_context_buffer_inputs,
+    ANVIL__act__get_context_buffer_outputs,
 
     // end
     ANVIL__act__END,
@@ -5391,7 +5553,10 @@ typedef enum ANVIL__bnit {
     ANVIL__bnit__compile,
     ANVIL__bnit__run,
     ANVIL__bnit__reset_error_code,
+    ANVIL__bnit__get_program_inputs,
     ANVIL__bnit__set_program_outputs,
+    ANVIL__bnit__set_context_buffer_inputs,
+    ANVIL__bnit__get_context_buffer_outputs,
 
     // stats
     ANVIL__bnit__COUNT,
@@ -5948,12 +6113,37 @@ ANVIL__list ANVIL__generate__call_blueprint(ANVIL__list parsling_programs, ANVIL
             0,
             0,
         ANVIL__abt__define_call,
+            ANVIL__act__get_program_inputs,
+            ANVIL__bnit__get_program_inputs,
+            0,
+            2,
+            ANVIL__pat__variable,
+            ANVIL__pat__variable,
+        ANVIL__abt__define_call,
             ANVIL__act__set_program_outputs,
             ANVIL__bnit__set_program_outputs,
             2,
             ANVIL__pat__variable,
             ANVIL__pat__variable,
             0,
+        ANVIL__abt__define_call,
+            ANVIL__act__set_context_buffer_inputs,
+            ANVIL__bnit__set_context_buffer_inputs,
+            4,
+            ANVIL__pat__variable,
+            ANVIL__pat__variable,
+            ANVIL__pat__variable,
+            ANVIL__pat__variable,
+            0,
+        ANVIL__abt__define_call,
+            ANVIL__act__get_context_buffer_outputs,
+            ANVIL__bnit__get_context_buffer_outputs,
+            2,
+            ANVIL__pat__variable,
+            ANVIL__pat__variable,
+            2,
+            ANVIL__pat__variable,
+            ANVIL__pat__variable,
         
         // end of blueprint
         ANVIL__abt__end_of_blueprint,
@@ -7980,9 +8170,22 @@ void ANVIL__forge__anvil_abstraction(ANVIL__generation_workspace* workspace, ANV
                     ANVIL__code__write_cell(workspace->workspace, ANVIL__et__no_error, ANVIL__rt__error_code);
 
                     break;
+                case ANVIL__act__get_program_inputs:
+                    ANVIL__code__cell_to_cell(workspace->workspace, ANVIL__sft__always_run, ANVIL__srt__input_buffer_start, ANVIL__translate__accountling_variable_index_to_cell_ID(generation_abstraction, ANVIL__get__abstractling_statement_argument_by_index(statement.outputs, 0), error));
+                    ANVIL__code__cell_to_cell(workspace->workspace, ANVIL__sft__always_run, ANVIL__srt__input_buffer_end, ANVIL__translate__accountling_variable_index_to_cell_ID(generation_abstraction, ANVIL__get__abstractling_statement_argument_by_index(statement.outputs, 1), error));
+
+                    break;
                 case ANVIL__act__set_program_outputs:
                     ANVIL__code__cell_to_cell(workspace->workspace, ANVIL__sft__always_run, ANVIL__translate__accountling_variable_index_to_cell_ID(generation_abstraction, ANVIL__get__abstractling_statement_argument_by_index(statement.inputs, 0), error), ANVIL__srt__output_buffer_start);
                     ANVIL__code__cell_to_cell(workspace->workspace, ANVIL__sft__always_run, ANVIL__translate__accountling_variable_index_to_cell_ID(generation_abstraction, ANVIL__get__abstractling_statement_argument_by_index(statement.inputs, 1), error), ANVIL__srt__output_buffer_end);
+
+                    break;
+                case ANVIL__act__set_context_buffer_inputs:
+                    ANVIL__code__call__standard__set_inputs_in_context_buffer(workspace->workspace, &workspace->standard_offsets, ANVIL__sft__always_run, ANVIL__translate__accountling_variable_index_to_cell_ID(generation_abstraction, ANVIL__get__abstractling_statement_argument_by_index(statement.inputs, 0), error), ANVIL__translate__accountling_variable_index_to_cell_ID(generation_abstraction, ANVIL__get__abstractling_statement_argument_by_index(statement.inputs, 1), error), ANVIL__translate__accountling_variable_index_to_cell_ID(generation_abstraction, ANVIL__get__abstractling_statement_argument_by_index(statement.inputs, 2), error), ANVIL__translate__accountling_variable_index_to_cell_ID(generation_abstraction, ANVIL__get__abstractling_statement_argument_by_index(statement.inputs, 3), error));
+
+                    break;
+                case ANVIL__act__get_context_buffer_outputs:
+                    ANVIL__code__call__standard__get_outputs_from_context_buffer(workspace->workspace, &workspace->standard_offsets, ANVIL__sft__always_run, ANVIL__translate__accountling_variable_index_to_cell_ID(generation_abstraction, ANVIL__get__abstractling_statement_argument_by_index(statement.inputs, 0), error), ANVIL__translate__accountling_variable_index_to_cell_ID(generation_abstraction, ANVIL__get__abstractling_statement_argument_by_index(statement.inputs, 1), error), ANVIL__translate__accountling_variable_index_to_cell_ID(generation_abstraction, ANVIL__get__abstractling_statement_argument_by_index(statement.outputs, 0), error), ANVIL__translate__accountling_variable_index_to_cell_ID(generation_abstraction, ANVIL__get__abstractling_statement_argument_by_index(statement.outputs, 1), error));
 
                     break;
                 default:
