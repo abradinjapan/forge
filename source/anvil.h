@@ -85,7 +85,7 @@ typedef ANVIL__accountling_index ANVIL__variable_index;
 typedef ANVIL__accountling_index ANVIL__call_index;
 typedef ANVIL__accountling_index ANVIL__offset_index;
 typedef ANVIL__accountling_index ANVIL__flag_index;
-typedef ANVIL__accountling_index ANVIL__sttatement_index;
+typedef ANVIL__accountling_index ANVIL__statement_index;
 typedef ANVIL__accountling_index ANVIL__header_index;
 typedef ANVIL__accountling_index ANVIL__string_index;
 typedef ANVIL__u64 ANVIL__abstraction_index;
