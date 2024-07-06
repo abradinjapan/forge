@@ -6,7 +6,6 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <stdio.h>
-#include <signal.h>
 
 /* Define */
 // types
