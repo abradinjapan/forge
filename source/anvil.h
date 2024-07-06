@@ -90,40 +90,43 @@ typedef ANVIL__accountling_index ANVIL__header_index;
 typedef ANVIL__accountling_index ANVIL__string_index;
 typedef ANVIL__u64 ANVIL__abstraction_index;
 
+// master namespace
+#define ANVIL__define__master_namespace "forge"
+
 // strings
 char* ANVIL__global__predefined_cell_name_strings[] = {
-    "forge.error_code",
-    "forge.constant.character_byte_size",
-    "forge.constant.character_bit_size",
-    "forge.constant.bits_in_byte",
-    "forge.constant.cell_byte_size",
-    "forge.constant.cell_bit_size",
-    "forge.constant.true",
-    "forge.constant.false",
-    "forge.constant.0",
-    "forge.constant.1",
-    "forge.constant.2",
-    "forge.constant.4",
-    "forge.constant.8",
-    "forge.constant.16",
-    "forge.constant.24",
-    "forge.constant.32",
-    "forge.constant.40",
-    "forge.constant.48",
-    "forge.constant.56",
-    "forge.constant.64",
-    "forge.constant.program_input.start",
-    "forge.constant.program_input.end",
-    "forge.constant.program_output.start",
-    "forge.constant.program_output.end",
-    "forge.stack.start",
-    "forge.stack.current",
-    "forge.stack.end",
+    ANVIL__define__master_namespace ".error_code",
+    ANVIL__define__master_namespace ".constant.character_byte_size",
+    ANVIL__define__master_namespace ".constant.character_bit_size",
+    ANVIL__define__master_namespace ".constant.bits_in_byte",
+    ANVIL__define__master_namespace ".constant.cell_byte_size",
+    ANVIL__define__master_namespace ".constant.cell_bit_size",
+    ANVIL__define__master_namespace ".constant.true",
+    ANVIL__define__master_namespace ".constant.false",
+    ANVIL__define__master_namespace ".constant.0",
+    ANVIL__define__master_namespace ".constant.1",
+    ANVIL__define__master_namespace ".constant.2",
+    ANVIL__define__master_namespace ".constant.4",
+    ANVIL__define__master_namespace ".constant.8",
+    ANVIL__define__master_namespace ".constant.16",
+    ANVIL__define__master_namespace ".constant.24",
+    ANVIL__define__master_namespace ".constant.32",
+    ANVIL__define__master_namespace ".constant.40",
+    ANVIL__define__master_namespace ".constant.48",
+    ANVIL__define__master_namespace ".constant.56",
+    ANVIL__define__master_namespace ".constant.64",
+    ANVIL__define__master_namespace ".constant.program_input.start",
+    ANVIL__define__master_namespace ".constant.program_input.end",
+    ANVIL__define__master_namespace ".constant.program_output.start",
+    ANVIL__define__master_namespace ".constant.program_output.end",
+    ANVIL__define__master_namespace ".stack.start",
+    ANVIL__define__master_namespace ".stack.current",
+    ANVIL__define__master_namespace ".stack.end",
 };
 char* ANVIL__global__predefined_flag_name_strings[] = {
-    "forge.always",
-    "forge.never",
-    "forge.temporary",
+    ANVIL__define__master_namespace ".always",
+    ANVIL__define__master_namespace ".never",
+    ANVIL__define__master_namespace ".temporary",
 };
 char* ANVIL__global__argument_type_name_strings[] = {
     "invalid",
@@ -143,50 +146,50 @@ char* ANVIL__global__argument_type_name_strings[] = {
     "string",
 };
 char* ANVIL__global__accountling_call_type_name_strings[] = {
-    "forge.set",
-    "forge.print.integer.signed",
-    "forge.print.integer.unsigned",
-    "forge.print.character",
-    "forge.print.buffer_as_string",
-    "forge.print.binary",
-    "forge.io.cell_to_address",
-    "forge.io.address_to_cell",
-    "forge.io.file_to_buffer",
-    "forge.io.buffer_to_file",
-    "forge.copy",
-    "forge.copy.buffer",
-    "forge.memory.request",
-    "forge.memory.return",
-    "forge.buffer.calculate_length",
-    "forge.cast.cell_to_unsigned_integer_string",
-    "forge.integer.add",
-    "forge.integer.subtract",
-    "forge.integer.multiply",
-    "forge.integer.divide",
-    "forge.integer.modulous",
-    "forge.integer.within_range",
-    "forge.binary.or",
-    "forge.binary.invert",
-    "forge.binary.and",
-    "forge.binary.xor",
-    "forge.binary.shift_higher",
-    "forge.binary.shift_lower",
-    "forge.binary.overwrite",
-    "forge.flag.get",
-    "forge.flag.set",
-    "forge.flag.invert",
-    "forge.flag.or",
-    "forge.flag.and",
-    "forge.flag.xor",
-    "forge.jump",
-    "forge.open.context",
-    "forge.compile",
-    "forge.run",
-    "forge.reset.error_code",
-    "forge.get.program_inputs",
-    "forge.set.program_outputs",
-    "forge.context_buffer.set_inputs",
-    "forge.context_buffer.get_outputs",
+    ANVIL__define__master_namespace ".set",
+    ANVIL__define__master_namespace ".print.integer.signed",
+    ANVIL__define__master_namespace ".print.integer.unsigned",
+    ANVIL__define__master_namespace ".print.character",
+    ANVIL__define__master_namespace ".print.buffer_as_string",
+    ANVIL__define__master_namespace ".print.binary",
+    ANVIL__define__master_namespace ".io.cell_to_address",
+    ANVIL__define__master_namespace ".io.address_to_cell",
+    ANVIL__define__master_namespace ".io.file_to_buffer",
+    ANVIL__define__master_namespace ".io.buffer_to_file",
+    ANVIL__define__master_namespace ".copy",
+    ANVIL__define__master_namespace ".copy.buffer",
+    ANVIL__define__master_namespace ".memory.request",
+    ANVIL__define__master_namespace ".memory.return",
+    ANVIL__define__master_namespace ".buffer.calculate_length",
+    ANVIL__define__master_namespace ".cast.cell_to_unsigned_integer_string",
+    ANVIL__define__master_namespace ".integer.add",
+    ANVIL__define__master_namespace ".integer.subtract",
+    ANVIL__define__master_namespace ".integer.multiply",
+    ANVIL__define__master_namespace ".integer.divide",
+    ANVIL__define__master_namespace ".integer.modulous",
+    ANVIL__define__master_namespace ".integer.within_range",
+    ANVIL__define__master_namespace ".binary.or",
+    ANVIL__define__master_namespace ".binary.invert",
+    ANVIL__define__master_namespace ".binary.and",
+    ANVIL__define__master_namespace ".binary.xor",
+    ANVIL__define__master_namespace ".binary.shift_higher",
+    ANVIL__define__master_namespace ".binary.shift_lower",
+    ANVIL__define__master_namespace ".binary.overwrite",
+    ANVIL__define__master_namespace ".flag.get",
+    ANVIL__define__master_namespace ".flag.set",
+    ANVIL__define__master_namespace ".flag.invert",
+    ANVIL__define__master_namespace ".flag.or",
+    ANVIL__define__master_namespace ".flag.and",
+    ANVIL__define__master_namespace ".flag.xor",
+    ANVIL__define__master_namespace ".jump",
+    ANVIL__define__master_namespace ".open.context",
+    ANVIL__define__master_namespace ".compile",
+    ANVIL__define__master_namespace ".run",
+    ANVIL__define__master_namespace ".reset.error_code",
+    ANVIL__define__master_namespace ".get.program_inputs",
+    ANVIL__define__master_namespace ".set.program_outputs",
+    ANVIL__define__master_namespace ".context_buffer.set_inputs",
+    ANVIL__define__master_namespace ".context_buffer.get_outputs",
 };
 
 // program stage type
@@ -4161,12 +4164,12 @@ ANVIL__argument_index ANVIL__find__parsling_argument_index__by_name(ANVIL__list 
 // translate string to boolean
 ANVIL__bt ANVIL__translate__string_to_boolean(ANVIL__buffer string, ANVIL__cell_integer_value* value) {
     // check possible values
-    if (ANVIL__calculate__buffer_contents_equal(string, ANVIL__open__buffer_from_string((u8*)"forge.boolean.false", ANVIL__bt__false, ANVIL__bt__false)) == ANVIL__bt__true) {
+    if (ANVIL__calculate__buffer_contents_equal(string, ANVIL__open__buffer_from_string((u8*)ANVIL__define__master_namespace ".boolean.false", ANVIL__bt__false, ANVIL__bt__false)) == ANVIL__bt__true) {
         *value = (ANVIL__cell_integer_value)(ANVIL__bt__false);
 
         return ANVIL__bt__true;
     }
-    if (ANVIL__calculate__buffer_contents_equal(string, ANVIL__open__buffer_from_string((u8*)"forge.boolean.true", ANVIL__bt__false, ANVIL__bt__false)) == ANVIL__bt__true) {
+    if (ANVIL__calculate__buffer_contents_equal(string, ANVIL__open__buffer_from_string((u8*)ANVIL__define__master_namespace ".boolean.true", ANVIL__bt__false, ANVIL__bt__false)) == ANVIL__bt__true) {
         *value = (ANVIL__cell_integer_value)(ANVIL__bt__true);
 
         return ANVIL__bt__true;
@@ -4177,7 +4180,7 @@ ANVIL__bt ANVIL__translate__string_to_boolean(ANVIL__buffer string, ANVIL__cell_
 
 // translate string to binary
 ANVIL__bt ANVIL__translate__string_to_binary(ANVIL__buffer string, ANVIL__cell_integer_value* value) {
-    ANVIL__buffer prefix = ANVIL__open__buffer_from_string((u8*)"forge.binary.", ANVIL__bt__false, ANVIL__bt__false);
+    ANVIL__buffer prefix = ANVIL__open__buffer_from_string((u8*)ANVIL__define__master_namespace ".binary.", ANVIL__bt__false, ANVIL__bt__false);
     ANVIL__buffer current;
     ANVIL__u64 character_count_limit = sizeof(ANVIL__u64) * ANVIL__define__bits_in_byte;
     ANVIL__u64 character_count = 0;
@@ -4245,7 +4248,7 @@ ANVIL__bt ANVIL__translate__string_to_binary(ANVIL__buffer string, ANVIL__cell_i
 
 // translate string to integer
 ANVIL__bt ANVIL__translate__string_to_integer(ANVIL__buffer string, ANVIL__cell_integer_value* value) {
-    ANVIL__buffer prefix = ANVIL__open__buffer_from_string((u8*)"forge.integer.", ANVIL__bt__false, ANVIL__bt__false);
+    ANVIL__buffer prefix = ANVIL__open__buffer_from_string((u8*)ANVIL__define__master_namespace ".integer.", ANVIL__bt__false, ANVIL__bt__false);
     ANVIL__buffer suffix;
     ANVIL__u64 digit = 0;
 
@@ -4334,7 +4337,7 @@ ANVIL__cell_integer_value ANVIL__translate__character_to_hexadecimal(ANVIL__char
 
 // translate string to hexedecimal
 ANVIL__bt ANVIL__translate__string_to_hexedecimal(ANVIL__buffer string, ANVIL__cell_integer_value* value) {
-    ANVIL__buffer prefix = ANVIL__open__buffer_from_string((u8*)"forge.hexadecimal.", ANVIL__bt__false, ANVIL__bt__false);
+    ANVIL__buffer prefix = ANVIL__open__buffer_from_string((u8*)ANVIL__define__master_namespace ".hexadecimal.", ANVIL__bt__false, ANVIL__bt__false);
     ANVIL__buffer suffix;
     ANVIL__buffer current;
     ANVIL__bt invalid_character;
